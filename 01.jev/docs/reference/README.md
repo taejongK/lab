@@ -35,3 +35,20 @@
 | typed-decisions | https://huggingface.co/datasets/LocalLLaMA/typed-decisions |
 | Open-Jev | https://huggingface.co/datasets/ZefanCai/Open-Jev |
 | jev-bench | https://huggingface.co/datasets/Praveenrajus/jev-bench |
+
+## 논문
+
+| 자료 | 링크 |
+|---|---|
+| ModernBERT (Warner et al. 2024) — Laya 인코더 | https://arxiv.org/abs/2412.13663 |
+| Strictly Proper Scoring Rules (Gneiting & Raftery 2007) | https://doi.org/10.1198/016214506000001437 |
+| REINFORCE (Williams 1992) | https://doi.org/10.1007/BF00992696 |
+| DeepSeekMath — GRPO (Shao et al. 2024) | https://arxiv.org/abs/2402.03300 |
+| On Calibration of Modern Neural Networks (Guo et al. 2017) | https://arxiv.org/abs/1706.04599 |
+
+## 분석한 오픈소스 코드
+
+| 자료 | 링크 |
+|---|---|
+| Laya (커밋 `1adc59f`) | https://github.com/NandhaKishorM/laya/tree/1adc59f7e371deb601fcfa18a14e25db238addcc |
+| Laya 체크포인트 (HF) | https://huggingface.co/convaiinnovations/laya |
