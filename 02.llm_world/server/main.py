@@ -5,13 +5,16 @@ uv run fastapi dev main.py   → http://127.0.0.1:8000
 import asyncio
 import json
 import logging
-import random
+import re
+import time
 from collections import deque
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
+
+import llm
 
 log = logging.getLogger("uvicorn.error")
 
@@ -36,6 +39,12 @@ MAP = [
     "####################",
 ]
 LANDMARKS = {"home": (4, 4), "bakery": (15, 4), "well": (10, 8), "plaza": (10, 12)}
+PERSONAS = {
+    "mina": "You are Mina, a curious villager who likes to walk around and chat with people.",
+    "tom": "You are Tom, the village baker. You care about your bakery but also need water from the well.",
+}
+NEARBY = 3  # 이 거리(맨해튼) 안의 엔티티를 '근처'로 본다
+MEMORY = 5  # NPC가 기억하는 최근 사건 수
 
 
 def walkable(x: int, y: int) -> bool:
@@ -76,7 +85,7 @@ class World:
         }
         self.bubbles: dict[str, str] = {}
         # NPC 전용 상태: 남은 경로, 막힌 틱 수, 다음 판단 가능 틱, 판단 중 여부
-        self.npc = {eid: {"path": [], "blocked": 0, "ready_at": 0, "thinking": False}
+        self.npc = {eid: {"path": [], "blocked": 0, "ready_at": 0, "thinking": False, "events": deque(maxlen=MEMORY)}
                     for eid, e in self.entities.items() if e["kind"] == "npc"}
 
     def move(self, eid: str, dx: int, dy: int) -> bool:
@@ -113,7 +122,9 @@ class World:
                 s["path"] = []
             if not s["path"]:
                 s["ready_at"] = self.tick + IDLE_TICKS
-                log.info("%s arrived near %s (%d,%d)", eid, nearest_place(e["x"], e["y"]), e["x"], e["y"])
+                place = nearest_place(e["x"], e["y"])
+                s["events"].append(f"You arrived at {place}.")
+                log.info("%s arrived near %s (%d,%d)", eid, place, e["x"], e["y"])
 
     def state(self) -> dict:
         return {
@@ -140,8 +151,35 @@ async def tick_loop() -> None:
                 clients.discard(ws)
 
 
-async def decide(eid: str) -> str:
-    return random.choice(list(LANDMARKS))
+def observe(eid: str, options: list[str]) -> str:
+    e = world.entities[eid]
+    near = [o["name"] for o in world.entities.values()
+            if o["id"] != eid and abs(o["x"] - e["x"]) + abs(o["y"] - e["y"]) <= NEARBY]
+    events = " ".join(world.npc[eid]["events"]) or "Nothing yet."
+    # 현재 장소·wait는 선택지에서 뺀다: 0.8B는 관찰에 보인 현재 장소를 그대로 따라 말해 제자리에 고착됨 (devlog 2026-10-13)
+    return (
+        f"You are at: {nearest_place(e['x'], e['y'])}. Nearby: {', '.join(near) or 'nobody'}.\n"
+        f"Recent events: {events}\n"
+        f"Where do you go next? Pick one of: {', '.join(options)}.\n"
+        'Format: {"target": <place>}'
+    )
+
+
+async def decide(eid: str) -> str | None:
+    """LLM에게 다음 목적지를 묻는다. 모델이 이름 댄 장소, 또는 None(무효 응답 → 대기 후 재시도).
+
+    서버는 응답에서 선택지 이름을 찾아낼 뿐 대신 고르지 않는다 (랜덤 대체 금지).
+    """
+    e = world.entities[eid]
+    here = nearest_place(e["x"], e["y"])
+    options = [p for p in LANDMARKS if p != here]
+    prompt = observe(eid, options)
+    t = time.perf_counter()
+    raw = await llm.ask(PERSONAS[eid] + " Reply with one JSON object only.", prompt)
+    m = re.search("|".join(options), raw or "")  # 펜스·키 이름이 틀려도 장소 이름만 있으면 인정
+    place = m.group(0) if m else None
+    log.info("%s LLM %.2fs | at %s | -> %r => %s", eid, time.perf_counter() - t, here, raw, place or "INVALID")
+    return place
 
 
 async def npc_loop() -> None:
@@ -152,8 +190,9 @@ async def npc_loop() -> None:
             world.npc[eid]["thinking"] = True
             try:
                 place = await decide(eid)
-                log.info("%s decided: move %s", eid, place)
-                world.go(eid, place)
+                if place:
+                    log.info("%s decided: move %s", eid, place)
+                    world.go(eid, place)
             finally:
                 world.npc[eid]["thinking"] = False
                 world.npc[eid]["ready_at"] = world.tick + IDLE_TICKS  # 경로가 비면(이미 도착) 바로 재판단 방지
@@ -161,6 +200,7 @@ async def npc_loop() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    await llm.load()
     tasks = [asyncio.create_task(tick_loop()), asyncio.create_task(npc_loop())]
     yield
     for t in tasks:
