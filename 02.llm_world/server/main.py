@@ -4,13 +4,19 @@ uv run fastapi dev main.py   → http://127.0.0.1:8000
 """
 import asyncio
 import json
+import logging
+import random
+from collections import deque
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 
+log = logging.getLogger("uvicorn.error")
+
 TICK = 0.2  # 초
+IDLE_TICKS = 10  # 도착 후 다음 판단까지 대기
 TILE = 16
 MAP = [
     "####################",
@@ -36,6 +42,30 @@ def walkable(x: int, y: int) -> bool:
     return 0 <= y < len(MAP) and 0 <= x < len(MAP[0]) and MAP[y][x] != "#"
 
 
+def bfs(start: tuple[int, int], goal: tuple[int, int]) -> list[tuple[int, int]]:
+    """벽만 피하는 최단 경로 (start 제외). 엔티티 충돌은 이동 시점에 처리."""
+    prev = {start: None}
+    q = deque([start])
+    while q:
+        cur = q.popleft()
+        if cur == goal:
+            path = []
+            while cur != start:
+                path.append(cur)
+                cur = prev[cur]
+            return path[::-1]
+        for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            nxt = (cur[0] + dx, cur[1] + dy)
+            if nxt not in prev and walkable(*nxt):
+                prev[nxt] = cur
+                q.append(nxt)
+    return []
+
+
+def nearest_place(x: int, y: int) -> str:
+    return min(LANDMARKS, key=lambda n: abs(LANDMARKS[n][0] - x) + abs(LANDMARKS[n][1] - y))
+
+
 class World:
     def __init__(self) -> None:
         self.tick = 0
@@ -45,16 +75,45 @@ class World:
             "tom": {"id": "tom", "name": "Tom", "kind": "npc", "x": 15, "y": 4, "dir": "down"},
         }
         self.bubbles: dict[str, str] = {}
+        # NPC 전용 상태: 남은 경로, 막힌 틱 수, 다음 판단 가능 틱, 판단 중 여부
+        self.npc = {eid: {"path": [], "blocked": 0, "ready_at": 0, "thinking": False}
+                    for eid, e in self.entities.items() if e["kind"] == "npc"}
 
-    def move(self, eid: str, dx: int, dy: int) -> None:
+    def move(self, eid: str, dx: int, dy: int) -> bool:
         e = self.entities[eid]
         e["dir"] = {(1, 0): "right", (-1, 0): "left", (0, 1): "down", (0, -1): "up"}.get((dx, dy), e["dir"])
         nx, ny = e["x"] + dx, e["y"] + dy
         if walkable(nx, ny) and not any(o["x"] == nx and o["y"] == ny for o in self.entities.values()):
             e["x"], e["y"] = nx, ny
+            return True
+        return False
+
+    def go(self, eid: str, place: str) -> None:
+        e = self.entities[eid]
+        self.npc[eid]["path"] = bfs((e["x"], e["y"]), LANDMARKS[place])
+
+    def idle_npcs(self) -> list[str]:
+        return [eid for eid, s in self.npc.items()
+                if not s["path"] and not s["thinking"] and self.tick >= s["ready_at"]]
 
     def step(self) -> None:
         self.tick += 1
+        for eid, s in self.npc.items():
+            if not s["path"]:
+                continue
+            e = self.entities[eid]
+            nx, ny = s["path"][0]
+            if self.move(eid, nx - e["x"], ny - e["y"]):
+                s["path"].pop(0)
+                s["blocked"] = 0
+            else:
+                s["blocked"] += 1
+            # 목적지가 막혔거나(다른 엔티티가 서 있음) 오래 막히면 거기서 멈춘다
+            if s["blocked"] > 5 or (len(s["path"]) == 1 and s["blocked"] > 0):
+                s["path"] = []
+            if not s["path"]:
+                s["ready_at"] = self.tick + IDLE_TICKS
+                log.info("%s arrived near %s (%d,%d)", eid, nearest_place(e["x"], e["y"]), e["x"], e["y"])
 
     def state(self) -> dict:
         return {
@@ -81,11 +140,31 @@ async def tick_loop() -> None:
                 clients.discard(ws)
 
 
+async def decide(eid: str) -> str:
+    return random.choice(list(LANDMARKS))
+
+
+async def npc_loop() -> None:
+    """할 일 없는 NPC를 하나씩 판단. 월드 틱과 분리되어 있어 판단이 느려도 월드는 멈추지 않는다."""
+    while True:
+        await asyncio.sleep(TICK)
+        for eid in world.idle_npcs():
+            world.npc[eid]["thinking"] = True
+            try:
+                place = await decide(eid)
+                log.info("%s decided: move %s", eid, place)
+                world.go(eid, place)
+            finally:
+                world.npc[eid]["thinking"] = False
+                world.npc[eid]["ready_at"] = world.tick + IDLE_TICKS  # 경로가 비면(이미 도착) 바로 재판단 방지
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    task = asyncio.create_task(tick_loop())
+    tasks = [asyncio.create_task(tick_loop()), asyncio.create_task(npc_loop())]
     yield
-    task.cancel()
+    for t in tasks:
+        t.cancel()
 
 
 app = FastAPI(lifespan=lifespan)

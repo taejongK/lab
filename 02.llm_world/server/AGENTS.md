@@ -11,7 +11,7 @@ FastAPI 서버. 월드 상태의 유일한 원본이며, 월드 틱 루프·NPC 
 | File | Description |
 |------|-------------|
 | `README.md` | 역할·스택·모델 요약, 실행 방법 |
-| `main.py` | FastAPI 앱: 맵·장소, `World`(엔티티·이동), 틱 루프, `/ws`, `../frontend/` 정적 서빙 |
+| `main.py` | FastAPI 앱: 맵·장소, BFS, `World`(엔티티·이동·NPC 경로), 틱 루프, NPC 판단 루프(`decide`), `/ws`, `../frontend/` 정적 서빙 |
 | `smoke_llm.py` | uzu + Qwen 0.8B 스모크 (지연·형식 확인) |
 | `pyproject.toml` | uv 의존성 (uzu, fastapi) |
 
