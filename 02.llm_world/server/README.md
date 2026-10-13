@@ -13,5 +13,6 @@
   `google/gemma-4-E4B-it`는 Hugging Face에서 Gemma 라이선스 동의가 필요할 수 있다 (확인 안 함).
 - 실행 방법:
   ```bash
+  uv run fastapi dev main.py   # 서버 + 프론트 → http://127.0.0.1:8000
   uv run python smoke_llm.py   # LLM 스모크: 모델 다운로드 + 행동 출력 지연·형식 확인
   ```
