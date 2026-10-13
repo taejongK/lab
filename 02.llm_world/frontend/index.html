@@ -6,10 +6,12 @@
 <style>
   body { margin: 0; background: #1b1b24; color: #e8e8e8; font: 14px monospace; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px; }
   canvas { image-rendering: pixelated; border: 2px solid #444; }
+  input { font: 14px monospace; padding: 4px 8px; }
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
+<input id="say" maxlength="80" size="50" placeholder="Enter로 말하기 (근처 NPC가 듣는다)">
 <div id="status">connecting…</div>
 <script>
 const SCALE = 3;
@@ -31,6 +33,14 @@ ws.onmessage = (ev) => {
     state = msg;
   }
 };
+
+const sayBox = document.getElementById("say");
+sayBox.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" || !sayBox.value.trim()) return;
+  ws.send(JSON.stringify({ type: "say", text: sayBox.value }));
+  sayBox.value = "";
+  sayBox.blur();
+});
 
 const KEYS = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] };
 addEventListener("keydown", (e) => {

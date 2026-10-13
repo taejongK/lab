@@ -45,6 +45,8 @@ PERSONAS = {
 }
 NEARBY = 3  # 이 거리(맨해튼) 안의 엔티티를 '근처'로 본다
 MEMORY = 5  # NPC가 기억하는 최근 사건 수
+BUBBLE_TICKS = 20  # 말풍선 표시 시간
+SAY_MAX = 80
 
 
 def walkable(x: int, y: int) -> bool:
@@ -83,7 +85,7 @@ class World:
             "mina": {"id": "mina", "name": "Mina", "kind": "npc", "x": 4, "y": 4, "dir": "down"},
             "tom": {"id": "tom", "name": "Tom", "kind": "npc", "x": 15, "y": 4, "dir": "down"},
         }
-        self.bubbles: dict[str, str] = {}
+        self.bubbles: dict[str, tuple[str, int]] = {}  # eid → (text, 사라질 틱)
         # NPC 전용 상태: 남은 경로, 막힌 틱 수, 다음 판단 가능 틱, 판단 중 여부
         self.npc = {eid: {"path": [], "blocked": 0, "ready_at": 0, "thinking": False, "events": deque(maxlen=MEMORY)}
                     for eid, e in self.entities.items() if e["kind"] == "npc"}
@@ -97,6 +99,16 @@ class World:
             return True
         return False
 
+    def say(self, eid: str, text: str) -> None:
+        """말풍선 + 근처 NPC 기억에 기록. 이게 '상호작용이 이동에 영향'을 주는 통로."""
+        e = self.entities[eid]
+        self.bubbles[eid] = (text, self.tick + BUBBLE_TICKS)
+        for oid, s in self.npc.items():
+            o = self.entities[oid]
+            if oid != eid and abs(o["x"] - e["x"]) + abs(o["y"] - e["y"]) <= NEARBY:
+                s["events"].append(f'{e["name"]} said: "{text}"')
+                log.info("%s heard %s: %r", oid, eid, text)
+
     def go(self, eid: str, place: str) -> None:
         e = self.entities[eid]
         self.npc[eid]["path"] = bfs((e["x"], e["y"]), LANDMARKS[place])
@@ -107,6 +119,7 @@ class World:
 
     def step(self) -> None:
         self.tick += 1
+        self.bubbles = {k: v for k, v in self.bubbles.items() if v[1] > self.tick}
         for eid, s in self.npc.items():
             if not s["path"]:
                 continue
@@ -131,7 +144,7 @@ class World:
             "type": "state",
             "tick": self.tick,
             "entities": list(self.entities.values()),
-            "bubbles": [{"id": k, "text": v} for k, v in self.bubbles.items()],
+            "bubbles": [{"id": k, "text": v[0]} for k, v in self.bubbles.items()],
         }
 
 
@@ -161,7 +174,7 @@ def observe(eid: str, options: list[str]) -> str:
         f"You are at: {nearest_place(e['x'], e['y'])}. Nearby: {', '.join(near) or 'nobody'}.\n"
         f"Recent events: {events}\n"
         f"Where do you go next? Pick one of: {', '.join(options)}.\n"
-        'Format: {"target": <place>}'
+        'Format: {"target": <place>, "say": <one short sentence>}'
     )
 
 
@@ -179,6 +192,9 @@ async def decide(eid: str) -> str | None:
     m = re.search("|".join(options), raw or "")  # 펜스·키 이름이 틀려도 장소 이름만 있으면 인정
     place = m.group(0) if m else None
     log.info("%s LLM %.2fs | at %s | -> %r => %s", eid, time.perf_counter() - t, here, raw, place or "INVALID")
+    said = re.search(r'"say"\s*:\s*"([^"]{1,%d})"' % SAY_MAX, raw or "")
+    if said:
+        world.say(eid, said.group(1))
     return place
 
 
@@ -227,6 +243,8 @@ async def ws_endpoint(ws: WebSocket) -> None:
             # 신뢰 경계: 클라이언트 입력은 한 칸 이동만 허용
             if msg.get("type") == "move" and (msg.get("dx"), msg.get("dy")) in {(1, 0), (-1, 0), (0, 1), (0, -1)}:
                 world.move("player", msg["dx"], msg["dy"])
+            elif msg.get("type") == "say" and isinstance(msg.get("text"), str) and msg["text"].strip():
+                world.say("player", msg["text"].strip()[:SAY_MAX])
     except WebSocketDisconnect:
         clients.discard(ws)
 

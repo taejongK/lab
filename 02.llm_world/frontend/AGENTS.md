@@ -11,7 +11,7 @@
 | File | Description |
 |------|-------------|
 | `README.md` | 역할·스택 요약 |
-| `index.html` | 전부: WebSocket 수신, Canvas 2D 그리기(타일·장소·엔티티·말풍선), 방향키 → `move` |
+| `index.html` | 전부: WebSocket 수신, Canvas 2D 그리기(타일·장소·엔티티·말풍선), 방향키 → `move`, 입력창 Enter → `say` |
 
 ## For AI Agents
 
