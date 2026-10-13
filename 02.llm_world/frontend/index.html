@@ -15,7 +15,25 @@
 <div id="status">connecting…</div>
 <script>
 const SCALE = 3;
-const COLORS = { player: "#4fc3f7", npc: "#ffb74d", floor: "#6a9a4a", wall: "#3d3d4d" };
+// 8×8 도트 스프라이트. 문자 → 팔레트 색, "." = 투명
+const SPRITES = {
+  floor: ["gggggggg", "ggGggggg", "gggggGgg", "gggggggg", "gGgggggg", "ggggggGg", "gggGgggg", "gggggggg"],
+  wall:  ["bbbbbbbB", "bbbbbbbB", "BBBBBBBB", "bbbBbbbb", "bbbBbbbb", "BBBBBBBB", "bbbbbbbB", "bbbbbbbB"],
+  mark:  ["........", ".yyyyyy.", ".y....y.", ".y....y.", ".y....y.", ".y....y.", ".yyyyyy.", "........"],
+  char:  ["..hhhh..", ".hhhhhh.", ".hsese..", ".hssss..", "..cccc..", ".scccccs", "..cccc..", "..f..f.."],
+};
+const PALETTE = { g: "#5f9b45", G: "#4d8238", b: "#7a6a5a", B: "#5a4c40", y: "rgba(255,230,120,0.6)",
+  s: "#f1c79a", e: "#222", f: "#3a2a20" };
+const LOOKS = { player: { h: "#2b2b2b", c: "#3fa7e0" }, mina: { h: "#8a3b1e", c: "#e0607a" }, tom: { h: "#d8d8d8", c: "#e0a040" } };
+function sprite(name, x, y, T, extra = {}) {
+  const px = T / 8;
+  SPRITES[name].forEach((row, j) => [...row].forEach((ch, i) => {
+    const col = extra[ch] || PALETTE[ch];
+    if (ch === "." || !col) return;
+    ctx.fillStyle = col;
+    ctx.fillRect(x + i * px, y + j * px, px, px);
+  }));
+}
 const canvas = document.getElementById("c");
 const ctx = canvas.getContext("2d");
 let init = null, state = null;
@@ -56,22 +74,19 @@ function draw() {
   const T = init.tile * SCALE;
   ctx.imageSmoothingEnabled = false;
   init.map.forEach((row, y) => [...row].forEach((ch, x) => {
-    ctx.fillStyle = ch === "#" ? COLORS.wall : COLORS.floor;
-    ctx.fillRect(x * T, y * T, T, T);
+    sprite(ch === "#" ? "wall" : "floor", x * T, y * T, T);
   }));
   ctx.font = "bold 14px monospace";
   ctx.textAlign = "center";
   for (const l of init.landmarks) {
-    ctx.fillStyle = "rgba(255,255,255,0.25)";
-    ctx.fillRect(l.x * T, l.y * T, T, T);
-    ctx.fillStyle = "#fff";
-    ctx.fillText(l.name, l.x * T + T / 2, l.y * T + T - 4);
+    sprite("mark", l.x * T, l.y * T, T);
+    ctx.fillStyle = "#fff8c0";
+    ctx.fillText(l.name, l.x * T + T / 2, l.y * T + T + 14);
   }
   if (!state) return;
   for (const e of state.entities) {
     const px = e.x * T, py = e.y * T;
-    ctx.fillStyle = COLORS[e.kind];
-    ctx.fillRect(px + 6, py + 6, T - 12, T - 12);
+    sprite("char", px, py, T, LOOKS[e.id] || LOOKS.player);
     ctx.fillStyle = "#fff";
     ctx.fillText(e.name, px + T / 2, py - 4);
   }
@@ -79,11 +94,11 @@ function draw() {
     const e = state.entities.find((x) => x.id === b.id);
     if (!e) continue;
     const w = ctx.measureText(b.text).width + 12;
-    const bx = e.x * T + T / 2 - w / 2, by = e.y * T - 40;
+    const bx = Math.max(0, Math.min(canvas.width - w, e.x * T + T / 2 - w / 2)), by = e.y * T - 40;
     ctx.fillStyle = "#fff";
     ctx.fillRect(bx, by, w, 20);
     ctx.fillStyle = "#000";
-    ctx.fillText(b.text, e.x * T + T / 2, by + 15);
+    ctx.fillText(b.text, bx + w / 2, by + 15);
   }
 }
 draw();
