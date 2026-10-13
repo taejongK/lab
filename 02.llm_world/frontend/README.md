@@ -6,4 +6,4 @@
 - 스타일: 도트 게임. 16×16 타일·캐릭터 스프라이트를 정수배(예: ×3)로 확대하고 `ctx.imageSmoothingEnabled = false`로 픽셀이 뭉개지지 않게 한다.
 - 에셋 후보: [Kenney Tiny Town](https://kenney.nl/assets/tiny-town) (16×16, CC0). 걷기 애니메이션·Tiled 맵이 많아지면 Phaser로 옮기는 걸 검토.
 - 통신: WebSocket으로 서버에서 월드 상태를 받고 플레이어 입력을 보낸다 .
-- 실행 방법: (미정)
+- 실행 방법: 서버를 띄우면 `/`에서 서빙된다 (`../server/README.md` 참고). 방향키로 플레이어 이동.
