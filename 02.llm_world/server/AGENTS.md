@@ -1,0 +1,30 @@
+<!-- Parent: ../AGENTS.md -->
+<!-- Generated: 2026-10-13 | Updated: 2026-10-13 -->
+
+# server
+
+## Purpose
+FastAPI 서버. 월드 상태의 유일한 원본이며, 월드 틱 루프·NPC 판단(uzu + Qwen 3.5 0.8B)·WebSocket(`/ws`) 전송·`../frontend/` 정적 서빙을 맡는다. 설계는 `../docs/notes/01.architecture.md`.
+
+## Key Files
+
+| File | Description |
+|------|-------------|
+| `README.md` | 역할·스택·모델 요약 |
+
+## For AI Agents
+
+### Working In This Directory
+- 의존성은 `uv`로 이 폴더의 `pyproject.toml`에만.
+- LLM 호출은 한 모듈의 한 함수에서만. 모델 인스턴스가 하나이므로 호출은 한 번에 하나씩.
+- 월드 틱은 LLM을 기다리지 않는다.
+- LLM 출력 파싱 실패 → `wait`, 원문 로그. 서버가 죽으면 안 된다.
+- 프로토콜을 바꾸면 `../docs/notes/01.architecture.md` "프로토콜" 절도 고친다.
+
+### Testing Requirements
+- `uv run`으로 서버를 띄우고 브라우저로 확인. 테스트는 요청 시에만.
+
+### Common Patterns
+- (아직 없음)
+
+<!-- MANUAL: -->
