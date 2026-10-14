@@ -144,9 +144,129 @@
     "semantic_hash": "b261c7b0ee83b46c2c50add9bb25c8c2"
   },
   "README.md": {
-    "mtime": 1791502043.4878488,
-    "seen": 1791725163.556422,
-    "ast_hash": "c6b2eafc6bcf503e567b7bcacb5e853f",
-    "semantic_hash": "c6b2eafc6bcf503e567b7bcacb5e853f"
+    "mtime": 1791899970.7861478,
+    "seen": 1791901778.4167092,
+    "ast_hash": "633badd24dae2422199c234ca1e6d42b",
+    "semantic_hash": ""
+  },
+  "02.llm_world/server/llm.py": {
+    "mtime": 1791901308.7926197,
+    "seen": 1791901778.4166799,
+    "ast_hash": "dff1e35864bc093b2ed26c8bc02bf029",
+    "semantic_hash": ""
+  },
+  "02.llm_world/server/main.py": {
+    "mtime": 1791901504.2373827,
+    "seen": 1791901778.416681,
+    "ast_hash": "31cad305e0cb239b9f94da892b05ae89",
+    "semantic_hash": ""
+  },
+  "02.llm_world/server/pyproject.toml": {
+    "mtime": 1791900778.7450418,
+    "seen": 1791901778.416681,
+    "ast_hash": "f99a40932d0f4fc998cbb9713d163c8f",
+    "semantic_hash": ""
+  },
+  "02.llm_world/server/smoke_llm.py": {
+    "mtime": 1791900881.662837,
+    "seen": 1791901778.416682,
+    "ast_hash": "caec03c704536ea00842d87d057bc1f6",
+    "semantic_hash": ""
+  },
+  "02.llm_world/AGENTS.md": {
+    "mtime": 1791900657.0361304,
+    "seen": 1791901778.416699,
+    "ast_hash": "697eeb9f8906ef5a645664a2d5c39372",
+    "semantic_hash": ""
+  },
+  "02.llm_world/CLAUDE.md": {
+    "mtime": 1791900635.4539702,
+    "seen": 1791901778.4167,
+    "ast_hash": "75819aa28974887d7f65646f48460384",
+    "semantic_hash": ""
+  },
+  "02.llm_world/README.md": {
+    "mtime": 1791901773.2333057,
+    "seen": 1791901778.4167,
+    "ast_hash": "516fb33a091a4f5a5c8eea41114601b6",
+    "semantic_hash": ""
+  },
+  "02.llm_world/docs/notes/01.architecture.md": {
+    "mtime": 1791901711.8202097,
+    "seen": 1791901778.4167008,
+    "ast_hash": "8ff6b841f0706beeabf3777cdf8ea92a",
+    "semantic_hash": ""
+  },
+  "02.llm_world/docs/plan/active/20261013_mvp_devlog.md": {
+    "mtime": 1791901773.2327383,
+    "seen": 1791901778.4167008,
+    "ast_hash": "89ba3867abc625165162c4fffa6bc36f",
+    "semantic_hash": ""
+  },
+  "02.llm_world/docs/plan/handover-index.md": {
+    "mtime": 1791899951.7104735,
+    "seen": 1791901778.416702,
+    "ast_hash": "21abeb466ca2b321f78d967afad1ec75",
+    "semantic_hash": ""
+  },
+  "02.llm_world/docs/plan/templates/AGENTS_TEMPLATE.md": {
+    "mtime": 1791899951.711585,
+    "seen": 1791901778.416702,
+    "ast_hash": "bdee0fb3f4b2c772c8390e4282c0372d",
+    "semantic_hash": ""
+  },
+  "02.llm_world/docs/plan/templates/DEV_LOG_TEMPLATE.md": {
+    "mtime": 1791899951.7111113,
+    "seen": 1791901778.416703,
+    "ast_hash": "bd3fecfb25700b4b224334e75aa961ad",
+    "semantic_hash": ""
+  },
+  "02.llm_world/docs/plan/templates/HANDOVER_TEMPLATE.md": {
+    "mtime": 1791899951.711897,
+    "seen": 1791901778.416703,
+    "ast_hash": "cedcd7e49b0c947de5bbd7fd0ffcb0a3",
+    "semantic_hash": ""
+  },
+  "02.llm_world/docs/reference/README.md": {
+    "mtime": 1791900657.0395064,
+    "seen": 1791901778.416704,
+    "ast_hash": "0003a9fdfcefbc3ebf70a32f52586185",
+    "semantic_hash": ""
+  },
+  "02.llm_world/docs/worklog/2026_10_13.md": {
+    "mtime": 1791901773.2365193,
+    "seen": 1791901778.416704,
+    "ast_hash": "d66857529793518ae4c64891ff83b7a6",
+    "semantic_hash": ""
+  },
+  "02.llm_world/frontend/AGENTS.md": {
+    "mtime": 1791901773.233197,
+    "seen": 1791901778.4167051,
+    "ast_hash": "4830656075ab8a81a14b1308dbbf6551",
+    "semantic_hash": ""
+  },
+  "02.llm_world/frontend/README.md": {
+    "mtime": 1791901773.2330914,
+    "seen": 1791901778.416706,
+    "ast_hash": "4ae156547aea74819989a6a7b6e1844d",
+    "semantic_hash": ""
+  },
+  "02.llm_world/frontend/index.html": {
+    "mtime": 1791901773.2325623,
+    "seen": 1791901778.416706,
+    "ast_hash": "35f665bbbc3a36eabf34faac4da74243",
+    "semantic_hash": ""
+  },
+  "02.llm_world/server/AGENTS.md": {
+    "mtime": 1791901481.252575,
+    "seen": 1791901778.416707,
+    "ast_hash": "07640ff716b35070a9367243b0d16a89",
+    "semantic_hash": ""
+  },
+  "02.llm_world/server/README.md": {
+    "mtime": 1791900951.0666838,
+    "seen": 1791901778.416708,
+    "ast_hash": "38b03a62c18c7331a30c735e46982124",
+    "semantic_hash": ""
   }
 }

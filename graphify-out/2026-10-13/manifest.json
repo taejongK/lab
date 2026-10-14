@@ -1,0 +1,152 @@
+{
+  ".claude/settings.json": {
+    "mtime": 1791591180.972295,
+    "seen": 1791725163.556405,
+    "ast_hash": "07ca228636fb64fe03ee5aed0eacafcf",
+    "semantic_hash": "07ca228636fb64fe03ee5aed0eacafcf"
+  },
+  ".claude/settings.local.json": {
+    "mtime": 1791724668.9049168,
+    "seen": 1791725163.5564082,
+    "ast_hash": "a338ea4893a00f0682d92c8694713ea8",
+    "semantic_hash": "a338ea4893a00f0682d92c8694713ea8"
+  },
+  ".claude/skills/new-study/SKILL.md": {
+    "mtime": 1791501956.4107008,
+    "seen": 1791725163.5564091,
+    "ast_hash": "9047403b0b68b0bc49a2a7a9ed03c94a",
+    "semantic_hash": "9047403b0b68b0bc49a2a7a9ed03c94a"
+  },
+  ".claude/skills/new-study/template/AGENTS.md": {
+    "mtime": 1791501956.4130108,
+    "seen": 1791725163.55641,
+    "ast_hash": "82656cd192b99ce1cb68f28f625fba5f",
+    "semantic_hash": "82656cd192b99ce1cb68f28f625fba5f"
+  },
+  ".claude/skills/new-study/template/CLAUDE.md": {
+    "mtime": 1791501956.4153533,
+    "seen": 1791725163.55641,
+    "ast_hash": "edb1ba7deb98563678eaba5dd3989f33",
+    "semantic_hash": "edb1ba7deb98563678eaba5dd3989f33"
+  },
+  ".claude/skills/new-study/template/README.md": {
+    "mtime": 1791501643.8667777,
+    "seen": 1791725163.5564108,
+    "ast_hash": "38f1df94b8b151cdcc93a6aa1c220b71",
+    "semantic_hash": "38f1df94b8b151cdcc93a6aa1c220b71"
+  },
+  ".claude/skills/new-study/template/docs/plan/handover-index.md": {
+    "mtime": 1791501643.8644862,
+    "seen": 1791725163.5564108,
+    "ast_hash": "21abeb466ca2b321f78d967afad1ec75",
+    "semantic_hash": "21abeb466ca2b321f78d967afad1ec75"
+  },
+  ".claude/skills/new-study/template/docs/plan/templates/AGENTS_TEMPLATE.md": {
+    "mtime": 1791501643.8618,
+    "seen": 1791725163.556412,
+    "ast_hash": "bdee0fb3f4b2c772c8390e4282c0372d",
+    "semantic_hash": "bdee0fb3f4b2c772c8390e4282c0372d"
+  },
+  ".claude/skills/new-study/template/docs/plan/templates/DEV_LOG_TEMPLATE.md": {
+    "mtime": 1791501643.8620431,
+    "seen": 1791725163.556412,
+    "ast_hash": "bd3fecfb25700b4b224334e75aa961ad",
+    "semantic_hash": "bd3fecfb25700b4b224334e75aa961ad"
+  },
+  ".claude/skills/new-study/template/docs/plan/templates/HANDOVER_TEMPLATE.md": {
+    "mtime": 1791501643.86228,
+    "seen": 1791725163.556413,
+    "ast_hash": "cedcd7e49b0c947de5bbd7fd0ffcb0a3",
+    "semantic_hash": "cedcd7e49b0c947de5bbd7fd0ffcb0a3"
+  },
+  ".claude/skills/new-study/template/docs/reference/README.md": {
+    "mtime": 1791501643.871002,
+    "seen": 1791725163.556414,
+    "ast_hash": "ce9a85767895d43b80ef18fea96eb001",
+    "semantic_hash": "ce9a85767895d43b80ef18fea96eb001"
+  },
+  "01.jev/AGENTS.md": {
+    "mtime": 1791502048.5489602,
+    "seen": 1791725163.556414,
+    "ast_hash": "f7c0a5d9430afb69e5fa38baf912d2d7",
+    "semantic_hash": "f7c0a5d9430afb69e5fa38baf912d2d7"
+  },
+  "01.jev/CLAUDE.md": {
+    "mtime": 1791501956.421989,
+    "seen": 1791725163.556415,
+    "ast_hash": "edb1ba7deb98563678eaba5dd3989f33",
+    "semantic_hash": "edb1ba7deb98563678eaba5dd3989f33"
+  },
+  "01.jev/README.md": {
+    "mtime": 1791505428.1128824,
+    "seen": 1791725163.556415,
+    "ast_hash": "8847576cc7776e95511d848ace03d317",
+    "semantic_hash": "8847576cc7776e95511d848ace03d317"
+  },
+  "01.jev/docs/notes/01.jev-\uc18c\uac1c\uc640-\uac1c\ub150.md": {
+    "mtime": 1791501991.755331,
+    "seen": 1791725163.556416,
+    "ast_hash": "4d2a45a74821ec58ea6e1654274ac01f",
+    "semantic_hash": "4d2a45a74821ec58ea6e1654274ac01f"
+  },
+  "01.jev/docs/notes/02.\uc624\ud508\uc18c\uc2a4-\ubcf5\uc81c-\ubaa8\ub378.md": {
+    "mtime": 1791501991.7556791,
+    "seen": 1791725163.556417,
+    "ast_hash": "1c638da358d0cc70b8472a0832de9bc9",
+    "semantic_hash": "1c638da358d0cc70b8472a0832de9bc9"
+  },
+  "01.jev/docs/notes/03.laya-\ubaa8\ub378-\uad6c\uc870.md": {
+    "mtime": 1791505413.8887825,
+    "seen": 1791725163.556417,
+    "ast_hash": "cf9881d499cb5b8248938e16d24121a2",
+    "semantic_hash": "cf9881d499cb5b8248938e16d24121a2"
+  },
+  "01.jev/docs/plan/handover-index.md": {
+    "mtime": 1791474122.3871512,
+    "seen": 1791725163.556418,
+    "ast_hash": "21abeb466ca2b321f78d967afad1ec75",
+    "semantic_hash": "21abeb466ca2b321f78d967afad1ec75"
+  },
+  "01.jev/docs/plan/templates/AGENTS_TEMPLATE.md": {
+    "mtime": 1791474122.384757,
+    "seen": 1791725163.556418,
+    "ast_hash": "bdee0fb3f4b2c772c8390e4282c0372d",
+    "semantic_hash": "bdee0fb3f4b2c772c8390e4282c0372d"
+  },
+  "01.jev/docs/plan/templates/DEV_LOG_TEMPLATE.md": {
+    "mtime": 1791474122.3799496,
+    "seen": 1791725163.5564191,
+    "ast_hash": "bd3fecfb25700b4b224334e75aa961ad",
+    "semantic_hash": "bd3fecfb25700b4b224334e75aa961ad"
+  },
+  "01.jev/docs/plan/templates/HANDOVER_TEMPLATE.md": {
+    "mtime": 1791474122.3825986,
+    "seen": 1791725163.55642,
+    "ast_hash": "cedcd7e49b0c947de5bbd7fd0ffcb0a3",
+    "semantic_hash": "cedcd7e49b0c947de5bbd7fd0ffcb0a3"
+  },
+  "01.jev/docs/reference/README.md": {
+    "mtime": 1791505428.1132185,
+    "seen": 1791725163.55642,
+    "ast_hash": "5ff01ffd32e79347f6d4f45d738e62ae",
+    "semantic_hash": "5ff01ffd32e79347f6d4f45d738e62ae"
+  },
+  "01.jev/docs/worklog/2026_10_09.md": {
+    "mtime": 1791505428.116682,
+    "seen": 1791725163.556421,
+    "ast_hash": "659aae2fcf57a671f9b0a2ba654bfc3d",
+    "semantic_hash": "659aae2fcf57a671f9b0a2ba654bfc3d"
+  },
+  "CLAUDE.md": {
+    "mtime": 1791591180.9718056,
+    "seen": 1791725163.556422,
+    "ast_hash": "b261c7b0ee83b46c2c50add9bb25c8c2",
+    "semantic_hash": "b261c7b0ee83b46c2c50add9bb25c8c2"
+  },
+  "README.md": {
+    "mtime": 1791502043.4878488,
+    "seen": 1791725163.556422,
+    "ast_hash": "c6b2eafc6bcf503e567b7bcacb5e853f",
+    "semantic_hash": "c6b2eafc6bcf503e567b7bcacb5e853f"
+  }
+}
