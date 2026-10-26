@@ -1,0 +1,405 @@
+<title>ASCII 맵 NPC 엔진</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+KR:wght@400;600;700&display=swap">
+<style>
+/* Layout: single reading column (~68ch) with full-width map/code panels; the map itself is the hero. */
+:root {
+  --bg: #f3f4f1;
+  --surface: #ffffff;
+  --fg: #1c2321;
+  --muted: #5d6763;
+  --line: #d6dbd7;
+  --accent: #0b6e5f;        /* path, links */
+  --npc: #b45309;           /* the NPC "@" */
+  --wall: #8a948f;
+  --good: #15803d;
+  --bad: #b91c1c;
+  --code-bg: #e9ece8;
+  --font-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141917; --surface: #1b211f; --fg: #e3e8e5; --muted: #9aa5a0; --line: #2e3734;
+    --accent: #4fd1b5; --npc: #f59e0b; --wall: #66716c; --good: #4ade80; --bad: #f87171; --code-bg: #222a27;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141917; --surface: #1b211f; --fg: #e3e8e5; --muted: #9aa5a0; --line: #2e3734;
+  --accent: #4fd1b5; --npc: #f59e0b; --wall: #66716c; --good: #4ade80; --bad: #f87171; --code-bg: #222a27;
+  color-scheme: dark;
+}
+body {
+  background: var(--bg); color: var(--fg);
+  font: 16px/1.7 var(--font-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 80px;
+}
+main { max-width: 860px; margin: 0 auto; display: grid; gap: 56px; }
+section { display: grid; gap: 16px; min-width: 0; }
+h1, h2, h3 { text-wrap: balance; line-height: 1.3; margin: 0; }
+h1 { font-size: 2rem; font-weight: 700; }
+h2 { font-size: 1.4rem; font-weight: 700; padding-top: 8px; border-top: 1px solid var(--line); }
+h3 { font-size: 1.05rem; font-weight: 600; }
+p, ul, ol { margin: 0; max-width: 68ch; }
+li + li { margin-top: 4px; }
+a { color: var(--accent); }
+a:focus-visible, button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.eyebrow { font: 600 0.75rem/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.lede { font-size: 1.1rem; color: var(--muted); }
+code { font-family: var(--font-mono); font-size: 0.88em; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+pre { margin: 0; overflow-x: auto; background: var(--code-bg); border-radius: 8px; padding: 14px 16px;
+      font: 0.82rem/1.55 var(--font-mono); }
+pre code { background: none; padding: 0; font-size: inherit; }
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 0.92rem; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; color: var(--muted); font-size: 0.8rem; letter-spacing: 0.03em; }
+td.num { text-align: right; font-family: var(--font-mono); white-space: nowrap; }
+.good { color: var(--good); font-weight: 600; }
+.bad { color: var(--bad); font-weight: 600; }
+
+/* verdict */
+.verdict { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--accent);
+           border-radius: 8px; padding: 18px 20px; display: grid; gap: 10px; }
+.verdict strong { color: var(--accent); }
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.split > div { background: var(--code-bg); border-radius: 8px; padding: 12px 14px; min-width: 0; }
+.split .who { font: 600 0.75rem/1 var(--font-mono); letter-spacing: 0.06em; color: var(--muted); text-transform: uppercase; }
+@media (max-width: 560px) { .split { grid-template-columns: 1fr; } }
+
+/* demo */
+.demo { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px;
+        display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 16px; }
+@media (max-width: 680px) { .demo { grid-template-columns: 1fr; } }
+.map { font: 600 1.25rem/1.25 var(--font-mono); letter-spacing: 0.25em; white-space: pre; user-select: none; }
+.map .w { color: var(--wall); }
+.map .p { color: var(--accent); }
+.map .n { color: var(--npc); }
+.map .o { color: var(--fg); text-decoration: underline; text-decoration-color: var(--accent); }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+select, button { font: 0.9rem var(--font-body); color: var(--fg); background: var(--bg); border: 1px solid var(--line);
+                 border-radius: 6px; padding: 6px 10px; }
+button { cursor: pointer; }
+button.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
+.panel { display: grid; gap: 8px; min-width: 0; }
+.panel pre { max-height: 300px; }
+.log { font: 0.85rem/1.5 var(--font-mono); color: var(--muted); }
+.note { font-size: 0.85rem; color: var(--muted); }
+
+/* tick steps */
+ol.steps { list-style: none; padding: 0; display: grid; gap: 12px; counter-reset: s; max-width: none; }
+ol.steps > li { counter-increment: s; display: grid; grid-template-columns: 2.2rem minmax(0, 1fr); gap: 10px; margin: 0; }
+ol.steps > li::before { content: counter(s); font: 600 0.9rem/2rem var(--font-mono); text-align: center;
+                         width: 2rem; height: 2rem; border-radius: 50%; border: 1px solid var(--line); color: var(--accent); }
+.steps .who-tag { font: 600 0.7rem/1 var(--font-mono); padding: 3px 6px; border-radius: 4px; margin-left: 6px;
+                  vertical-align: 2px; border: 1px solid var(--line); color: var(--muted); }
+.steps .who-tag.model { color: var(--npc); border-color: var(--npc); }
+@media (prefers-reduced-motion: no-preference) { .map span { transition: color .15s; } }
+</style>
+
+<main>
+  <header style="display:grid;gap:12px">
+    <div class="eyebrow">04.npc_engine · 설계 문서 · 2026-10-25</div>
+    <h1>ASCII 맵 NPC 엔진</h1>
+    <p class="lede">2D 맵을 ASCII로 그리고, NPC 위치와 오브젝트 설명을 함께 넣은 뒤, System One 모델로 NPC가 어디로 갈지 정하는 로직입니다. 먼저 이 구조가 가능한지 직접 실험으로 평가했고, 그 결과에 맞춰 로직을 설계했습니다.</p>
+  </header>
+
+  <section aria-labelledby="verdict">
+    <h2 id="verdict">평가 결론</h2>
+    <div class="verdict">
+      <p><strong>가능합니다. 단, 역할을 나눠야 합니다.</strong> 학습하지 않은 모델에게 ASCII 맵을 주고 상하좌우를 직접 고르게 하면 무작위와 거의 같았습니다. 반면 상황을 보고 “어떤 오브젝트로 갈지” 고르는 의미 판단은 무작위보다 확실히 잘했습니다.</p>
+      <div class="split">
+        <div><div class="who">모델이 맡는 것</div><p>무엇을 할지. 자극과 오브젝트 설명을 보고 목표 오브젝트(또는 머무르기)를 고른다.</p></div>
+        <div><div class="who">코드가 맡는 것</div><p>어떻게 갈지. 맵에서 최단 경로(BFS)를 구하고 그 첫 칸의 방향(상하좌우)을 낸다.</p></div>
+      </div>
+      <p>상하좌우를 모델이 직접 고르게 하는 원래 구상은 2단계로 둡니다. 코드가 BFS로 정답 방향을 무한히 만들 수 있으므로, 그 데이터로 모델을 미세조정한 뒤 다시 측정합니다. 게임 데이터로 학습한 사례(PlayJev, NanoJev)는 이 방식으로 성능을 냈습니다.</p>
+    </div>
+  </section>
+
+  <section aria-labelledby="exp">
+    <h2 id="exp">평가 실험</h2>
+    <p>로컬 Laya 421M(학습 없음, Apple M2)으로 무작위 9×9 맵 60개를 만들어 측정했습니다. 맵에는 벽과 오브젝트 5개(사과, 열쇠, 모닥불, 침대, 우물)가 있고, 각 오브젝트에 설명을 붙였습니다. 스크립트는 <code>probe_ascii_map.py</code>입니다.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>조건</th><th>모델에 준 것</th><th>한 걸음 정답률</th><th>목표 도달 (20판)</th></tr></thead>
+        <tbody>
+          <tr><td>무작위</td><td>갈 수 있는 방향 중 아무거나</td><td class="num">56.0%</td><td class="num">1/20</td></tr>
+          <tr><td>A. ASCII만</td><td>맵 + 내 좌표 + 오브젝트 목록, 선택지는 “Move one cell up.”</td><td class="num">68.3%</td><td class="num">4/20</td></tr>
+          <tr><td>B. 방향별 사실</td><td>A + 방향마다 “이동 후 목표까지 N걸음, 가까워짐/멀어짐” 문장</td><td class="num">66.7%</td><td class="num">5/20</td></tr>
+          <tr><td>B2. 짧은 사실</td><td>A + 방향마다 “CLOSER: 3 steps left”</td><td class="num">55.0%</td><td class="num">3/20</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>의미 판단</th><th>질문</th><th>정답률</th><th>무작위</th></tr></thead>
+        <tbody>
+          <tr><td>C. 목표 오브젝트 고르기</td><td>“NPC가 몹시 배고프다” 같은 자극 5종 × 맵 6개 → 어떤 오브젝트로 갈까?</td><td class="num good">19/30 (63%)</td><td class="num">20%</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <ul>
+      <li>한 걸음 정답은 “최단 경로 위의 방향”이면 맞은 것으로 셌습니다. 목표 도달은 최단 거리의 2배 걸음 안에 도착했는지로 셌습니다.</li>
+      <li>B에서 “가까워짐”이라고 써 줘도 방향별 확률이 0.29~0.36으로 거의 균등했습니다. 입력 잘림은 785회 호출 중 0회였습니다. 학습 없는 Laya는 선택지 설명 속 공간 사실을 읽어 쓰지 못합니다.</li>
+      <li>C의 오답은 대부분 “목마름 → 모닥불”, “추움 → 침대”였습니다. 오브젝트 설명에 해결하는 욕구를 더 직접적으로 쓰면 개선될 여지가 있습니다.</li>
+      <li>응답 시간 중앙값 158ms (M2 CPU/MPS, 상태 약 310토큰).</li>
+    </ul>
+    <p class="note">한계: 맵 60개, 판수 20, 모델 1개(Laya 영어 체크포인트). Jev(호스팅)는 측정하지 않았습니다. 다른 사례 조사와 결론의 방향은 같습니다. NanoJev는 전체 지도로 다음 행동을 바로 고르게 했을 때 Jev와 학습 모델 모두 미로 0/3이었습니다.</p>
+  </section>
+
+  <section aria-labelledby="demo">
+    <h2 id="demo">한 틱이 도는 모습</h2>
+    <p>아래 맵은 이 문서의 로직을 그대로 돌립니다. 자극을 고르고 “다음 틱”을 누르면 NPC(<code>@</code>)가 한 칸 움직입니다. 오른쪽에는 그 틱에 모델로 보내는 요청이 그대로 나옵니다. 모델 응답 자리는 실험 정답표로 대신했습니다(실제 모델 출력 아님).</p>
+    <div class="demo">
+      <div style="display:grid;gap:12px;align-content:start">
+        <div class="map" id="map" aria-label="ASCII 맵" role="img"></div>
+        <div class="controls">
+          <label for="stim" class="note">자극</label>
+          <select id="stim"></select>
+        </div>
+        <div class="controls">
+          <button class="primary" id="tick" type="button">다음 틱</button>
+          <button id="reset" type="button">처음으로</button>
+        </div>
+        <div class="log" id="log" aria-live="polite"></div>
+      </div>
+      <div class="panel">
+        <div class="eyebrow">이번 틱의 요청 (state + questions)</div>
+        <pre><code id="req"></code></pre>
+        <div class="note">초록 점(<span style="color:var(--accent)">·</span>)은 코드가 계산한 최단 경로입니다.</div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="loop">
+    <h2 id="loop">틱 루프</h2>
+    <ol class="steps">
+      <li><div><strong>자극 수집</strong><span class="who-tag">코드</span><br>이번 틱에 일어난 일을 모읍니다: 욕구 변화(배고픔 증가), 플레이어 접근, 소리, 오브젝트 상태 변화. 자극이 없고 진행 중인 목표가 있으면 모델을 부르지 않고 6단계로 갑니다.</div></li>
+      <li><div><strong>state 만들기</strong><span class="who-tag">코드</span><br>ASCII 맵, 범례, 좌표계 설명, NPC 좌표, 오브젝트 목록(이름·설명·좌표·NPC까지 걸음 수), 자극을 하나의 JSON으로 묶습니다.</div></li>
+      <li><div><strong>질문 만들기</strong><span class="who-tag">코드</span><br>선택지는 도달 가능한 오브젝트와 <code>stay</code>뿐입니다. 막힌 곳에 있는 오브젝트는 넣지 않습니다.</div></li>
+      <li><div><strong>판단</strong><span class="who-tag model">모델</span><br>System One 모델이 한 번의 forward로 목표 확률분포와 confidence를 돌려줍니다. 텍스트는 생성하지 않습니다.</div></li>
+      <li><div><strong>confidence 게이트</strong><span class="who-tag">코드</span><br>confidence가 기준보다 낮으면 직전 목표를 유지하거나 규칙 기반 기본 행동으로 넘어갑니다. 기준값은 실제 로그로 정합니다.</div></li>
+      <li><div><strong>경로 계산</strong><span class="who-tag">코드</span><br>현재 위치에서 목표까지 BFS로 최단 경로를 구하고, 첫 칸으로 가는 방향을 <code>up/down/left/right</code>로 냅니다.</div></li>
+      <li><div><strong>검증 후 적용</strong><span class="who-tag">코드</span><br>그 칸이 벽이 아닌지, 다른 NPC와 겹치지 않는지 확인하고 이동합니다. 목표에 닿으면 상호작용(먹기, 마시기 등)하고 결과를 다음 틱의 자극으로 넘깁니다.</div></li>
+    </ol>
+<pre class="mermaid">flowchart LR
+  E[자극 수집] --> S[state 만들기]
+  S --> Q[질문: 목표 오브젝트]
+  Q --> M((System One 모델))
+  M --> G{confidence 충분?}
+  G -- 예 --> P[BFS 경로]
+  G -- 아니오 --> H[직전 목표 유지 / 기본 행동]
+  H --> P
+  P --> V[벽·충돌 검증]
+  V --> A[이동 · 상호작용]
+  A --> E</pre>
+  </section>
+
+  <section aria-labelledby="schema">
+    <h2 id="schema">데이터 형식</h2>
+    <h3>오브젝트</h3>
+    <p>설명은 모델이 의미 판단에 쓰는 유일한 근거입니다. “무엇인지”보다 “NPC의 어떤 욕구·자극을 해결하는지”를 먼저 씁니다.</p>
+<pre><code>{
+  "symbol": "W",
+  "name": "well",
+  "description": "Drinking water here removes thirst.",
+  "row": 1, "col": 9
+}</code></pre>
+    <h3>state</h3>
+<pre><code>{
+  "task": "The NPC's throat is dry after a long walk.",
+  "map": ["###########",
+          "#A..#....W#",
+          "...",
+          "#...@...#B#"],
+  "legend": "@ = you (the NPC), # = wall, . = floor. Row 0 is the top row, column 0 is the left column. up = row - 1, down = row + 1, left = column - 1, right = column + 1.",
+  "you": {"row": 5, "col": 4},
+  "objects": [
+    {"symbol": "W", "name": "well", "description": "...", "row": 1, "col": 9, "steps_away": 10}
+  ]
+}</code></pre>
+    <h3>질문</h3>
+<pre><code>{
+  "target": {
+    "type": "choice",
+    "instructions": "Which object should the NPC walk to?",
+    "criteria": {
+      "apple": "Fresh food. Eating it removes hunger.",
+      "well":  "Drinking water here removes thirst.",
+      "stay":  "Nothing here helps right now. Stay put."
+    }
+  }
+}</code></pre>
+    <h3>응답 (Laya 형식)</h3>
+<pre><code>{"answers": {"target": {"choice": "well",
+  "probabilities": {"apple": 0.21, "well": 0.64, "stay": 0.15},
+  "confidence": 0.31}}}</code></pre>
+    <p class="note">응답 수치는 형식을 보여 주는 예시 값입니다.</p>
+  </section>
+
+  <section aria-labelledby="rules">
+    <h2 id="rules">설계 규칙</h2>
+    <p>실험과 사례 조사(Snake, Doom, NanoJev, PlayJev)에서 나온 규칙입니다.</p>
+    <ul>
+      <li><strong>좌표계를 글로 적는다.</strong> 행 0이 위인지, up이 행을 줄이는지. Doom 사례들은 각도 부호가 반대여서 NPC가 목표 주위를 빙빙 돌았습니다.</li>
+      <li><strong>맵만 주지 말고 좌표를 같이 준다.</strong> NanoJev 비교에서 좌표와 갈 수 있는 다음 칸을 같이 주자 완주율이 30~55%p 올랐습니다(학습한 모델 기준).</li>
+      <li><strong>선택지에는 지금 가능한 것만 넣는다.</strong> 막힌 방향, 도달 불가능한 오브젝트는 코드가 미리 뺍니다.</li>
+      <li><strong>“아무것도 안 함” 선택지를 넣는다.</strong> 없으면 모델은 맞는 답이 없어도 하나를 자신 있게 고릅니다.</li>
+      <li><strong>경로는 매 틱 다시 묻지 않는다.</strong> 목표가 정해지면 코드가 따라갑니다. 매 틱 방향을 물으면 방향이 계속 바뀌었습니다(blocks.ai Doom: 막힘 33회 → BFS로 바꾼 뒤 3회).</li>
+      <li><strong>시야를 제한하려면 국소 창을 쓴다.</strong> NPC 주변 5×5만 ASCII로 보여 주고, 범위 밖 오브젝트는 목록에서 뺍니다(NanoJev Maze 방식).</li>
+      <li><strong>게임 루프와 모델 호출을 분리한다.</strong> 모델이 답하는 동안에도 NPC는 직전 목표를 따라 움직입니다.</li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="roadmap">
+    <h2 id="roadmap">단계별 계획</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>단계</th><th>모델이 고르는 것</th><th>확인할 것</th></tr></thead>
+        <tbody>
+          <tr><td>1. 엔진 + 목표 선택</td><td>목표 오브젝트 / stay</td><td>자극별 목표 정답률, 오브젝트 설명 문구에 따른 차이, confidence 게이트 기준</td></tr>
+          <tr><td>2. 방향 미세조정</td><td>up / down / left / right</td><td>BFS 정답 수천 개로 Laya를 학습한 뒤 한 걸음 정답률과 도달률을 위 표와 비교</td></tr>
+          <tr><td>3. 이미지 입력</td><td>up / down / left / right</td><td>같은 맵을 타일 이미지로 그려 이미지 입력 모델(Valen류)과 ASCII 비교</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="risk">
+    <h2 id="risk">남은 위험</h2>
+    <ul>
+      <li>목표 선택 정답률 63%는 아직 낮습니다. 오브젝트 설명 문구, Jev, 미세조정으로 얼마나 오르는지 측정해야 합니다.</li>
+      <li>NPC가 여러 명이면 호출 수가 늘어납니다. Laya는 여러 state를 한 번에 처리(<code>predict_batch</code>)할 수 있지만 지연은 측정하지 않았습니다.</li>
+      <li>목표가 움직이는 경우(플레이어 추적, 도망)는 BFS 목표를 매 틱 갱신해야 합니다. 이번 실험은 고정 오브젝트만 다뤘습니다.</li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="src">
+    <h2 id="src">근거 자료</h2>
+    <ul>
+      <li>실험 스크립트: <code>04.npc_engine/probe_ascii_map.py</code></li>
+      <li><code>docs/report/2026_10_25_spatial-state-encoding.md</code> — 공간 정보를 state에 넣는 방법. Snake·Doom·NanoJev·PlayJev 사례 정리</li>
+      <li><a href="https://github.com/TianyuCodings/NanoJev" target="_blank" rel="noopener">NanoJev</a> — 전체 지도 vs 국소 창, ASCII vs 좌표 비교</li>
+      <li><a href="https://github.com/sorrycc/typesafe-snake" target="_blank" rel="noopener">typesafe-snake</a> — 격자 + 방향별 사실 선택지</li>
+      <li><a href="https://blocks.ai/blog/jev-open-model-doom" target="_blank" rel="noopener">blocks.ai Doom 재현</a> — BFS 경로 + 모델은 국소 판단</li>
+      <li><a href="https://github.com/OmniJev/PlayJev" target="_blank" rel="noopener">PlayJev</a> — 탐색 알고리즘 정답으로 학습한 픽셀 입력 모델</li>
+      <li><a href="https://github.com/NandhaKishorM/laya" target="_blank" rel="noopener">Laya</a> — 실험에 쓴 로컬 System One 모델</li>
+    </ul>
+  </section>
+</main>
+
+<script>
+const MAP = [
+  "###########",
+  "#A..#....W#",
+  "#.#.#.##..#",
+  "#.#...#...#",
+  "#.###.#.#.#",
+  "#...@...#B#",
+  "#.#####.#.#",
+  "#K.....F..#",
+  "###########",
+];
+const OBJECTS = {
+  A: ["apple", "Fresh food. Eating it removes hunger."],
+  K: ["key", "Opens the locked gate."],
+  F: ["campfire", "Warm. Standing next to it removes cold, touching it burns."],
+  B: ["bed", "Sleeping here removes tiredness."],
+  W: ["well", "Drinking water here removes thirst."],
+};
+// Stand-in for the model answer: the gold table from the probe (not real model output).
+const STIMULI = [
+  ["The NPC is very hungry.", "apple"],
+  ["The NPC's throat is dry after a long walk.", "well"],
+  ["The NPC is shivering from the cold night air.", "campfire"],
+  ["The NPC can barely keep its eyes open.", "bed"],
+  ["The NPC wants to get through the locked gate.", "key"],
+  ["Nothing is happening.", "stay"],
+];
+const DIRS = { up: [-1, 0], down: [1, 0], left: [0, -1], right: [0, 1] };
+const walls = new Set(), objPos = {};
+let start;
+MAP.forEach((row, r) => [...row].forEach((ch, c) => {
+  if (ch === "#") walls.add(r + "," + c);
+  else if (ch === "@") start = [r, c];
+  else if (OBJECTS[ch]) objPos[OBJECTS[ch][0]] = [r, c];
+}));
+let pos = start.slice(), log = [];
+
+function bfs(from, to) {
+  const key = p => p[0] + "," + p[1], prev = { [key(from)]: null }, q = [from];
+  while (q.length) {
+    const p = q.shift();
+    if (key(p) === key(to)) {
+      const path = [];
+      for (let k = key(p); k; k = prev[k]) path.unshift(k.split(",").map(Number));
+      return path;
+    }
+    for (const [dr, dc] of Object.values(DIRS)) {
+      const n = [p[0] + dr, p[1] + dc];
+      if (!walls.has(key(n)) && !(key(n) in prev)) { prev[key(n)] = key(p); q.push(n); }
+    }
+  }
+  return null;
+}
+
+function stateFor(stim) {
+  const rows = MAP.map((row, r) => [...row].map((ch, c) =>
+    r === pos[0] && c === pos[1] ? "@" : ch === "@" ? "." : ch).join(""));
+  return {
+    task: stim,
+    map: rows,
+    legend: "@ = you (the NPC), # = wall, . = floor. Row 0 is the top row, column 0 is the left column. up = row - 1, down = row + 1, left = column - 1, right = column + 1.",
+    you: { row: pos[0], col: pos[1] },
+    objects: Object.entries(OBJECTS).map(([s, [name, description]]) => ({
+      symbol: s, name, description, row: objPos[name][0], col: objPos[name][1],
+      steps_away: bfs(pos, objPos[name]).length - 1,
+    })),
+  };
+}
+
+function questions() {
+  const criteria = {};
+  for (const [name, desc] of Object.values(OBJECTS)) criteria[name] = desc;
+  criteria.stay = "Nothing here helps right now. Stay put.";
+  return { target: { type: "choice", instructions: "Which object should the NPC walk to?", criteria } };
+}
+
+const $ = id => document.getElementById(id);
+const stimSel = $("stim");
+STIMULI.forEach(([s], i) => stimSel.add(new Option(s, i)));
+
+function render() {
+  const [stim, target] = STIMULI[stimSel.value];
+  const path = target === "stay" ? null : bfs(pos, objPos[target]);
+  const onPath = new Set((path || []).slice(1, -1).map(p => p.join(",")));
+  $("map").innerHTML = MAP.map((row, r) => [...row].map((ch, c) => {
+    if (r === pos[0] && c === pos[1]) return '<span class="n">@</span>';
+    if (ch === "#") return '<span class="w">#</span>';
+    if (OBJECTS[ch]) return `<span class="o">${ch}</span>`;
+    return onPath.has(r + "," + c) ? '<span class="p">·</span>' : ".";
+  }).join("")).join("\n");
+  $("req").textContent = JSON.stringify({ state: stateFor(stim), questions: questions() }, null, 2);
+  $("log").innerHTML = log.slice(-4).join("<br>") || "자극을 고르고 다음 틱을 누르세요.";
+}
+
+$("tick").addEventListener("click", () => {
+  const [, target] = STIMULI[stimSel.value];
+  if (target === "stay") { log.push("모델 → stay · 이동 없음"); return render(); }
+  const path = bfs(pos, objPos[target]);
+  if (path.length < 2) { log.push(`${target} 도착 · 상호작용`); return render(); }
+  const [r, c] = path[1];
+  const dir = Object.keys(DIRS).find(d => pos[0] + DIRS[d][0] === r && pos[1] + DIRS[d][1] === c);
+  log.push(`모델 → ${target} · BFS 남은 ${path.length - 1}걸음 · 이동 ${dir}`);
+  pos = [r, c];
+  render();
+});
+$("reset").addEventListener("click", () => { pos = start.slice(); log = []; render(); });
+stimSel.addEventListener("change", render);
+render();
+</script>
