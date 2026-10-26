@@ -144,9 +144,9 @@
     "semantic_hash": "b261c7b0ee83b46c2c50add9bb25c8c2"
   },
   "README.md": {
-    "mtime": 1791899970.7861478,
-    "seen": 1791901778.4167092,
-    "ast_hash": "633badd24dae2422199c234ca1e6d42b",
+    "mtime": 1792911661.9139607,
+    "seen": 1793051184.014603,
+    "ast_hash": "edc53e13ccaff7bdc56f455d133c7019",
     "semantic_hash": ""
   },
   "02.llm_world/server/llm.py": {
@@ -267,6 +267,288 @@
     "mtime": 1791900951.0666838,
     "seen": 1791901778.416708,
     "ast_hash": "38b03a62c18c7331a30c735e46982124",
+    "semantic_hash": ""
+  },
+  "01.jev/laya-typed-decisions/eval.py": {
+    "mtime": 1792012971.4927523,
+    "seen": 1793051184.0145411,
+    "ast_hash": "577201bd3653cb0a482551b30e97a693",
+    "semantic_hash": ""
+  },
+  "01.jev/laya-typed-decisions/prepare_data.py": {
+    "mtime": 1792012971.4905686,
+    "seen": 1793051184.014542,
+    "ast_hash": "5c97eced4e2fa8acedac10cf736b40c8",
+    "semantic_hash": ""
+  },
+  "03.image_filter/clef_judge.py": {
+    "mtime": 1792422433.634068,
+    "seen": 1793051184.0145469,
+    "ast_hash": "26bfef46241e104ae5257e1dd7589616",
+    "semantic_hash": ""
+  },
+  "03.image_filter/fetch_gantman.py": {
+    "mtime": 1792422055.6377819,
+    "seen": 1793051184.014548,
+    "ast_hash": "deb3571244d4cd24fe6be155694f072c",
+    "semantic_hash": ""
+  },
+  "04.npc_engine/docs/reference/spatial-src/analysis_typesafe-snake.ts": {
+    "mtime": 1792913807.1235435,
+    "seen": 1793051184.014548,
+    "ast_hash": "16df7f1f6d5151a85a8447454a1f48bf",
+    "semantic_hash": ""
+  },
+  "04.npc_engine/docs/reference/spatial-src/doom_agent_jev-plays-doom.py": {
+    "mtime": 1792913807.1113632,
+    "seen": 1793051184.014549,
+    "ast_hash": "2de8e0342ac62aff98f06f3de9b8d40a",
+    "semantic_hash": ""
+  },
+  "04.npc_engine/docs/reference/spatial-src/evaluate_composed_maze_nanojev.py": {
+    "mtime": 1792913807.1213017,
+    "seen": 1793051184.014549,
+    "ast_hash": "7ac57988bfb6203ace388416b4e8c24e",
+    "semantic_hash": ""
+  },
+  "04.npc_engine/docs/reference/spatial-src/observe_doom-war.py": {
+    "mtime": 1792913807.1088076,
+    "seen": 1793051184.01455,
+    "ast_hash": "bd28ab002c2c93c2db7e5d873f0ac976",
+    "semantic_hash": ""
+  },
+  "04.npc_engine/docs/reference/spatial-src/prompt_typesafe-snake.ts": {
+    "mtime": 1792913380.7118027,
+    "seen": 1793051184.014551,
+    "ast_hash": "ff38b1f8fd752a2e32b3aacf212b45a9",
+    "semantic_hash": ""
+  },
+  "04.npc_engine/docs/reference/spatial-src/sokoban_dataset_valen.py": {
+    "mtime": 1792914380.2108035,
+    "seen": 1793051184.014551,
+    "ast_hash": "75c6422d8abc1660d869e622212b08e3",
+    "semantic_hash": ""
+  },
+  "04.npc_engine/docs/reference/spatial-src/sokoban_render_valen.py": {
+    "mtime": 1792914380.208382,
+    "seen": 1793051184.014552,
+    "ast_hash": "5ae5d895e8ee8c869dd06c31b44ee32d",
+    "semantic_hash": ""
+  },
+  "04.npc_engine/docs/reference/spatial-src/state_serializer_doom-jev.py": {
+    "mtime": 1792913807.113723,
+    "seen": 1793051184.014552,
+    "ast_hash": "73e5eb2fd6fac822100ae5fc4229be89",
+    "semantic_hash": ""
+  },
+  "04.npc_engine/docs/reference/spatial-src/unified_doom_env_nanojev.py": {
+    "mtime": 1792913807.1187944,
+    "seen": 1793051184.014553,
+    "ast_hash": "2d5d749465a19b7e23143634623dc4ad",
+    "semantic_hash": ""
+  },
+  "04.npc_engine/docs/reference/spatial-src/unified_grid_envs_nanojev.py": {
+    "mtime": 1792913807.1162815,
+    "seen": 1793051184.014554,
+    "ast_hash": "b8c102ee12764fd31ddb7e0b7951da27",
+    "semantic_hash": ""
+  },
+  "04.npc_engine/probe_ascii_map.py": {
+    "mtime": 1792915123.3790286,
+    "seen": 1793051184.014554,
+    "ast_hash": "fe2881eb36ddbe3a7d6209138304a0d1",
+    "semantic_hash": ""
+  },
+  "03.image_filter/AGENTS.md": {
+    "mtime": 1792418768.0948036,
+    "seen": 1793051184.014583,
+    "ast_hash": "11ef3478b26a36756cefe4ce1db8dac0",
+    "semantic_hash": ""
+  },
+  "03.image_filter/CLAUDE.md": {
+    "mtime": 1792418926.5842242,
+    "seen": 1793051184.014584,
+    "ast_hash": "73cbe894be1192656ea1876f74023cb9",
+    "semantic_hash": ""
+  },
+  "03.image_filter/README.md": {
+    "mtime": 1792422058.9034529,
+    "seen": 1793051184.014584,
+    "ast_hash": "ced3d124522979dd5b63169b696daf22",
+    "semantic_hash": ""
+  },
+  "03.image_filter/docs/index.md": {
+    "mtime": 1792419092.8202689,
+    "seen": 1793051184.014585,
+    "ast_hash": "bc01ae752983deae70c62c5bd18af77e",
+    "semantic_hash": ""
+  },
+  "03.image_filter/docs/plan/handover-index.md": {
+    "mtime": 1792418768.0853055,
+    "seen": 1793051184.014585,
+    "ast_hash": "21abeb466ca2b321f78d967afad1ec75",
+    "semantic_hash": ""
+  },
+  "03.image_filter/docs/plan/templates/AGENTS_TEMPLATE.md": {
+    "mtime": 1792418768.0864885,
+    "seen": 1793051184.0145862,
+    "ast_hash": "bdee0fb3f4b2c772c8390e4282c0372d",
+    "semantic_hash": ""
+  },
+  "03.image_filter/docs/plan/templates/DEV_LOG_TEMPLATE.md": {
+    "mtime": 1792418768.085998,
+    "seen": 1793051184.0145862,
+    "ast_hash": "bd3fecfb25700b4b224334e75aa961ad",
+    "semantic_hash": ""
+  },
+  "03.image_filter/docs/plan/templates/HANDOVER_TEMPLATE.md": {
+    "mtime": 1792418768.0867927,
+    "seen": 1793051184.014587,
+    "ast_hash": "cedcd7e49b0c947de5bbd7fd0ffcb0a3",
+    "semantic_hash": ""
+  },
+  "03.image_filter/docs/reference/README.md": {
+    "mtime": 1792419344.530347,
+    "seen": 1793051184.0145879,
+    "ast_hash": "1930ba5995e0ee9b03b235d01013c9d5",
+    "semantic_hash": ""
+  },
+  "03.image_filter/docs/report/2026_10_19_nsfw-datasets.md": {
+    "mtime": 1792422055.9765444,
+    "seen": 1793051184.0145879,
+    "ast_hash": "b39c9f3675618dba3295d28c456f3a2d",
+    "semantic_hash": ""
+  },
+  "03.image_filter/docs/worklog/2026_10_19.md": {
+    "mtime": 1792418768.0981123,
+    "seen": 1793051184.0145888,
+    "ast_hash": "7cb110c9fdfe42bcb9a0959be9eddb59",
+    "semantic_hash": ""
+  },
+  "04.npc_engine/AGENTS.md": {
+    "mtime": 1792915306.7711508,
+    "seen": 1793051184.0145888,
+    "ast_hash": "bc681b6279a56dea59138fb2aa7e8dca",
+    "semantic_hash": ""
+  },
+  "04.npc_engine/CLAUDE.md": {
+    "mtime": 1792911929.229748,
+    "seen": 1793051184.01459,
+    "ast_hash": "fceedcdcc70acc998668cf7ab3370f41",
+    "semantic_hash": ""
+  },
+  "04.npc_engine/README.md": {
+    "mtime": 1793051182.274054,
+    "seen": 1793051184.01459,
+    "ast_hash": "827f15c2d8c2c8043a0a596fad0ce011",
+    "semantic_hash": ""
+  },
+  "04.npc_engine/docs/index.md": {
+    "mtime": 1792915418.4366846,
+    "seen": 1793051184.014591,
+    "ast_hash": "b764c5554d204bfc59bb8392add8a83e",
+    "semantic_hash": ""
+  },
+  "04.npc_engine/docs/plan/handover-index.md": {
+    "mtime": 1792911661.9001002,
+    "seen": 1793051184.014591,
+    "ast_hash": "21abeb466ca2b321f78d967afad1ec75",
+    "semantic_hash": ""
+  },
+  "04.npc_engine/docs/plan/templates/AGENTS_TEMPLATE.md": {
+    "mtime": 1792911661.9011936,
+    "seen": 1793051184.014592,
+    "ast_hash": "bdee0fb3f4b2c772c8390e4282c0372d",
+    "semantic_hash": ""
+  },
+  "04.npc_engine/docs/plan/templates/DEV_LOG_TEMPLATE.md": {
+    "mtime": 1792911661.9007175,
+    "seen": 1793051184.014592,
+    "ast_hash": "bd3fecfb25700b4b224334e75aa961ad",
+    "semantic_hash": ""
+  },
+  "04.npc_engine/docs/plan/templates/HANDOVER_TEMPLATE.md": {
+    "mtime": 1792911661.9014885,
+    "seen": 1793051184.0145931,
+    "ast_hash": "cedcd7e49b0c947de5bbd7fd0ffcb0a3",
+    "semantic_hash": ""
+  },
+  "04.npc_engine/docs/reference/README.md": {
+    "mtime": 1792914426.8663366,
+    "seen": 1793051184.014594,
+    "ast_hash": "51a08572d2df61a415474ae08413835a",
+    "semantic_hash": ""
+  },
+  "04.npc_engine/docs/reference/npc-papers_arxiv-abstracts.md": {
+    "mtime": 1792912503.6431253,
+    "seen": 1793051184.014594,
+    "ast_hash": "3a40e190b0f13e4ef50402eac8342aee",
+    "semantic_hash": ""
+  },
+  "04.npc_engine/docs/reference/spatial-src/ATOMIC_PLANNING_nanojev.md": {
+    "mtime": 1792914380.2131176,
+    "seen": 1793051184.014595,
+    "ast_hash": "58885ec2ada4a6646dbf95ae7126be9a",
+    "semantic_hash": ""
+  },
+  "04.npc_engine/docs/reference/spatial-src/DEVELOPMENT_RESULTS_nanojev.md": {
+    "mtime": 1792914380.2178166,
+    "seen": 1793051184.014595,
+    "ast_hash": "ba8fe8f90625b096b75926c3ac92ecd0",
+    "semantic_hash": ""
+  },
+  "04.npc_engine/docs/reference/spatial-src/MODEL_EDGE_RESULTS_nanojev.md": {
+    "mtime": 1792914380.2154229,
+    "seen": 1793051184.014596,
+    "ast_hash": "603a8aa9ff1a6656ec389b12de150f1c",
+    "semantic_hash": ""
+  },
+  "04.npc_engine/docs/reference/spatial-src/navigation_v3_protocol_nanojev_zh.md": {
+    "mtime": 1792914380.222202,
+    "seen": 1793051184.0145972,
+    "ast_hash": "4afe8ec7603ef2b25fe40466c6e2cb2b",
+    "semantic_hash": ""
+  },
+  "04.npc_engine/docs/reference/spatial-src/navigation_v3_report_nanojev_zh.md": {
+    "mtime": 1792914380.2200391,
+    "seen": 1793051184.0145972,
+    "ast_hash": "1ce17448ae289e6b0e8ea1e800ff0fe5",
+    "semantic_hash": ""
+  },
+  "04.npc_engine/docs/report/2026_10_25_ascii-map-npc-logic.html": {
+    "mtime": 1792915408.1258676,
+    "seen": 1793051184.014598,
+    "ast_hash": "45460b384060311c058ca35c8164cb1c",
+    "semantic_hash": ""
+  },
+  "04.npc_engine/docs/report/2026_10_25_npc-stimulus-literature.md": {
+    "mtime": 1792912543.373511,
+    "seen": 1793051184.0145988,
+    "ast_hash": "66119f649aa3759cc1791afba32ae05c",
+    "semantic_hash": ""
+  },
+  "04.npc_engine/docs/report/2026_10_25_spatial-state-encoding.md": {
+    "mtime": 1792914426.4337308,
+    "seen": 1793051184.0146,
+    "ast_hash": "05a7fd33e5461274d1b44d168a18511b",
+    "semantic_hash": ""
+  },
+  "04.npc_engine/docs/report/2026_10_25_system-one-game-play.md": {
+    "mtime": 1792913812.4258249,
+    "seen": 1793051184.0146,
+    "ast_hash": "c4c882af8c4b9e7a4dbe3e6f10ff67e3",
+    "semantic_hash": ""
+  },
+  "04.npc_engine/docs/worklog/2026_10_25.md": {
+    "mtime": 1792911661.9145987,
+    "seen": 1793051184.014601,
+    "ast_hash": "87ced17a30743041dad50cb2ceb7ff05",
+    "semantic_hash": ""
+  },
+  "04.npc_engine/docs/worklog/2026_10_27.md": {
+    "mtime": 1793051181.8497474,
+    "seen": 1793051184.014601,
+    "ast_hash": "40e1a482fdf97437e43cd353117c0cfc",
     "semantic_hash": ""
   }
 }
