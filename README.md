@@ -15,6 +15,7 @@
 | [02.llm_world/](02.llm_world/) | 진행중 | 2D 월드에서 상호작용으로 자유롭게 이동하는 LLM NPC (frontend/server 분리) |
 | [03.image_filter/](03.image_filter/) | 진행중 | 이미지 필터 실험 (질문 작성 예정) |
 | [04.npc_engine/](04.npc_engine/) | 진행중 | NPC 엔진 실험 (질문 작성 예정) |
+| [05.agent_memory/](05.agent_memory/) | 진행중 | 에이전트 메모리 설계 비교 (research) |
 
 ## 디렉터리 구조
 

@@ -1,0 +1,15 @@
+# Dynamic Cheatsheet: Test-Time Learning with Adaptive Memory
+
+- 저자: Mirac Suzgun, Mert Yuksekgonul, Federico Bianchi, Dan Jurafsky et al.
+- 날짜: 2025-04-10 (arXiv v1 제출일, 수집 버전 2504.07952v1)
+- 학회/저널: (arXiv comment) https://github.com/suzgunmirac/dynamic-cheatsheet
+- arXiv: https://arxiv.org/abs/2504.07952
+- 코드: https://github.com/suzgunmirac/dynamic-cheatsheet
+- 분류: training
+- 비고: test-time memory, no weight update
+- 수집일: 2026-10-27
+- 출처: arXiv API (export.arxiv.org), 초록 원문 그대로 (줄바꿈만 정리)
+
+## Abstract
+
+Despite their impressive performance on complex tasks, current language models (LMs) typically operate in a vacuum: Each input query is processed separately, without retaining insights from previous attempts. Here, we present Dynamic Cheatsheet (DC), a lightweight framework that endows a black-box LM with a persistent, evolving memory. Rather than repeatedly re-discovering or re-committing the same solutions and mistakes, DC enables models to store and reuse accumulated strategies, code snippets, and general problem-solving insights at inference time. This test-time learning enhances performance substantially across a range of tasks without needing explicit ground-truth labels or human feedback. Leveraging DC, Claude 3.5 Sonnet's accuracy more than doubled on AIME math exams once it began retaining algebraic insights across questions. Similarly, GPT-4o's success rate on Game of 24 increased from 10% to 99% after the model discovered and reused a Python-based solution. In tasks prone to arithmetic mistakes, such as balancing equations, DC enabled GPT-4o and Claude to reach near-perfect accuracy by recalling previously validated code, whereas their baselines stagnated around 50%. Beyond arithmetic challenges, DC yields notable accuracy gains on knowledge-demanding tasks. Claude achieved a 9% improvement in GPQA-Diamond and an 8% boost on MMLU-Pro problems. Crucially, DC's memory is self-curated, focusing on concise, transferable snippets rather than entire transcript. Unlike finetuning or static retrieval methods, DC adapts LMs' problem-solving skills on the fly, without modifying their underlying parameters. Overall, our findings present DC as a promising approach for augmenting LMs with persistent memory, bridging the divide between isolated inference events and the cumulative, experience-driven learning characteristic of human cognition.
