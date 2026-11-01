@@ -5,7 +5,8 @@
 
 ## report
 주요 실험 결과·보고서
-- [에이전트 메모리 설계 비교](report/2026_10_27_agent-memory-design-comparison.md) — 논문 48편·사례 34건을 6개 설계 축(저장 대상·형태·쓰기·읽기·갱신/망각·범위)으로 비교
+- [에이전트 메모리 설계 비교](report/2026_10_27_agent-memory-design-comparison.html) — 논문 48편·사례 34건을 6개 설계 축(저장 대상·형태·쓰기·읽기·갱신/망각·범위)으로 비교, 대표 방법론 33개 동작 다이어그램 포함 (HTML)
+- [CS 챗봇 메모리 구조](report/2026_11_01_cs-chatbot-memory-architecture.html) — 규정 문서 + 과거 대응 기록 상황의 추천 구조: 규정 원문 저장소 + 사례 카드 메모리 + 조항 버전 검증 (HTML)
 
 ## reference
 조사 자료 원본

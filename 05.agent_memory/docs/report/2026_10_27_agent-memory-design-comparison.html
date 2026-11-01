@@ -1,0 +1,1048 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>에이전트 메모리 설계 비교 (논문 48편 · 구축 사례 34건)</title>
+<style>
+:root { --bg:#ffffff; --fg:#1f2328; --muted:#59636e; --border:#d1d9e0; --code:#f6f8fa; --link:#0969da; }
+@media (prefers-color-scheme: dark) { :root { --bg:#0d1117; --fg:#e6edf3; --muted:#9198a1; --border:#3d444d; --code:#151b23; --link:#4493f8; } }
+body { background:var(--bg); color:var(--fg); font:16px/1.65 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif; margin:0; }
+main { max-width:960px; margin:0 auto; padding:32px 16px 80px; }
+h1,h2 { border-bottom:1px solid var(--border); padding-bottom:.3em; }
+h2 { margin-top:2.2em; } h4 { margin-top:2em; }
+a { color:var(--link); }
+table { border-collapse:collapse; display:block; overflow-x:auto; margin:1em 0; }
+th,td { border:1px solid var(--border); padding:6px 12px; vertical-align:top; }
+th { background:var(--code); }
+code { background:var(--code); padding:.1em .35em; border-radius:4px; font-size:.9em; }
+pre.mermaid { background:var(--code); border:1px solid var(--border); border-radius:8px; padding:16px; overflow-x:auto; text-align:center; }
+</style>
+</head>
+<body>
+<main>
+<h1>에이전트 메모리 설계 비교 (논문 48편 · 구축 사례 34건)</h1>
+<ul>
+<li>작성일: 2026-10-27</li>
+<li>근거 자료: <a href="../reference/papers/README.md">논문 목록</a>, <a href="../reference/cases/README.md">사례 목록</a></li>
+<li>범위 주의: 논문은 <strong>초록만</strong> 읽고 썼다 (본문 미확인). 사례는 수집한 문서 원문 기준이며, 수치는 대부분 각 회사의 자체 평가다.</li>
+</ul>
+<h2>1. 목적</h2>
+<p>에이전트 메모리를 만들 때 실제로 내려야 하는 설계 결정이 무엇이고, 연구와 실서비스가 각 결정에서 어떤 선택을 하는지 비교한다.</p>
+<h2>2. 방법</h2>
+<ul>
+<li>자료: 2023-03 ~ 2026-05 arXiv 논문 48편 (아키텍처 28, 학습/메모리 관리 9, 서베이 6, 벤치마크 5), 제품 문서·블로그·README 34건 (상용 어시스턴트 8, 코딩 에이전트 7, 오픈소스 14, 엔지니어링 글 5). 모두 2026-10-27 수집.</li>
+<li>비교 축: 서베이들이 공통으로 쓰는 축을 합쳐 6개로 정했다.</li>
+<li><a href="../reference/papers/survey_rethinking_memory_arxiv-2505.00675.md">Rethinking Memory</a>의 6개 연산 (Consolidation, Updating, Indexing, Forgetting, Retrieval, Condensation)</li>
+<li><a href="../reference/papers/survey_memory_age_of_agents_arxiv-2512.13564.md">Memory in the Age of AI Agents</a>의 형태(token-level / parametric / latent)와 기능(factual / experiential / working)</li>
+<li><a href="../reference/papers/coala_arxiv-2309.02427.md">CoALA</a>의 semantic / episodic / procedural 구분</li>
+<li>결정 축 6개: ① 무엇을 저장하나 ② 어떤 형태로 저장하나 ③ 누가·언제 쓰나 ④ 어떻게 컨텍스트로 불러오나 ⑤ 갱신·충돌·망각 ⑥ 범위·사용자 통제</li>
+<li>사례 원문은 별도 패스로 시스템별 사실(저장 대상·쓰기/읽기 경로·수치)을 인용과 함께 추출하고, 핵심 인용 9개는 원문 파일에서 grep으로 재확인했다.</li>
+</ul>
+<h2>3. 결과</h2>
+<h3>3.1 무엇을 저장하나</h3>
+<table>
+<thead>
+<tr>
+<th>종류</th>
+<th>논문</th>
+<th>실서비스</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>사용자 사실·선호 (semantic)</td>
+<td><a href="../reference/papers/memorybank_arxiv-2305.10250.md">MemoryBank</a>, <a href="../reference/papers/mem0_arxiv-2504.19413.md">Mem0</a>, <a href="../reference/papers/memoryos_arxiv-2506.06326.md">MemoryOS</a></td>
+<td><a href="../reference/cases/chatgpt-memory_openai-help-faq.md">ChatGPT</a>, <a href="../reference/cases/gemini-memory_google-help.md">Gemini</a>, <a href="../reference/cases/m365-copilot-memory_microsoft-techcommunity.md">M365 Copilot</a>, <a href="../reference/cases/memobase_github-readme.md">Memobase</a></td>
+</tr>
+<tr>
+<td>과거 경험·궤적 (episodic)</td>
+<td><a href="../reference/papers/generative_agents_arxiv-2304.03442.md">Generative Agents</a>, <a href="../reference/papers/reflexion_arxiv-2303.11366.md">Reflexion</a>, <a href="../reference/papers/g_memory_arxiv-2506.07398.md">G-Memory</a></td>
+<td><a href="../reference/cases/letta-sleep-time-compute_letta-blog.md">Letta recall memory</a>, <a href="../reference/cases/graphiti_github-readme.md">Graphiti episodes</a></td>
+</tr>
+<tr>
+<td>절차·전략·스킬 (procedural / experiential)</td>
+<td><a href="../reference/papers/voyager_arxiv-2305.16291.md">Voyager</a>, <a href="../reference/papers/agent_workflow_memory_arxiv-2409.07429.md">AWM</a>, <a href="../reference/papers/memp_arxiv-2508.06433.md">Memp</a>, <a href="../reference/papers/reasoningbank_arxiv-2509.25140.md">ReasoningBank</a>, <a href="../reference/papers/ace_arxiv-2510.04618.md">ACE</a>, <a href="../reference/papers/dynamic_cheatsheet_arxiv-2504.07952.md">Dynamic Cheatsheet</a></td>
+<td><a href="../reference/cases/claude-code-memory_anthropic-docs.md">CLAUDE.md / auto memory</a>, <a href="../reference/cases/cursor-rules_cursor-docs.md">Cursor Rules</a>, <a href="../reference/cases/agents-md_agents-md-site.md">AGENTS.md</a>, <a href="../reference/cases/letta-memfs_letta-docs.md">Letta MemFS skills</a></td>
+</tr>
+<tr>
+<td>작업 중 상태 (working)</td>
+<td><a href="../reference/papers/memgpt_arxiv-2310.08560.md">MemGPT</a>, <a href="../reference/papers/mem1_arxiv-2506.15841.md">MEM1</a>, <a href="../reference/papers/memagent_arxiv-2507.02259.md">MemAgent</a></td>
+<td><a href="../reference/cases/manus-context-engineering_manus-blog.md">Manus todo.md·파일시스템</a>, <a href="../reference/cases/claude-memory-tool_anthropic-docs.md">Claude memory tool</a>, <a href="../reference/cases/multi-agent-research_anthropic-engineering.md">Anthropic 멀티에이전트 리서치</a></td>
+</tr>
+<tr>
+<td>코드베이스 사실</td>
+<td>—</td>
+<td><a href="../reference/cases/copilot-agentic-memory_github-blog.md">GitHub Copilot Memory</a> (file:line 인용 포함)</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>2025년 이후 논문은 "사용자를 기억"보다 "경험에서 전략을 추출"(experiential) 쪽으로 이동. 최신 서베이 2편이 이 흐름을 명시한다: <a href="../reference/papers/survey_storage_to_experience_arxiv-2605.06716.md">Storage→Reflection→Experience</a>, <a href="../reference/papers/survey_agent_memory_second_half_arxiv-2602.06052.md">Second Half</a> ("memory is increasingly the substrate through which agents self-evolve").</li>
+<li>코딩 에이전트는 사람이 쓴 지시(CLAUDE.md, rules, AGENTS.md)와 에이전트가 쓴 메모리를 분리해 둔다. Claude Code auto memory는 "Claude skips anything it can derive from the codebase" (<a href="../reference/cases/claude-code-memory_anthropic-docs.md">Claude Code docs</a>).</li>
+</ul>
+<h3>3.2 어떤 형태로 저장하나</h3>
+<table>
+<thead>
+<tr>
+<th>형태</th>
+<th>논문</th>
+<th>실서비스</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>평문 파일·마크다운</td>
+<td><a href="../reference/papers/dynamic_cheatsheet_arxiv-2504.07952.md">Dynamic Cheatsheet</a>, <a href="../reference/papers/ace_arxiv-2510.04618.md">ACE</a> ("evolving playbooks")</td>
+<td>Claude Code, <a href="../reference/cases/claude-memory-tool_anthropic-docs.md">Claude memory tool</a>, <a href="../reference/cases/letta-memfs_letta-docs.md">Letta MemFS</a> (git), Manus, Codex/AGENTS.md, Cursor, Windsurf</td>
+</tr>
+<tr>
+<td>벡터 (+키워드)</td>
+<td><a href="../reference/papers/think_in_memory_arxiv-2311.08719.md">Think-in-Memory</a> (LSH), <a href="../reference/papers/a_mem_arxiv-2502.12110.md">A-MEM</a> (노트+링크)</td>
+<td><a href="../reference/cases/mem0_github-readme.md">Mem0</a> (semantic+BM25+entity), <a href="../reference/cases/crewai-memory_crewai-docs.md">CrewAI</a> (LanceDB), <a href="../reference/cases/langgraph-memory_langchain-docs.md">LangGraph store</a>, <a href="../reference/cases/autogen-memory_microsoft-docs.md">AutoGen</a></td>
+</tr>
+<tr>
+<td>지식 그래프</td>
+<td><a href="../reference/papers/hipporag_arxiv-2405.14831.md">HippoRAG</a>, <a href="../reference/papers/hipporag2_arxiv-2502.14802.md">HippoRAG 2</a>, <a href="../reference/papers/zep_arxiv-2501.13956.md">Zep</a>, <a href="../reference/papers/g_memory_arxiv-2506.07398.md">G-Memory</a>, <a href="../reference/papers/ret_llm_arxiv-2305.14322.md">RET-LLM</a> (triplet)</td>
+<td><a href="../reference/cases/graphiti_github-readme.md">Graphiti</a> (bi-temporal), <a href="../reference/cases/cognee_github-readme.md">cognee</a>, <a href="../reference/cases/memos_github-readme.md">MemOS</a></td>
+</tr>
+<tr>
+<td>정형 DB·프로필</td>
+<td><a href="../reference/papers/chatdb_arxiv-2306.03901.md">ChatDB</a> (SQL)</td>
+<td><a href="../reference/cases/memobase_github-readme.md">Memobase</a> (topic/sub_topic 프로필), <a href="../reference/cases/llamaindex-memory_llamaindex-docs.md">LlamaIndex</a> (SQLite)</td>
+</tr>
+<tr>
+<td>계층형 (OS 비유)</td>
+<td><a href="../reference/papers/memgpt_arxiv-2310.08560.md">MemGPT</a>, <a href="../reference/papers/memoryos_arxiv-2506.06326.md">MemoryOS</a>, <a href="../reference/papers/memos_arxiv-2507.03724.md">MemOS</a>, <a href="../reference/papers/mirix_arxiv-2507.07957.md">MIRIX</a> (6종), <a href="../reference/papers/lightmem_arxiv-2510.18866.md">LightMem</a></td>
+<td><a href="../reference/cases/letta-memory_letta-docs.md">Letta</a> (<code>system/</code> 상시 + 나머지 필요시)</td>
+</tr>
+<tr>
+<td>파라미터·latent</td>
+<td><a href="../reference/papers/longmem_arxiv-2306.07174.md">LongMem</a>, <a href="../reference/papers/memoryllm_arxiv-2402.04624.md">MemoryLLM</a>, <a href="../reference/papers/mplus_arxiv-2502.00592.md">M+</a>, <a href="../reference/papers/titans_arxiv-2501.00663.md">Titans</a>, <a href="../reference/papers/memorag_arxiv-2409.05591.md">MemoRAG</a> (KV 압축)</td>
+<td>수집 자료 중 없음</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>실서비스에 파라미터형 메모리는 없다. LangChain: "we don't see many (any?) agentic systems that update the weights of their LLM automatically" (<a href="../reference/cases/memory-for-agents_langchain-blog.md">LangChain blog</a>, 2024-10).</li>
+<li>파일 기반은 벡터 인덱스를 일부러 빼는 경우가 있다: "MemFS does not include a semantic or vector index by default" (<a href="../reference/cases/letta-memfs_letta-docs.md">Letta MemFS</a>).</li>
+</ul>
+<h3>3.3 누가·언제 쓰나 (write path)</h3>
+<table>
+<thead>
+<tr>
+<th>방식</th>
+<th>예</th>
+<th>근거</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>사용자 명시 ("기억해")</td>
+<td>ChatGPT, Gemini, M365, Claude Code, Windsurf</td>
+<td>M365: "Copilot only saves information when there's a clear intent to remember" (<a href="../reference/cases/m365-copilot-memory_microsoft-techcommunity.md">출처</a>)</td>
+</tr>
+<tr>
+<td>대화 루프 안에서 에이전트가 도구 호출 (hot path)</td>
+<td><a href="../reference/papers/memgpt_arxiv-2310.08560.md">MemGPT</a>, <a href="../reference/cases/claude-memory-tool_anthropic-docs.md">Claude memory tool</a>, <a href="../reference/cases/copilot-agentic-memory_github-blog.md">Copilot <code>store_memory</code></a>, <a href="../reference/cases/langmem_github-readme.md">LangMem</a></td>
+<td>LangMem: "The agent gets to decide what and when to store."</td>
+</tr>
+<tr>
+<td>턴/태스크 후 자동 추출</td>
+<td><a href="../reference/cases/mem0_github-readme.md">Mem0</a>, <a href="../reference/cases/crewai-memory_crewai-docs.md">CrewAI</a>, <a href="../reference/cases/memos_github-readme.md">MemOS 플러그인</a></td>
+<td>CrewAI: 태스크 후 사실 추출·저장, 태스크 전 회상·주입</td>
+</tr>
+<tr>
+<td>백그라운드·오프라인 정리</td>
+<td><a href="../reference/cases/letta-sleep-time-compute_letta-blog.md">Letta sleep-time</a>, <a href="../reference/cases/letta-memory_letta-docs.md">Letta dreaming</a>, <a href="../reference/cases/memobase_github-readme.md">Memobase</a>, <a href="../reference/papers/lightmem_arxiv-2510.18866.md">LightMem</a></td>
+<td>Memobase: "we don't memoize users in hot path" (버퍼 1024 토큰 또는 1시간 유휴 시 처리)</td>
+</tr>
+<tr>
+<td>강화학습으로 학습된 정책</td>
+<td><a href="../reference/papers/memory_r1_arxiv-2508.19828.md">Memory-R1</a>, <a href="../reference/papers/mem_alpha_arxiv-2509.25911.md">Mem-α</a>, <a href="../reference/papers/mem1_arxiv-2506.15841.md">MEM1</a>, <a href="../reference/papers/memagent_arxiv-2507.02259.md">MemAgent</a>, <a href="../reference/papers/memory_t1_arxiv-2512.20092.md">Memory-T1</a>, <a href="../reference/papers/memrl_arxiv-2601.03192.md">MemRL</a></td>
+<td>Memory-R1: ADD/UPDATE/DELETE/NOOP 를 PPO·GRPO로 학습, "152 training QA pairs"</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>hot path vs 백그라운드 트레이드오프: hot path는 투명성(사용자에게 알림 가능)과 즉시성, 백그라운드는 지연 없음과 정리 품질 (<a href="../reference/cases/langgraph-memory_langchain-docs.md">LangGraph memory</a>).</li>
+<li>Letta는 메모리 편집 도구를 주 에이전트에서 빼고 sleep-time 에이전트에만 준다. 이유: "Memory formation in MemGPT is incremental, so memories may become messy and disorganized over time" (<a href="../reference/cases/letta-sleep-time-compute_letta-blog.md">Letta blog</a>).</li>
+<li>실서비스에서 RL로 학습된 메모리 정책을 쓴다는 문서는 수집 자료에 없다.</li>
+</ul>
+<h3>3.4 어떻게 불러오나 (read path)</h3>
+<table>
+<thead>
+<tr>
+<th>방식</th>
+<th>예</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>항상 전부 주입</td>
+<td><a href="../reference/cases/autogen-memory_microsoft-docs.md">AutoGen ListMemory</a>, <a href="../reference/cases/memobase_github-readme.md">Memobase <code>context()</code></a>, Codex AGENTS.md (기본 32 KiB) (<a href="../reference/cases/codex-agents-md_openai-docs.md">출처</a>)</td>
+</tr>
+<tr>
+<td>작은 색인은 상시, 본문은 필요할 때 (계층 로딩)</td>
+<td>Claude Code <code>MEMORY.md</code> "first 200 lines or 25KB" + 주제 파일 (<a href="../reference/cases/claude-code-memory_anthropic-docs.md">출처</a>), Letta <code>system/</code> 상시 + 나머지는 파일 트리만 (<a href="../reference/cases/letta-memory_letta-docs.md">출처</a>), Cursor 4가지 활성 모드 (<a href="../reference/cases/cursor-rules_cursor-docs.md">출처</a>)</td>
+</tr>
+<tr>
+<td>유사도/하이브리드 검색</td>
+<td><a href="../reference/cases/mem0_github-readme.md">Mem0</a>, <a href="../reference/cases/graphiti_github-readme.md">Graphiti</a> (semantic+BM25+graph), <a href="../reference/cases/crewai-memory_crewai-docs.md">CrewAI</a> (semantic 0.5 / recency 0.3 / importance 0.2), <a href="../reference/papers/hipporag_arxiv-2405.14831.md">HippoRAG</a> (Personalized PageRank)</td>
+</tr>
+<tr>
+<td>에이전트가 필요할 때 직접 읽기 (just-in-time)</td>
+<td><a href="../reference/cases/claude-memory-tool_anthropic-docs.md">Claude memory tool</a>, <a href="../reference/cases/manus-context-engineering_manus-blog.md">Manus</a>, <a href="../reference/cases/context-engineering_anthropic-engineering.md">Anthropic context engineering</a></td>
+</tr>
+<tr>
+<td>최근 것 + 사용 직전 검증</td>
+<td><a href="../reference/cases/copilot-agentic-memory_github-blog.md">GitHub Copilot</a>: 최근 메모리 주입 → 인용된 코드 위치를 현재 브랜치에서 확인 → "Only validated facts are used" (<a href="../reference/cases/copilot-memory_github-docs.md">docs</a>)</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>서베이·벤치마크의 결론도 "더 많이 넣기"가 답이 아니라는 쪽: <a href="../reference/papers/longmemeval_arxiv-2410.10813.md">LongMemEval</a>은 상용 어시스턴트·장문맥 LLM이 지속 대화에서 "30% accuracy drop"을 보였다고 보고하고, 설계를 indexing / retrieval / reading 3단계로 분해한다.</li>
+<li>Anthropic: "find the smallest set of high-signal tokens that maximize the likelihood of your desired outcome" (<a href="../reference/cases/context-engineering_anthropic-engineering.md">출처</a>).</li>
+</ul>
+<h3>3.5 갱신·충돌·망각</h3>
+<table>
+<thead>
+<tr>
+<th>전략</th>
+<th>예</th>
+<th>근거</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>덧붙이기만 (append-only)</td>
+<td><a href="../reference/cases/mem0_github-readme.md">Mem0 (현 README)</a></td>
+<td>"Single-pass ADD-only extraction -- one LLM call, no UPDATE/DELETE". 최신성은 검색 시 시간 인지 랭킹으로 처리</td>
+</tr>
+<tr>
+<td>LLM이 CRUD 결정</td>
+<td><a href="../reference/papers/mem0_arxiv-2504.19413.md">Mem0 논문</a> (초록 표현은 "extracting, consolidating" — 세부 연산은 본문 미확인), <a href="../reference/cases/crewai-memory_crewai-docs.md">CrewAI</a> (유사도 0.85 초과 시 keep/update/delete/insert_new), <a href="../reference/papers/memory_r1_arxiv-2508.19828.md">Memory-R1</a> (이 결정을 RL로 학습)</td>
+<td>LangGraph: "some models may default to over-inserting and others may default to over-updating"</td>
+</tr>
+<tr>
+<td>지우지 않고 무효화 (bi-temporal)</td>
+<td><a href="../reference/cases/graphiti_github-readme.md">Graphiti/Zep</a></td>
+<td>"old facts are invalidated — not deleted"</td>
+</tr>
+<tr>
+<td>사용 시점 검증 + 미사용 만료</td>
+<td><a href="../reference/cases/copilot-memory_github-docs.md">GitHub Copilot</a></td>
+<td>미사용 항목 "automatically deleted after 28 days", 검증·사용 시 타이머 리셋 가능</td>
+</tr>
+<tr>
+<td>망각 곡선</td>
+<td><a href="../reference/papers/memorybank_arxiv-2305.10250.md">MemoryBank</a></td>
+<td>Ebbinghaus 곡선 기반 경과시간·중요도로 망각/강화</td>
+</tr>
+<tr>
+<td>오프라인 통합</td>
+<td><a href="../reference/cases/letta-memory_letta-docs.md">Letta dreaming</a>, <a href="../reference/papers/lightmem_arxiv-2510.18866.md">LightMem</a> (sleep-time update), <a href="../reference/papers/generative_agents_arxiv-2304.03442.md">Generative Agents</a> (reflection)</td>
+<td>—</td>
+</tr>
+<tr>
+<td>버전 관리</td>
+<td><a href="../reference/cases/letta-memfs_letta-docs.md">Letta MemFS</a> (모든 편집 git 커밋), <a href="../reference/papers/memos_arxiv-2507.03724.md">MemOS</a> (MemCube에 provenance·versioning 메타데이터)</td>
+<td>—</td>
+</tr>
+<tr>
+<td>정리 없음 / 사람·개발자 몫</td>
+<td><a href="../reference/cases/claude-code-memory_anthropic-docs.md">Claude Code</a> (충돌 시 "Claude may pick one arbitrarily"), <a href="../reference/cases/claude-memory-tool_anthropic-docs.md">Claude memory tool</a> ("Periodically delete memory files that haven't been accessed in a long time" 권고)</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>반복 갱신의 함정: <a href="../reference/papers/ace_arxiv-2510.04618.md">ACE</a>는 반복 재작성이 세부를 깎아내는 "context collapse"와 요약 편향 "brevity bias"를 지적하고, 전체 재작성 대신 구조화된 증분 갱신을 쓴다. <a href="../reference/cases/manus-context-engineering_manus-blog.md">Manus</a>도 "any irreversible compression carries risk"라며 복원 가능한 압축(URL·경로 보존)만 쓴다.</li>
+<li>GitHub는 오프라인 큐레이션(중복 제거·충돌 해결)을 비용 때문에 명시적으로 기각하고 읽을 때 검증으로 대체했다: "Information retrieval is an asymmetrical problem: It's hard to solve, but easy to verify" (<a href="../reference/cases/copilot-agentic-memory_github-blog.md">출처</a>).</li>
+</ul>
+<h3>3.6 범위·사용자 통제</h3>
+<ul>
+<li>범위를 좁히는 것이 기본: 프로젝트별 (Claude 앱 "a separate memory for each project", <a href="../reference/cases/claude-memory_anthropic-news.md">출처</a>), 저장소별 (Claude Code, Copilot), 워크스페이스별 (Windsurf "Memories generated in one workspace will not be available in another", <a href="../reference/cases/windsurf-memories_devin-docs.md">출처</a>). Anthropic은 프로젝트 분리를 "a safety guardrail"로 설명.</li>
+<li>권한과 연동: Copilot 저장소 메모리는 쓰기 권한자 활동에서만 생성, 읽기 권한자는 사용만 (<a href="../reference/cases/copilot-memory_github-docs.md">출처</a>).</li>
+<li>상용 어시스턴트 공통 통제: 보기·수정·삭제, 전체 끄기, 메모리 없는 모드 (ChatGPT Temporary chat, Claude Incognito, Gemini Temporary Chat — 최대 72시간 보관, <a href="../reference/cases/gemini-personal-context_google-blog.md">출처</a>), 저장 알림 ("Memory updated").</li>
+<li>기본값은 갈린다: Gemini 과거 대화 참조 "on by default", Claude 앱 "fully optional", Copilot은 개인 요금제 기본 켜짐·엔터프라이즈는 관리자 활성화 필요.</li>
+<li>삭제는 연쇄되지 않는다: "Deleting a chat doesn't erase its memories; you must delete the memory itself" (<a href="../reference/cases/chatgpt-memory_openai-blog.md">ChatGPT blog</a>). 삭제된 저장 메모리 로그는 최대 30일 보관 가능 (<a href="../reference/cases/chatgpt-memory_openai-help-faq.md">FAQ</a>).</li>
+<li>다중 사용자·다중 에이전트 공유: <a href="../reference/cases/crewai-memory_crewai-docs.md">CrewAI</a> private scope·slice, <a href="../reference/cases/memos_github-readme.md">MemOS</a> cube, <a href="../reference/papers/g_memory_arxiv-2506.07398.md">G-Memory</a>. Graphiti 참조 서버는 "no authentication, no authorization, and no prompt-injection protection"이라고 스스로 밝힘 (<a href="../reference/cases/graphiti_github-readme.md">출처</a>).</li>
+</ul>
+<h3>3.7 보고된 수치 (출처별 자체 평가)</h3>
+<table>
+<thead>
+<tr>
+<th>시스템</th>
+<th>수치</th>
+<th>비교 대상·조건</th>
+<th>성격</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="../reference/papers/mem0_arxiv-2504.19413.md">Mem0 논문</a></td>
+<td>LLM-as-a-Judge 26% 상대 개선, p95 지연 91%↓, 토큰 90%↑ 절감</td>
+<td>LoCoMo, OpenAI 메모리 대비 / full-context 대비</td>
+<td>자사 논문</td>
+</tr>
+<tr>
+<td><a href="../reference/cases/mem0_github-readme.md">Mem0 README</a></td>
+<td>LoCoMo 92.5, LongMemEval 94.4</td>
+<td>관리형 플랫폼 기준, "proprietary optimizations not available in the open-source SDK"</td>
+<td>자사</td>
+</tr>
+<tr>
+<td><a href="../reference/cases/memos_github-readme.md">MemOS README</a></td>
+<td>LoCoMo 88.83, LongMemEval 89.20</td>
+<td>자사 벤치마크 포함</td>
+<td>자사</td>
+</tr>
+<tr>
+<td><a href="../reference/papers/zep_arxiv-2501.13956.md">Zep 논문</a></td>
+<td>DMR 94.8% vs MemGPT 93.4%, LongMemEval 최대 18.5% 개선, 지연 90%↓</td>
+<td>베이스라인 구현 대비</td>
+<td>자사 논문</td>
+</tr>
+<tr>
+<td><a href="../reference/papers/mirix_arxiv-2507.07957.md">MIRIX</a></td>
+<td>LoCoMo 85.4%</td>
+<td>—</td>
+<td>저자 논문</td>
+</tr>
+<tr>
+<td><a href="../reference/papers/memoryos_arxiv-2506.06326.md">MemoryOS</a></td>
+<td>LoCoMo F1 49.11% 평균 개선</td>
+<td>GPT-4o-mini 베이스라인 대비</td>
+<td>저자 논문</td>
+</tr>
+<tr>
+<td><a href="../reference/papers/lightmem_arxiv-2510.18866.md">LightMem</a></td>
+<td>QA 최대 7.7% / 29.3%↑, 토큰 최대 38x / 20.9x↓</td>
+<td>LongMemEval / LoCoMo</td>
+<td>저자 논문</td>
+</tr>
+<tr>
+<td><a href="../reference/cases/claude-context-management_anthropic-news.md">Claude memory tool + context editing</a></td>
+<td>39% 개선 (context editing 단독 29%), 100턴 웹검색에서 토큰 84%↓</td>
+<td>Anthropic 내부 평가</td>
+<td>자사</td>
+</tr>
+<tr>
+<td><a href="../reference/cases/copilot-agentic-memory_github-blog.md">GitHub Copilot Memory</a></td>
+<td>PR 머지율 90% vs 83%, 리뷰 정밀도 +3% / 재현율 +4%, p &lt; 0.00001</td>
+<td>실사용 A/B 테스트</td>
+<td>자사, 방법 설명 가장 상세</td>
+</tr>
+<tr>
+<td><a href="../reference/papers/agent_workflow_memory_arxiv-2409.07429.md">AWM</a></td>
+<td>Mind2Web 24.6%, WebArena 51.1% 상대 성공률↑</td>
+<td>웹 내비게이션</td>
+<td>저자 논문</td>
+</tr>
+<tr>
+<td><a href="../reference/papers/dynamic_cheatsheet_arxiv-2504.07952.md">Dynamic Cheatsheet</a></td>
+<td>GPT-4o Game of 24: 10% → 99%</td>
+<td>정답 라벨 없이 테스트 시 학습</td>
+<td>저자 논문</td>
+</tr>
+<tr>
+<td><a href="../reference/papers/ace_arxiv-2510.04618.md">ACE</a></td>
+<td>에이전트 +10.6%, 금융 +8.6%</td>
+<td>AppWorld 등</td>
+<td>저자 논문</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>같은 LoCoMo에서 Mem0 92.5 / MemOS 88.83 / MIRIX 85.4 / Supermemory "#1 on every major AI memory benchmark" (<a href="../reference/cases/supermemory_github-readme.md">출처</a>)가 동시에 주장된다. 평가 설정(판정 모델, 지표, 버전)이 달라 <strong>직접 비교 불가</strong>.</li>
+<li>독립 비교 벤치마크의 결론은 반대로 신중하다: <a href="../reference/papers/memoryagentbench_arxiv-2507.05257.md">MemoryAgentBench</a>는 정확한 검색·테스트 시 학습·장거리 이해·선택적 망각 4개 역량 중 "current methods fall short of mastering all four", <a href="../reference/papers/locomo_arxiv-2402.17753.md">LoCoMo</a>는 장문맥·RAG 모두 "substantially lag behind human performance".</li>
+</ul>
+<h3>3.8 동작 다이어그램 (카테고리별 대표 방법론)</h3>
+<ul>
+<li>노드: LLM <code>([ ])</code> 보라 / 데이터·저장소 <code>[( )]</code> 파랑 / 입력·출력·환경 회색 / 처리 단계 <code>{{ }}</code> 노랑 (LLM 아님 또는 원문에서 세부 미확인)</li>
+<li>엣지: 실선 = 데이터 흐름, 점선 = 트리거·보상·선택적 흐름. 엣지 라벨 = 오가는 데이터</li>
+<li>논문은 초록 수준 근거라 큰 그림만 그림</li>
+</ul>
+<h4>1. 파일 기반 계층 메모리</h4>
+<p>마크다운 파일에 쓰고, 작은 색인만 항상 컨텍스트에 넣고, 나머지는 에이전트가 필요할 때 연다.</p>
+<p><strong>Claude Code auto memory</strong> — 사람이 쓴 규칙(CLAUDE.md)과 Claude가 쓴 기억(auto memory)을 분리. 색인은 앞 200줄/25KB만 로딩. (<a href="../reference/cases/claude-code-memory_anthropic-docs.md">docs</a>)</p>
+<pre class="mermaid">
+flowchart LR
+U["사용자 요청"]:::io --> L(["LLM 에이전트"]):::llm
+CM[("CLAUDE.md<br/>사람이 쓴 규칙")]:::data -->|"시작 시 주입"| L
+IDX[("MEMORY.md 색인")]:::data -->|"시작 시 앞부분만 주입"| L
+L -.->|"필요할 때 열기"| T[("주제 파일들<br/>user / feedback / project / reference")]:::data
+T -->|"내용"| L
+L -->|"새 기억 쓰기"| T
+L -->|"색인 한 줄 추가"| IDX
+L --> O["응답 · 코드 변경"]:::io
+classDef llm fill:#7c5cff,stroke:#5a3fd6,color:#ffffff;
+classDef data fill:#dbeafe,stroke:#3b82f6,color:#0b2a5b;
+classDef io fill:#f3f4f6,stroke:#9ca3af,color:#111827;
+classDef proc fill:#fef3c7,stroke:#d97706,color:#5b4300;
+</pre>
+<p><strong>Claude memory tool + context editing</strong> — 모델은 도구 호출만 하고 실제 저장은 개발자 쪽 핸들러가 처리. 오래된 도구 결과는 컨텍스트에서 자동 삭제. (<a href="../reference/cases/claude-memory-tool_anthropic-docs.md">docs</a> · <a href="../reference/cases/claude-context-management_anthropic-news.md">발표</a>)</p>
+<pre class="mermaid">
+flowchart LR
+U["사용자 요청"]:::io --> CTX[("컨텍스트 윈도우")]:::data
+CTX --> L(["LLM"]):::llm
+L -->|"view / create / str_replace /<br/>insert / delete / rename"| H{{"클라이언트 핸들러<br/>(개발자 구현)"}}:::proc
+H <-->|"읽기 · 쓰기"| M[("/memories 디렉터리<br/>파일 · DB 등")]:::data
+H -->|"파일 내용 (도구 결과)"| CTX
+CE{{"context editing"}}:::proc -.->|"오래된 도구 결과 삭제"| CTX
+L --> O["응답"]:::io
+classDef llm fill:#7c5cff,stroke:#5a3fd6,color:#ffffff;
+classDef data fill:#dbeafe,stroke:#3b82f6,color:#0b2a5b;
+classDef io fill:#f3f4f6,stroke:#9ca3af,color:#111827;
+classDef proc fill:#fef3c7,stroke:#d97706,color:#5b4300;
+</pre>
+<p><strong>Letta MemFS + dreaming</strong> — 메모리 = 에이전트 소유 git 저장소. system/ 은 매 턴 로딩, 나머지는 트리만 보임. 백그라운드 서브에이전트가 통합. (<a href="../reference/cases/letta-memory_letta-docs.md">memory</a> · <a href="../reference/cases/letta-memfs_letta-docs.md">MemFS</a>)</p>
+<pre class="mermaid">
+flowchart LR
+U["사용자 메시지"]:::io --> L(["주 에이전트 LLM"]):::llm
+SYS[("system/ 파일")]:::data -->|"매 턴 system prompt"| L
+TREE[("나머지 파일<br/>(트리만 노출)")]:::data -.->|"필요할 때 읽기"| L
+L -->|"편집 · 커밋"| GIT[("git 메모리 저장소")]:::data
+L -->|"대화 기록"| CONV[("최근 대화")]:::data
+CONV --> D(["dreaming 서브에이전트 LLM"]):::llm
+L -.->|"step-count / compaction 트리거"| D
+D -->|"교훈 통합 · 커밋 (worktree)"| GIT
+GIT --> SYS
+GIT --> TREE
+L --> O["응답"]:::io
+classDef llm fill:#7c5cff,stroke:#5a3fd6,color:#ffffff;
+classDef data fill:#dbeafe,stroke:#3b82f6,color:#0b2a5b;
+classDef io fill:#f3f4f6,stroke:#9ca3af,color:#111827;
+classDef proc fill:#fef3c7,stroke:#d97706,color:#5b4300;
+</pre>
+<p><strong>Manus (작업 중 메모리)</strong> — 파일시스템을 무제한 컨텍스트로 사용. 큰 결과는 파일로 빼고 경로만 남기며, todo.md를 계속 다시 써서 목표를 유지. (<a href="../reference/cases/manus-context-engineering_manus-blog.md">blog</a>)</p>
+<pre class="mermaid">
+flowchart LR
+U["작업 요청"]:::io --> CTX[("컨텍스트")]:::data
+CTX --> L(["LLM 에이전트"]):::llm
+L -->|"도구 호출"| ENV["도구 · 브라우저 · 셸"]:::io
+ENV -->|"관찰 결과 (실패 포함)"| CTX
+L -->|"큰 결과는 파일로"| FS[("샌드박스 파일시스템")]:::data
+FS -.->|"경로 · URL만 남김 (복원 가능)"| CTX
+L -->|"계속 다시 쓰기"| TODO[("todo.md")]:::data
+TODO -->|"컨텍스트 끝에 다시 낭독"| CTX
+L --> O["결과물"]:::io
+classDef llm fill:#7c5cff,stroke:#5a3fd6,color:#ffffff;
+classDef data fill:#dbeafe,stroke:#3b82f6,color:#0b2a5b;
+classDef io fill:#f3f4f6,stroke:#9ca3af,color:#111827;
+classDef proc fill:#fef3c7,stroke:#d97706,color:#5b4300;
+</pre>
+<h4>2. OS형 계층 메모리</h4>
+<p>컨텍스트를 RAM, 외부 저장소를 디스크처럼 나누고, 계층 사이로 정보를 옮긴다.</p>
+<p><strong>MemGPT</strong> — in-context(core + 최근 메시지)와 외부(recall · archival)로 나누고, LLM이 계층을 스스로 관리. (<a href="../reference/papers/memgpt_arxiv-2310.08560.md">논문</a> · <a href="../reference/cases/letta-sleep-time-compute_letta-blog.md">Letta blog</a>)</p>
+<pre class="mermaid">
+flowchart LR
+U["사용자 메시지"]:::io --> FIFO[("최근 메시지 FIFO")]:::data
+CORE[("core memory blocks<br/>persona · human")]:::data --> L(["LLM"]):::llm
+FIFO --> L
+FIFO -->|"밀려난 메시지"| REC[("recall memory<br/>전체 대화 이력")]:::data
+L -->|"검색"| REC
+REC -->|"결과"| L
+L <-->|"저장 · 검색"| ARC[("archival memory")]:::data
+L -->|"편집"| CORE
+L --> O["응답"]:::io
+classDef llm fill:#7c5cff,stroke:#5a3fd6,color:#ffffff;
+classDef data fill:#dbeafe,stroke:#3b82f6,color:#0b2a5b;
+classDef io fill:#f3f4f6,stroke:#9ca3af,color:#111827;
+classDef proc fill:#fef3c7,stroke:#d97706,color:#5b4300;
+</pre>
+<p><strong>Letta sleep-time agent</strong> — 에이전트를 두 개 띄운다. 주 에이전트는 core memory를 못 고치고, sleep-time 에이전트가 비동기로 정리. (<a href="../reference/cases/letta-sleep-time-compute_letta-blog.md">blog</a>)</p>
+<pre class="mermaid">
+flowchart LR
+U["사용자 메시지"]:::io --> P(["primary agent LLM"]):::llm
+CORE[("core memory blocks")]:::data --> P
+P <-->|"검색"| EXT[("recall · archival")]:::data
+P --> O["응답"]:::io
+P -->|"대화 · 문서"| RAW[("raw context")]:::data
+RAW --> S(["sleep-time agent LLM<br/>(더 강한 모델)"]):::llm
+S -->|"core 편집 (비동기)"| CORE
+S -->|"learned context"| CORE
+classDef llm fill:#7c5cff,stroke:#5a3fd6,color:#ffffff;
+classDef data fill:#dbeafe,stroke:#3b82f6,color:#0b2a5b;
+classDef io fill:#f3f4f6,stroke:#9ca3af,color:#111827;
+classDef proc fill:#fef3c7,stroke:#d97706,color:#5b4300;
+</pre>
+<p><strong>MemoryOS</strong> — 단기 → 중기 → 장기 개인 메모리 3단 저장. 단계 간 이동은 FIFO와 세그먼트 페이지 규칙. (<a href="../reference/papers/memoryos_arxiv-2506.06326.md">논문</a>)</p>
+<pre class="mermaid">
+flowchart LR
+U["대화 턴"]:::io --> STM[("단기 메모리<br/>대화 페이지")]:::data
+STM -->|"FIFO (대화 체인)"| MTM[("중기 메모리<br/>세그먼트 페이지")]:::data
+MTM -->|"승격"| LTM[("장기 개인 메모리<br/>사용자 페르소나")]:::data
+Q["새 질문"]:::io --> R{{"검색 모듈"}}:::proc
+STM --> R
+MTM --> R
+LTM --> R
+R -->|"관련 기억"| G(["생성 LLM"]):::llm
+Q --> G
+G --> O["응답"]:::io
+classDef llm fill:#7c5cff,stroke:#5a3fd6,color:#ffffff;
+classDef data fill:#dbeafe,stroke:#3b82f6,color:#0b2a5b;
+classDef io fill:#f3f4f6,stroke:#9ca3af,color:#111827;
+classDef proc fill:#fef3c7,stroke:#d97706,color:#5b4300;
+</pre>
+<p><strong>MemOS</strong> — plaintext · activation · parameter 메모리를 MemCube 단위로 스케줄러가 통합 관리. (<a href="../reference/papers/memos_arxiv-2507.03724.md">논문</a> · <a href="../reference/cases/memos_github-readme.md">README</a>)</p>
+<pre class="mermaid">
+flowchart LR
+IN["대화 · 문서 · 도구 기록"]:::io --> SCH{{"MemScheduler"}}:::proc
+SCH -->|"저장 · 이동 · 융합"| PT[("plaintext MemCube")]:::data
+SCH --> ACT[("activation MemCube")]:::data
+SCH --> PARAM[("parameter MemCube")]:::data
+Q["에이전트 실행 시작"]:::io -->|"실행 전 recall"| SCH
+PT --> SCH
+ACT --> SCH
+PARAM --> SCH
+SCH -->|"필요한 메모리 조합"| L(["LLM"]):::llm
+L --> O["응답"]:::io
+L -->|"실행 후 저장"| SCH
+classDef llm fill:#7c5cff,stroke:#5a3fd6,color:#ffffff;
+classDef data fill:#dbeafe,stroke:#3b82f6,color:#0b2a5b;
+classDef io fill:#f3f4f6,stroke:#9ca3af,color:#111827;
+classDef proc fill:#fef3c7,stroke:#d97706,color:#5b4300;
+</pre>
+<p><strong>MIRIX</strong> — 메모리 6종 + 멀티에이전트가 갱신·검색을 조율. 화면 스크린샷 같은 멀티모달 입력 처리. (에이전트 배치 세부는 미확인) (<a href="../reference/papers/mirix_arxiv-2507.07957.md">논문</a>)</p>
+<pre class="mermaid">
+flowchart LR
+IN["대화 · 스크린샷"]:::io --> MGR(["메모리 관리 에이전트들 LLM"]):::llm
+MGR --> CORE[("Core")]:::data
+MGR --> EPI[("Episodic")]:::data
+MGR --> SEM[("Semantic")]:::data
+MGR --> PROC[("Procedural")]:::data
+MGR --> RES[("Resource")]:::data
+MGR --> KV[("Knowledge Vault")]:::data
+Q["질문"]:::io --> A(["응답 LLM"]):::llm
+CORE --> A
+EPI --> A
+SEM --> A
+PROC --> A
+RES --> A
+KV --> A
+A --> O["응답"]:::io
+classDef llm fill:#7c5cff,stroke:#5a3fd6,color:#ffffff;
+classDef data fill:#dbeafe,stroke:#3b82f6,color:#0b2a5b;
+classDef io fill:#f3f4f6,stroke:#9ca3af,color:#111827;
+classDef proc fill:#fef3c7,stroke:#d97706,color:#5b4300;
+</pre>
+<p><strong>LightMem</strong> — Atkinson-Shiffrin 3단계. 장기 메모리 갱신은 온라인 추론과 분리해 오프라인(sleep-time)으로. (<a href="../reference/papers/lightmem_arxiv-2510.18866.md">논문</a>)</p>
+<pre class="mermaid">
+flowchart LR
+IN["대화 입력"]:::io --> SEN{{"sensory 메모리<br/>경량 압축 · 주제별 그룹"}}:::proc
+SEN --> STM[("topic-aware 단기 메모리")]:::data
+STM --> SUM(["요약 LLM"]):::llm
+SUM -->|"주제별 요약"| LTM[("장기 메모리")]:::data
+OFF(["sleep-time 갱신 LLM<br/>(오프라인)"]):::llm <-->|"통합 · 정리"| LTM
+Q["질문"]:::io --> A(["응답 LLM"]):::llm
+LTM -->|"검색 결과"| A
+A --> O["응답"]:::io
+classDef llm fill:#7c5cff,stroke:#5a3fd6,color:#ffffff;
+classDef data fill:#dbeafe,stroke:#3b82f6,color:#0b2a5b;
+classDef io fill:#f3f4f6,stroke:#9ca3af,color:#111827;
+classDef proc fill:#fef3c7,stroke:#d97706,color:#5b4300;
+</pre>
+<h4>3. 추출·통합 메모리 레이어</h4>
+<p>대화에서 사실을 LLM으로 뽑아 저장소에 통합하고, 다음 요청 전에 검색해 주입한다. 앱 옆에 붙이는 메모리 API 형태.</p>
+<p><strong>Mem0 (2025-04 논문)</strong> — 추출 → 통합(consolidate) → 검색. 그래프 메모리를 쓰는 변형도 제안. (통합 연산 세부는 본문 미확인) (<a href="../reference/papers/mem0_arxiv-2504.19413.md">논문</a>)</p>
+<pre class="mermaid">
+flowchart LR
+CONV["대화 턴"]:::io --> EX(["추출 LLM"]):::llm
+EX -->|"후보 사실"| CON(["통합 LLM"]):::llm
+DB[("메모리 저장소<br/>(벡터 / 그래프 변형)")]:::data -->|"비슷한 기존 기억"| CON
+CON -->|"반영"| DB
+Q["새 질문"]:::io --> R{{"검색"}}:::proc
+DB --> R
+R -->|"관련 기억"| A(["응답 LLM"]):::llm
+Q --> A
+A --> O["응답"]:::io
+classDef llm fill:#7c5cff,stroke:#5a3fd6,color:#ffffff;
+classDef data fill:#dbeafe,stroke:#3b82f6,color:#0b2a5b;
+classDef io fill:#f3f4f6,stroke:#9ca3af,color:#111827;
+classDef proc fill:#fef3c7,stroke:#d97706,color:#5b4300;
+</pre>
+<p><strong>Mem0 (현재 README, ADD-only)</strong> — LLM 한 번 호출로 추출해 덧붙이기만 한다. 최신성 판단은 검색 시점의 시간 인지 랭킹으로. (<a href="../reference/cases/mem0_github-readme.md">README</a>)</p>
+<pre class="mermaid">
+flowchart LR
+CONV["대화 턴"]:::io --> EX(["추출 LLM (1회 호출)"]):::llm
+EX -->|"새 사실 ADD만"| VEC[("임베딩")]:::data
+EX --> BM[("BM25 키워드")]:::data
+EX --> ENT[("엔티티 링크")]:::data
+Q["새 질문"]:::io --> F{{"병렬 검색 → 점수 융합<br/>+ 시간 인지 랭킹"}}:::proc
+VEC --> F
+BM --> F
+ENT --> F
+F -->|"system prompt에 주입"| A(["응답 LLM"]):::llm
+Q --> A
+A --> O["응답"]:::io
+classDef llm fill:#7c5cff,stroke:#5a3fd6,color:#ffffff;
+classDef data fill:#dbeafe,stroke:#3b82f6,color:#0b2a5b;
+classDef io fill:#f3f4f6,stroke:#9ca3af,color:#111827;
+classDef proc fill:#fef3c7,stroke:#d97706,color:#5b4300;
+</pre>
+<p><strong>CrewAI Memory</strong> — 태스크 후 사실 추출, 비슷한 기억이 있으면 LLM이 유지·수정·삭제·추가를 결정. 회상은 의미·최신성·중요도 가중합. (<a href="../reference/cases/crewai-memory_crewai-docs.md">docs</a>)</p>
+<pre class="mermaid">
+flowchart LR
+T["태스크 결과"]:::io --> EX(["추출 LLM<br/>사실 + scope · 범주 · 중요도"]):::llm
+EX --> SIM{{"유사도 > 0.85 ?"}}:::proc
+DB[("벡터 저장소 (LanceDB)")]:::data -->|"비슷한 기억"| SIM
+SIM -->|"예"| DEC(["LLM: keep / update /<br/>delete / insert_new"]):::llm
+SIM -->|"아니오"| DB
+DEC --> DB
+NEXT["다음 태스크"]:::io --> REC{{"회상: 의미 0.5 + 최신성 0.3<br/>+ 중요도 0.2"}}:::proc
+DB --> REC
+REC -->|"주입"| AG(["에이전트 LLM"]):::llm
+NEXT --> AG
+classDef llm fill:#7c5cff,stroke:#5a3fd6,color:#ffffff;
+classDef data fill:#dbeafe,stroke:#3b82f6,color:#0b2a5b;
+classDef io fill:#f3f4f6,stroke:#9ca3af,color:#111827;
+classDef proc fill:#fef3c7,stroke:#d97706,color:#5b4300;
+</pre>
+<p><strong>LangMem / LangGraph</strong> — 쓰기 경로가 두 개: 대화 중 에이전트가 도구로(hot path), 또는 백그라운드 매니저가 나중에. (<a href="../reference/cases/langmem_github-readme.md">LangMem</a> · <a href="../reference/cases/langgraph-memory_langchain-docs.md">LangGraph</a>)</p>
+<pre class="mermaid">
+flowchart LR
+U["사용자 메시지"]:::io --> AG(["에이전트 LLM"]):::llm
+AG -->|"manage_memory 도구 (hot path)"| ST[("Store<br/>namespace / key JSON")]:::data
+AG -->|"search_memory 도구"| ST
+ST -->|"검색 결과"| AG
+AG --> O["응답"]:::io
+AG -->|"대화 기록"| CONV[("대화 기록")]:::data
+CONV --> BG(["백그라운드 매니저 LLM"]):::llm
+BG -->|"추출 · 통합 · 갱신"| ST
+classDef llm fill:#7c5cff,stroke:#5a3fd6,color:#ffffff;
+classDef data fill:#dbeafe,stroke:#3b82f6,color:#0b2a5b;
+classDef io fill:#f3f4f6,stroke:#9ca3af,color:#111827;
+classDef proc fill:#fef3c7,stroke:#d97706,color:#5b4300;
+</pre>
+<p><strong>GitHub Copilot Memory</strong> — 코드 위치 인용을 붙여 저장하고, 사용하기 전에 현재 코드와 대조해 검증된 기억만 사용. 28일 안 쓰면 삭제. (<a href="../reference/cases/copilot-agentic-memory_github-blog.md">blog</a> · <a href="../reference/cases/copilot-memory_github-docs.md">docs</a>)</p>
+<pre class="mermaid">
+flowchart LR
+TASK["리뷰 · 코딩 작업"]:::io --> AG(["Copilot 에이전트 LLM"]):::llm
+DB[("저장소별 메모리 DB<br/>subject · fact · citations · reason")]:::data -->|"최근 메모리"| AG
+AG -->|"인용 위치 확인"| CODE[("현재 브랜치 코드")]:::data
+CODE -->|"일치 / 불일치"| AG
+AG -->|"store_memory: 새 사실 · 수정본 · 재저장"| DB
+EXP{{"28일 미사용 시 삭제"}}:::proc -.-> DB
+AG --> O["리뷰 코멘트 · PR"]:::io
+classDef llm fill:#7c5cff,stroke:#5a3fd6,color:#ffffff;
+classDef data fill:#dbeafe,stroke:#3b82f6,color:#0b2a5b;
+classDef io fill:#f3f4f6,stroke:#9ca3af,color:#111827;
+classDef proc fill:#fef3c7,stroke:#d97706,color:#5b4300;
+</pre>
+<h4>4. 시간 인지 지식그래프</h4>
+<p>엔티티와 관계로 저장하고, 사실에 유효기간을 두며, 그래프 탐색으로 검색한다.</p>
+<p><strong>Zep / Graphiti</strong> — 원본은 Episode로 보존, LLM이 엔티티·관계를 뽑고 모순되는 옛 사실은 지우지 않고 무효화. (<a href="../reference/papers/zep_arxiv-2501.13956.md">논문</a> · <a href="../reference/cases/graphiti_github-readme.md">README</a>)</p>
+<pre class="mermaid">
+flowchart LR
+IN["대화 · 문서 · JSON"]:::io --> EP[("Episodes (원본)")]:::data
+EP --> EX(["추출 LLM<br/>엔티티 · 관계"]):::llm
+EX --> RES(["중복 · 모순 판단 LLM"]):::llm
+G[("그래프<br/>Entity · Fact(유효기간) · Community")]:::data -->|"기존 노드 · 사실"| RES
+RES -->|"새 사실 추가 · 옛 사실 무효화"| G
+EP -.->|"출처 연결"| G
+Q["질문"]:::io --> H{{"하이브리드 검색<br/>임베딩 + BM25 + 그래프 탐색"}}:::proc
+G --> H
+H -->|"관련 사실"| A(["에이전트 LLM"]):::llm
+Q --> A
+A --> O["응답"]:::io
+classDef llm fill:#7c5cff,stroke:#5a3fd6,color:#ffffff;
+classDef data fill:#dbeafe,stroke:#3b82f6,color:#0b2a5b;
+classDef io fill:#f3f4f6,stroke:#9ca3af,color:#111827;
+classDef proc fill:#fef3c7,stroke:#d97706,color:#5b4300;
+</pre>
+<p><strong>HippoRAG 1 · 2</strong> — 해마 색인 이론 비유: LLM(신피질) + 지식그래프(해마 색인) + Personalized PageRank. 2는 passage를 그래프에 더 깊게 통합. (<a href="../reference/papers/hipporag_arxiv-2405.14831.md">HippoRAG</a> · <a href="../reference/papers/hipporag2_arxiv-2502.14802.md">HippoRAG 2</a>)</p>
+<pre class="mermaid">
+flowchart LR
+DOC[("문서 passages")]:::data --> IDX(["LLM: 지식 추출"]):::llm
+IDX --> KG[("지식그래프 (해마 색인)<br/>+ passage 노드 (v2)")]:::data
+Q["질문"]:::io --> QL(["LLM: 질문 → 시작 노드"]):::llm
+QL --> PPR{{"Personalized PageRank"}}:::proc
+KG --> PPR
+PPR -->|"순위 매긴 passages"| A(["응답 LLM"]):::llm
+Q --> A
+A --> O["답"]:::io
+classDef llm fill:#7c5cff,stroke:#5a3fd6,color:#ffffff;
+classDef data fill:#dbeafe,stroke:#3b82f6,color:#0b2a5b;
+classDef io fill:#f3f4f6,stroke:#9ca3af,color:#111827;
+classDef proc fill:#fef3c7,stroke:#d97706,color:#5b4300;
+</pre>
+<p><strong>A-MEM</strong> — Zettelkasten 방식. 새 기억마다 노트를 만들고, 기존 노트와 링크하고, 기존 노트까지 진화시킨다. (<a href="../reference/papers/a_mem_arxiv-2502.12110.md">논문</a>)</p>
+<pre class="mermaid">
+flowchart LR
+IN["새 상호작용"]:::io --> NOTE(["LLM: 노트 생성<br/>맥락 · 키워드 · 태그"]):::llm
+NOTE --> N[("새 노트")]:::data
+NET[("노트 네트워크")]:::data -->|"비슷한 노트"| LINK(["LLM: 링크 결정"]):::llm
+N --> LINK
+LINK -->|"링크 추가"| NET
+LINK --> EVO(["LLM: 기존 노트 진화"]):::llm
+EVO -->|"설명 · 태그 갱신"| NET
+Q["질문"]:::io --> A(["에이전트 LLM"]):::llm
+NET -->|"관련 노트"| A
+A --> O["응답"]:::io
+classDef llm fill:#7c5cff,stroke:#5a3fd6,color:#ffffff;
+classDef data fill:#dbeafe,stroke:#3b82f6,color:#0b2a5b;
+classDef io fill:#f3f4f6,stroke:#9ca3af,color:#111827;
+classDef proc fill:#fef3c7,stroke:#d97706,color:#5b4300;
+</pre>
+<p><strong>G-Memory (멀티에이전트)</strong> — insight / query / interaction 3층 그래프. 위로는 일반 통찰, 아래로는 압축된 협업 궤적을 꺼낸다. (<a href="../reference/papers/g_memory_arxiv-2506.07398.md">논문</a>)</p>
+<pre class="mermaid">
+flowchart LR
+Q["새 질문"]:::io --> QG[("query graph")]:::data
+QG -->|"위로 탐색"| IG[("insight graph")]:::data
+QG -->|"아래로 탐색"| ING[("interaction graph")]:::data
+IG -->|"일반화된 통찰"| MAS(["멀티에이전트 시스템 LLM들"]):::llm
+ING -->|"압축된 협업 궤적"| MAS
+Q --> MAS
+MAS --> O["결과"]:::io
+MAS -->|"새 협업 궤적"| UPD(["LLM: 계층 갱신"]):::llm
+UPD --> IG
+UPD --> QG
+UPD --> ING
+classDef llm fill:#7c5cff,stroke:#5a3fd6,color:#ffffff;
+classDef data fill:#dbeafe,stroke:#3b82f6,color:#0b2a5b;
+classDef io fill:#f3f4f6,stroke:#9ca3af,color:#111827;
+classDef proc fill:#fef3c7,stroke:#d97706,color:#5b4300;
+</pre>
+<h4>5. 경험·절차 메모리 (self-evolving)</h4>
+<p>사용자 사실이 아니라 '일을 잘하는 방법'을 기억한다. 궤적 → 평가 → 증류 → 재사용. 가중치는 바꾸지 않는다.</p>
+<p><strong>Agent Workflow Memory (AWM)</strong> — 과거 궤적에서 자주 쓰는 루틴(workflow)을 유도해 다음 작업에 제공. 오프라인·온라인 모두 가능. (<a href="../reference/papers/agent_workflow_memory_arxiv-2409.07429.md">논문</a>)</p>
+<pre class="mermaid">
+flowchart LR
+TRJ[("과거 작업 궤적")]:::data --> IND(["LLM: workflow 유도"]):::llm
+IND --> WF[("workflow 메모리")]:::data
+Q["새 작업"]:::io --> AG(["웹 에이전트 LLM"]):::llm
+WF -->|"관련 workflow"| AG
+AG <-->|"행동 · 관찰"| ENV["웹 환경"]:::io
+AG -->|"온라인: 새 궤적"| TRJ
+classDef llm fill:#7c5cff,stroke:#5a3fd6,color:#ffffff;
+classDef data fill:#dbeafe,stroke:#3b82f6,color:#0b2a5b;
+classDef io fill:#f3f4f6,stroke:#9ca3af,color:#111827;
+classDef proc fill:#fef3c7,stroke:#d97706,color:#5b4300;
+</pre>
+<p><strong>ReasoningBank</strong> — 스스로 판정한 성공과 실패 모두에서 추론 전략을 증류. MaTTS는 같은 작업을 여러 번 시도해 대조 신호를 얻는다. (<a href="../reference/papers/reasoningbank_arxiv-2509.25140.md">논문</a>)</p>
+<pre class="mermaid">
+flowchart LR
+Q["새 작업"]:::io --> AG(["에이전트 LLM"]):::llm
+RB[("ReasoningBank<br/>전략 항목")]:::data -->|"관련 전략"| AG
+AG <-->|"행동 · 관찰"| ENV["환경 (웹 · SWE)"]:::io
+AG -->|"궤적 (MaTTS: 여러 번)"| TRJ[("궤적들")]:::data
+TRJ --> J(["LLM: 성공 / 실패 자기 판정"]):::llm
+J --> DIST(["LLM: 전략 증류"]):::llm
+TRJ --> DIST
+DIST -->|"새 전략 통합"| RB
+classDef llm fill:#7c5cff,stroke:#5a3fd6,color:#ffffff;
+classDef data fill:#dbeafe,stroke:#3b82f6,color:#0b2a5b;
+classDef io fill:#f3f4f6,stroke:#9ca3af,color:#111827;
+classDef proc fill:#fef3c7,stroke:#d97706,color:#5b4300;
+</pre>
+<p><strong>ACE (Agentic Context Engineering)</strong> — Generator · Reflector · Curator 세 역할. 전체를 다시 쓰지 않고 playbook에 증분으로만 반영해 context collapse를 막는다. (<a href="../reference/papers/ace_arxiv-2510.04618.md">논문</a>)</p>
+<pre class="mermaid">
+flowchart LR
+Q["질문 · 작업"]:::io --> GEN(["Generator LLM"]):::llm
+PB[("Playbook<br/>전략 항목들")]:::data -->|"컨텍스트"| GEN
+GEN --> TRJ["실행 궤적 + 실행 피드백"]:::io
+TRJ --> REF(["Reflector LLM"]):::llm
+REF -->|"교훈"| CUR(["Curator LLM"]):::llm
+CUR -->|"증분 항목"| MG{{"구조화된 증분 반영"}}:::proc
+MG --> PB
+classDef llm fill:#7c5cff,stroke:#5a3fd6,color:#ffffff;
+classDef data fill:#dbeafe,stroke:#3b82f6,color:#0b2a5b;
+classDef io fill:#f3f4f6,stroke:#9ca3af,color:#111827;
+classDef proc fill:#fef3c7,stroke:#d97706,color:#5b4300;
+</pre>
+<p><strong>Dynamic Cheatsheet</strong> — 블랙박스 LM 옆에 계속 진화하는 cheatsheet. 전체 대화가 아니라 재사용 가능한 전략·코드 조각만 큐레이션. (<a href="../reference/papers/dynamic_cheatsheet_arxiv-2504.07952.md">논문</a>)</p>
+<pre class="mermaid">
+flowchart LR
+Q["문제"]:::io --> L(["풀이 LM"]):::llm
+CS[("cheatsheet<br/>전략 · 코드 조각")]:::data --> L
+L --> A["답"]:::io
+L -->|"풀이 과정 · 답"| CUR(["큐레이터 LM"]):::llm
+CS --> CUR
+CUR -->|"쓸모 있는 조각만 갱신"| CS
+classDef llm fill:#7c5cff,stroke:#5a3fd6,color:#ffffff;
+classDef data fill:#dbeafe,stroke:#3b82f6,color:#0b2a5b;
+classDef io fill:#f3f4f6,stroke:#9ca3af,color:#111827;
+classDef proc fill:#fef3c7,stroke:#d97706,color:#5b4300;
+</pre>
+<p><strong>Memp</strong> — 궤적을 단계별 지시와 스크립트형 추상화 두 수준으로 증류. 계속 갱신·수정·폐기하고, 다른 모델로 이식도 가능. (<a href="../reference/papers/memp_arxiv-2508.06433.md">논문</a>)</p>
+<pre class="mermaid">
+flowchart LR
+TRJ[("과거 궤적")]:::data --> DIST(["LLM: 증류<br/>단계별 지시 + 스크립트"]):::llm
+DIST --> PM[("절차 메모리")]:::data
+Q["새 작업"]:::io --> AG(["에이전트 LLM"]):::llm
+PM -->|"관련 절차"| AG
+AG --> RES["결과 (성공 · 실패)"]:::io
+RES --> UPD(["LLM: 갱신 · 수정 · 폐기"]):::llm
+UPD --> PM
+PM -.->|"이식"| W(["다른(약한) 모델"]):::llm
+classDef llm fill:#7c5cff,stroke:#5a3fd6,color:#ffffff;
+classDef data fill:#dbeafe,stroke:#3b82f6,color:#0b2a5b;
+classDef io fill:#f3f4f6,stroke:#9ca3af,color:#111827;
+classDef proc fill:#fef3c7,stroke:#d97706,color:#5b4300;
+</pre>
+<p><strong>MemRL</strong> — 추론 모델은 고정, 메모리만 RL로 진화. 의미 유사도로 후보를 뽑고 환경 피드백으로 쌓인 유용도로 다시 고른다. (<a href="../reference/papers/memrl_arxiv-2601.03192.md">논문</a>)</p>
+<pre class="mermaid">
+flowchart LR
+Q["새 작업"]:::io --> P1{{"1단계: 의미 유사도 후보"}}:::proc
+EM[("에피소드 메모리<br/>+ 유용도 값")]:::data --> P1
+P1 --> P2{{"2단계: 유용도 기반 선별"}}:::proc
+P2 -->|"고유용 전략"| AG(["고정 LLM"]):::llm
+Q --> AG
+AG <--> ENV["환경"]:::io
+ENV -->|"보상"| UPD{{"RL: 유용도 갱신"}}:::proc
+UPD --> EM
+AG -->|"새 경험"| EM
+classDef llm fill:#7c5cff,stroke:#5a3fd6,color:#ffffff;
+classDef data fill:#dbeafe,stroke:#3b82f6,color:#0b2a5b;
+classDef io fill:#f3f4f6,stroke:#9ca3af,color:#111827;
+classDef proc fill:#fef3c7,stroke:#d97706,color:#5b4300;
+</pre>
+<p><strong>Reflexion (원형, 2023)</strong> — 실패 피드백을 말로 반성해 에피소드 버퍼에 저장하고 다음 시도에 넣는다. (<a href="../reference/papers/reflexion_arxiv-2303.11366.md">논문</a>)</p>
+<pre class="mermaid">
+flowchart LR
+Q["작업"]:::io --> AG(["행위자 LLM"]):::llm
+AG <--> ENV["환경"]:::io
+ENV -->|"피드백 신호"| SR(["LLM: 자기 반성"]):::llm
+SR -->|"반성 텍스트"| BUF[("에피소드 메모리 버퍼")]:::data
+BUF -->|"다음 시도에 주입"| AG
+classDef llm fill:#7c5cff,stroke:#5a3fd6,color:#ffffff;
+classDef data fill:#dbeafe,stroke:#3b82f6,color:#0b2a5b;
+classDef io fill:#f3f4f6,stroke:#9ca3af,color:#111827;
+classDef proc fill:#fef3c7,stroke:#d97706,color:#5b4300;
+</pre>
+<p><strong>Voyager (원형, 2023)</strong> — 자동 커리큘럼 + 실행 가능한 코드 스킬 라이브러리 + 환경 피드백·자기 검증 반복. (<a href="../reference/papers/voyager_arxiv-2305.16291.md">논문</a>)</p>
+<pre class="mermaid">
+flowchart LR
+CUR(["LLM: 자동 커리큘럼"]):::llm -->|"다음 과제"| AG(["LLM: 코드 생성"]):::llm
+SK[("스킬 라이브러리<br/>실행 코드")]:::data -->|"관련 스킬"| AG
+AG -->|"코드"| ENV["Minecraft"]:::io
+ENV -->|"피드백 · 오류"| AG
+AG --> VER(["LLM: 자기 검증"]):::llm
+VER -->|"성공 시 저장"| SK
+ENV -.->|"상태"| CUR
+classDef llm fill:#7c5cff,stroke:#5a3fd6,color:#ffffff;
+classDef data fill:#dbeafe,stroke:#3b82f6,color:#0b2a5b;
+classDef io fill:#f3f4f6,stroke:#9ca3af,color:#111827;
+classDef proc fill:#fef3c7,stroke:#d97706,color:#5b4300;
+</pre>
+<p><strong>ExpeL (원형, 2023)</strong> — 학습 과제에서 경험을 모아 자연어 통찰을 추출하고, 추론 시 통찰과 비슷한 과거 경험을 함께 꺼낸다. (<a href="../reference/papers/expel_arxiv-2308.10144.md">논문</a>)</p>
+<pre class="mermaid">
+flowchart LR
+TR["학습 과제들"]:::io --> AG1(["에이전트 LLM"]):::llm
+AG1 -->|"궤적"| EXP[("경험 풀")]:::data
+EXP --> INS(["LLM: 통찰 추출"]):::llm
+INS --> IN[("통찰 목록")]:::data
+Q["새 과제"]:::io --> AG2(["에이전트 LLM"]):::llm
+IN --> AG2
+EXP -->|"비슷한 과거 경험"| AG2
+AG2 --> O["행동"]:::io
+classDef llm fill:#7c5cff,stroke:#5a3fd6,color:#ffffff;
+classDef data fill:#dbeafe,stroke:#3b82f6,color:#0b2a5b;
+classDef io fill:#f3f4f6,stroke:#9ca3af,color:#111827;
+classDef proc fill:#fef3c7,stroke:#d97706,color:#5b4300;
+</pre>
+<h4>6. RL로 학습된 메모리 관리</h4>
+<p>무엇을 저장·갱신·삭제할지를 프롬프트 규칙 대신 강화학습으로 배운다. 보상은 대부분 최종 답의 정답 여부.</p>
+<p><strong>Memory-R1</strong> — Memory Manager(ADD/UPDATE/DELETE/NOOP)와 Answer Agent(후보 선별·추론) 둘 다 PPO·GRPO로 학습. (<a href="../reference/papers/memory_r1_arxiv-2508.19828.md">논문</a>)</p>
+<pre class="mermaid">
+flowchart LR
+CONV["대화 턴"]:::io --> MM(["Memory Manager LLM<br/>(RL 학습)"]):::llm
+BANK[("메모리 뱅크")]:::data -->|"관련 기존 항목"| MM
+MM -->|"ADD / UPDATE / DELETE / NOOP"| BANK
+Q["질문"]:::io --> R{{"검색"}}:::proc
+BANK --> R
+R -->|"후보 기억"| AA(["Answer Agent LLM<br/>(RL 학습)"]):::llm
+Q --> AA
+AA --> ANS["답"]:::io
+ANS -.->|"정답 여부 = 보상"| MM
+ANS -.->|"정답 여부 = 보상"| AA
+classDef llm fill:#7c5cff,stroke:#5a3fd6,color:#ffffff;
+classDef data fill:#dbeafe,stroke:#3b82f6,color:#0b2a5b;
+classDef io fill:#f3f4f6,stroke:#9ca3af,color:#111827;
+classDef proc fill:#fef3c7,stroke:#d97706,color:#5b4300;
+</pre>
+<p><strong>Mem-α</strong> — core · episodic · semantic 메모리를 도구로 다루는 에이전트를 RL로 학습. 보상은 전체 이력에 대한 QA 정확도. (<a href="../reference/papers/mem_alpha_arxiv-2509.25911.md">논문</a>)</p>
+<pre class="mermaid">
+flowchart LR
+CH["정보 청크 (순차 입력)"]:::io --> AG(["LLM 에이전트<br/>(RL 학습)"]):::llm
+AG -->|"메모리 도구"| CORE[("core")]:::data
+AG -->|"메모리 도구"| EPI[("episodic")]:::data
+AG -->|"메모리 도구"| SEM[("semantic")]:::data
+Q["평가 질문"]:::io --> A(["답변 LLM"]):::llm
+CORE --> A
+EPI --> A
+SEM --> A
+A --> ANS["답"]:::io
+ANS -.->|"QA 정확도 = 보상"| AG
+classDef llm fill:#7c5cff,stroke:#5a3fd6,color:#ffffff;
+classDef data fill:#dbeafe,stroke:#3b82f6,color:#0b2a5b;
+classDef io fill:#f3f4f6,stroke:#9ca3af,color:#111827;
+classDef proc fill:#fef3c7,stroke:#d97706,color:#5b4300;
+</pre>
+<p><strong>Memory-T1</strong> — 읽기 쪽 학습. 시간·관련성 필터로 후보를 줄인 뒤 RL 정책이 근거 세션을 고른다. 보상 3종. (<a href="../reference/papers/memory_t1_arxiv-2512.20092.md">논문</a>)</p>
+<pre class="mermaid">
+flowchart LR
+HIST[("긴 다중 세션 대화")]:::data --> F{{"시간 · 관련성 필터"}}:::proc
+Q["질문"]:::io --> F
+F --> CAND[("후보 세션")]:::data
+CAND --> POL(["RL 정책 LLM<br/>근거 세션 선택 → 답"]):::llm
+Q --> POL
+POL --> ANS["답 + 근거"]:::io
+ANS -.->|"보상: 정답 · 근거 · 시간 일관성"| POL
+classDef llm fill:#7c5cff,stroke:#5a3fd6,color:#ffffff;
+classDef data fill:#dbeafe,stroke:#3b82f6,color:#0b2a5b;
+classDef io fill:#f3f4f6,stroke:#9ca3af,color:#111827;
+classDef proc fill:#fef3c7,stroke:#d97706,color:#5b4300;
+</pre>
+<p><strong>MEM1</strong> — 매 턴 고정 크기 내부 상태 하나를 다시 쓴다. 이전 턴 내용은 버려서 메모리 사용량이 일정. (<a href="../reference/papers/mem1_arxiv-2506.15841.md">논문</a>)</p>
+<pre class="mermaid">
+flowchart LR
+OBS["턴 t 관찰 · 질문"]:::io --> L(["LLM (RL 학습)"]):::llm
+IS[("내부 상태 t-1")]:::data --> L
+L -->|"통합 + 불필요한 것 버림"| IS2[("내부 상태 t")]:::data
+L --> ACT["행동 · 답"]:::io
+IS2 -.->|"다음 턴"| IS
+ACT -.->|"최종 성공 = 보상"| L
+classDef llm fill:#7c5cff,stroke:#5a3fd6,color:#ffffff;
+classDef data fill:#dbeafe,stroke:#3b82f6,color:#0b2a5b;
+classDef io fill:#f3f4f6,stroke:#9ca3af,color:#111827;
+classDef proc fill:#fef3c7,stroke:#d97706,color:#5b4300;
+</pre>
+<p><strong>MemAgent</strong> — 긴 문서를 구간별로 읽으며 고정 크기 메모리를 덮어쓴다. DAPO 확장으로 학습. (<a href="../reference/papers/memagent_arxiv-2507.02259.md">논문</a>)</p>
+<pre class="mermaid">
+flowchart LR
+DOC["긴 문서"]:::io --> SEG["구간 k"]:::io
+SEG --> L(["LLM (RL 학습)"]):::llm
+MEM[("고정 크기 메모리")]:::data --> L
+L -->|"덮어쓰기"| MEM
+Q["질문"]:::io --> L
+MEM -->|"마지막 구간 후"| FIN(["LLM: 최종 답"]):::llm
+Q --> FIN
+FIN --> ANS["답"]:::io
+ANS -.->|"정답 여부 = 보상"| L
+classDef llm fill:#7c5cff,stroke:#5a3fd6,color:#ffffff;
+classDef data fill:#dbeafe,stroke:#3b82f6,color:#0b2a5b;
+classDef io fill:#f3f4f6,stroke:#9ca3af,color:#111827;
+classDef proc fill:#fef3c7,stroke:#d97706,color:#5b4300;
+</pre>
+<h2>4. 해석</h2>
+<ol>
+<li><strong>연구와 실서비스가 다른 문제를 풀고 있다.</strong></li>
+<li>논문은 저장 구조(그래프·계층·latent)와 학습된 관리 정책(RL)에 집중한다.</li>
+<li>실서비스, 특히 코딩 에이전트는 마크다운 파일 + 작은 색인 상시 로딩 + 나머지 필요시 읽기로 수렴했다 (Claude Code, Letta MemFS, Codex, Cursor, Windsurf, Manus).</li>
+<li>이유로 문서들이 드는 것: 사람이 읽고 고칠 수 있음, git으로 버전 관리, 모델이 이미 파일 도구를 잘 씀.</li>
+<li><strong>실서비스의 핵심 난제는 "찾기"보다 "아직 맞는가"다.</strong></li>
+<li>GitHub: "The core challenge for memory systems isn't about information retrieval, but ensuring that any stored knowledge remains valid as code evolves" (<a href="../reference/cases/copilot-agentic-memory_github-blog.md">출처</a>).</li>
+<li>대응이 셋으로 갈린다: 읽을 때 검증(Copilot), 지우지 않고 유효기간 표시(Graphiti), 백그라운드 재정리(Letta). 무엇이 나은지 비교한 자료는 수집 범위에 없다.</li>
+<li><strong>갱신 연산은 아직 합의가 없다.</strong></li>
+<li>Mem0는 논문(2025-04)에서 LLM이 추출·통합하던 방식에서 현 README의 ADD-only로 바뀌었다. 위 LangGraph 지적("over-inserting / over-updating")과 ACE의 context collapse가 같은 문제의 다른 면으로 보인다 (추정).</li>
+<li>RL 논문들(Memory-R1, Mem-α)은 바로 이 결정을 학습 대상으로 삼는다.</li>
+<li><strong>메모리의 중심이 "사용자 사실"에서 "경험·절차"로 옮겨 가는 중.</strong></li>
+<li>2024-09 AWM 이후 Memp, ReasoningBank, ACE, Dynamic Cheatsheet, MemRL 모두 가중치를 바꾸지 않고 전략·워크플로우를 쌓아 성능을 올린다.</li>
+<li>실서비스에서 같은 위치를 차지하는 것이 CLAUDE.md·rules·skills다. 차이는 실서비스는 대부분 사람이 쓰거나 사람이 검토한다는 점.</li>
+<li><strong>벤치마크 수치는 설계 판단 근거로 약하다.</strong></li>
+<li>LoCoMo·LongMemEval 점수가 벤더마다 자체 측정이고 서로 다른 설정이다.</li>
+<li>실제 효과 근거로는 GitHub의 A/B 테스트가 가장 구체적이지만 효과 크기는 작다 (머지율 +7%p).</li>
+</ol>
+<h2>5. 남은 질문</h2>
+<ul>
+<li>논문 본문 미확인: 위 아키텍처 비교는 초록 수준. Mem0·Zep·A-MEM·MemGPT·LongMemEval은 본문(특히 실험 설정)을 읽어야 수치 비교가 가능.</li>
+<li>ChatGPT·Gemini·Claude 앱의 저장·검색 내부 구조는 공개 문서에 없음. ChatGPT가 <code>save_memories</code> 도구로 upsert한다는 것은 LangGraph 문서의 2차 언급뿐 (<a href="../reference/cases/langgraph-memory_langchain-docs.md">출처</a>).</li>
+<li>갱신 전략(append-only / LLM CRUD / 무효화 / 읽기 시 검증)을 같은 조건에서 비교한 자료 없음 → 직접 실험 후보.</li>
+<li>파일 기반 메모리가 수천 항목 이상으로 커질 때의 한계 (색인 200줄 제한 이후) 관련 자료 없음.</li>
+<li>2026-06 이후 쏟아진 메모리 벤치마크(약 25편)는 영향력 판단이 어려워 수집에서 제외. 필요하면 추가 조사.</li>
+<li>메모리 오염·프롬프트 인젝션 같은 보안 측면은 사례 문서에 단편적으로만 있음 (Graphiti 경고, Copilot 적대적 메모리 테스트).</li>
+</ul>
+<h2>출처</h2>
+<p>출처마다 로컬 원문 파일과 원 URL을 같이 둔다.</p>
+<h3>논문 (arXiv)</h3>
+<ul>
+<li>MemGPT — <a href="../reference/papers/memgpt_arxiv-2310.08560.md">원문</a> · https://arxiv.org/abs/2310.08560</li>
+<li>Generative Agents — <a href="../reference/papers/generative_agents_arxiv-2304.03442.md">원문</a> · https://arxiv.org/abs/2304.03442</li>
+<li>Reflexion — <a href="../reference/papers/reflexion_arxiv-2303.11366.md">원문</a> · https://arxiv.org/abs/2303.11366</li>
+<li>CoALA — <a href="../reference/papers/coala_arxiv-2309.02427.md">원문</a> · https://arxiv.org/abs/2309.02427</li>
+<li>MemoryBank — <a href="../reference/papers/memorybank_arxiv-2305.10250.md">원문</a> · https://arxiv.org/abs/2305.10250</li>
+<li>RET-LLM — <a href="../reference/papers/ret_llm_arxiv-2305.14322.md">원문</a> · https://arxiv.org/abs/2305.14322</li>
+<li>Voyager — <a href="../reference/papers/voyager_arxiv-2305.16291.md">원문</a> · https://arxiv.org/abs/2305.16291</li>
+<li>ChatDB — <a href="../reference/papers/chatdb_arxiv-2306.03901.md">원문</a> · https://arxiv.org/abs/2306.03901</li>
+<li>LongMem — <a href="../reference/papers/longmem_arxiv-2306.07174.md">원문</a> · https://arxiv.org/abs/2306.07174</li>
+<li>Think-in-Memory — <a href="../reference/papers/think_in_memory_arxiv-2311.08719.md">원문</a> · https://arxiv.org/abs/2311.08719</li>
+<li>MemoryLLM — <a href="../reference/papers/memoryllm_arxiv-2402.04624.md">원문</a> · https://arxiv.org/abs/2402.04624</li>
+<li>HippoRAG — <a href="../reference/papers/hipporag_arxiv-2405.14831.md">원문</a> · https://arxiv.org/abs/2405.14831</li>
+<li>MemoRAG — <a href="../reference/papers/memorag_arxiv-2409.05591.md">원문</a> · https://arxiv.org/abs/2409.05591</li>
+<li>Agent Workflow Memory — <a href="../reference/papers/agent_workflow_memory_arxiv-2409.07429.md">원문</a> · https://arxiv.org/abs/2409.07429</li>
+<li>Titans — <a href="../reference/papers/titans_arxiv-2501.00663.md">원문</a> · https://arxiv.org/abs/2501.00663</li>
+<li>Zep — <a href="../reference/papers/zep_arxiv-2501.13956.md">원문</a> · https://arxiv.org/abs/2501.13956</li>
+<li>M+ — <a href="../reference/papers/mplus_arxiv-2502.00592.md">원문</a> · https://arxiv.org/abs/2502.00592</li>
+<li>A-MEM — <a href="../reference/papers/a_mem_arxiv-2502.12110.md">원문</a> · https://arxiv.org/abs/2502.12110</li>
+<li>HippoRAG 2 — <a href="../reference/papers/hipporag2_arxiv-2502.14802.md">원문</a> · https://arxiv.org/abs/2502.14802</li>
+<li>Mem0 — <a href="../reference/papers/mem0_arxiv-2504.19413.md">원문</a> · https://arxiv.org/abs/2504.19413</li>
+<li>MemoryOS — <a href="../reference/papers/memoryos_arxiv-2506.06326.md">원문</a> · https://arxiv.org/abs/2506.06326</li>
+<li>G-Memory — <a href="../reference/papers/g_memory_arxiv-2506.07398.md">원문</a> · https://arxiv.org/abs/2506.07398</li>
+<li>MemOS — <a href="../reference/papers/memos_arxiv-2507.03724.md">원문</a> · https://arxiv.org/abs/2507.03724</li>
+<li>MIRIX — <a href="../reference/papers/mirix_arxiv-2507.07957.md">원문</a> · https://arxiv.org/abs/2507.07957</li>
+<li>Memp — <a href="../reference/papers/memp_arxiv-2508.06433.md">원문</a> · https://arxiv.org/abs/2508.06433</li>
+<li>LightMem — <a href="../reference/papers/lightmem_arxiv-2510.18866.md">원문</a> · https://arxiv.org/abs/2510.18866</li>
+<li>Dynamic Cheatsheet — <a href="../reference/papers/dynamic_cheatsheet_arxiv-2504.07952.md">원문</a> · https://arxiv.org/abs/2504.07952</li>
+<li>MEM1 — <a href="../reference/papers/mem1_arxiv-2506.15841.md">원문</a> · https://arxiv.org/abs/2506.15841</li>
+<li>MemAgent — <a href="../reference/papers/memagent_arxiv-2507.02259.md">원문</a> · https://arxiv.org/abs/2507.02259</li>
+<li>Memory-R1 — <a href="../reference/papers/memory_r1_arxiv-2508.19828.md">원문</a> · https://arxiv.org/abs/2508.19828</li>
+<li>ReasoningBank — <a href="../reference/papers/reasoningbank_arxiv-2509.25140.md">원문</a> · https://arxiv.org/abs/2509.25140</li>
+<li>Mem-α — <a href="../reference/papers/mem_alpha_arxiv-2509.25911.md">원문</a> · https://arxiv.org/abs/2509.25911</li>
+<li>ACE — <a href="../reference/papers/ace_arxiv-2510.04618.md">원문</a> · https://arxiv.org/abs/2510.04618</li>
+<li>Memory-T1 — <a href="../reference/papers/memory_t1_arxiv-2512.20092.md">원문</a> · https://arxiv.org/abs/2512.20092</li>
+<li>MemRL — <a href="../reference/papers/memrl_arxiv-2601.03192.md">원문</a> · https://arxiv.org/abs/2601.03192</li>
+<li>Survey: Rethinking Memory — <a href="../reference/papers/survey_rethinking_memory_arxiv-2505.00675.md">원문</a> · https://arxiv.org/abs/2505.00675</li>
+<li>Survey: Memory in the Age of AI Agents — <a href="../reference/papers/survey_memory_age_of_agents_arxiv-2512.13564.md">원문</a> · https://arxiv.org/abs/2512.13564</li>
+<li>Survey: Agent Memory in the Second Half — <a href="../reference/papers/survey_agent_memory_second_half_arxiv-2602.06052.md">원문</a> · https://arxiv.org/abs/2602.06052</li>
+<li>Survey: From Storage to Experience — <a href="../reference/papers/survey_storage_to_experience_arxiv-2605.06716.md">원문</a> · https://arxiv.org/abs/2605.06716</li>
+<li>LoCoMo — <a href="../reference/papers/locomo_arxiv-2402.17753.md">원문</a> · https://arxiv.org/abs/2402.17753</li>
+<li>LongMemEval — <a href="../reference/papers/longmemeval_arxiv-2410.10813.md">원문</a> · https://arxiv.org/abs/2410.10813</li>
+<li>MemoryAgentBench — <a href="../reference/papers/memoryagentbench_arxiv-2507.05257.md">원문</a> · https://arxiv.org/abs/2507.05257</li>
+</ul>
+<h3>구축 사례</h3>
+<ul>
+<li>ChatGPT Memory (OpenAI blog) — <a href="../reference/cases/chatgpt-memory_openai-blog.md">원문</a> · https://openai.com/index/memory-and-new-controls-for-chatgpt/</li>
+<li>ChatGPT Memory FAQ — <a href="../reference/cases/chatgpt-memory_openai-help-faq.md">원문</a> · https://help.openai.com/en/articles/8590148-memory-faq</li>
+<li>Claude memory (Anthropic) — <a href="../reference/cases/claude-memory_anthropic-news.md">원문</a> · https://www.anthropic.com/news/memory</li>
+<li>Claude context management — <a href="../reference/cases/claude-context-management_anthropic-news.md">원문</a> · https://www.anthropic.com/news/context-management</li>
+<li>Claude memory tool docs — <a href="../reference/cases/claude-memory-tool_anthropic-docs.md">원문</a> · https://platform.claude.com/docs/en/agents-and-tools/tool-use/memory-tool</li>
+<li>Gemini personal context — <a href="../reference/cases/gemini-personal-context_google-blog.md">원문</a> · https://blog.google/products/gemini/temporary-chats-privacy-controls/</li>
+<li>Gemini saved info — <a href="../reference/cases/gemini-memory_google-help.md">원문</a> · https://support.google.com/gemini/answer/16413516</li>
+<li>Microsoft 365 Copilot Memory — <a href="../reference/cases/m365-copilot-memory_microsoft-techcommunity.md">원문</a> · https://techcommunity.microsoft.com/blog/microsoft365copilotblog/introducing-copilot-memory-a-more-productive-and-personalized-ai-for-the-way-you-work/4432059</li>
+<li>Claude Code memory — <a href="../reference/cases/claude-code-memory_anthropic-docs.md">원문</a> · https://code.claude.com/docs/en/memory</li>
+<li>Cursor Rules — <a href="../reference/cases/cursor-rules_cursor-docs.md">원문</a> · https://cursor.com/docs/context/rules</li>
+<li>Windsurf Cascade Memories — <a href="../reference/cases/windsurf-memories_devin-docs.md">원문</a> · https://docs.devin.ai/windsurf/plugins/cascade/memories</li>
+<li>GitHub Copilot agentic memory (blog) — <a href="../reference/cases/copilot-agentic-memory_github-blog.md">원문</a> · https://github.blog/ai-and-ml/github-copilot/building-an-agentic-memory-system-for-github-copilot/</li>
+<li>GitHub Copilot Memory (docs) — <a href="../reference/cases/copilot-memory_github-docs.md">원문</a> · https://docs.github.com/en/enterprise-cloud@latest/copilot/concepts/agents/copilot-memory</li>
+<li>AGENTS.md — <a href="../reference/cases/agents-md_agents-md-site.md">원문</a> · https://agents.md/</li>
+<li>Codex AGENTS.md — <a href="../reference/cases/codex-agents-md_openai-docs.md">원문</a> · https://developers.openai.com/codex/guides/agents-md</li>
+<li>Letta Memory — <a href="../reference/cases/letta-memory_letta-docs.md">원문</a> · https://docs.letta.com/agent-sdk/memory/</li>
+<li>Letta MemFS — <a href="../reference/cases/letta-memfs_letta-docs.md">원문</a> · https://docs.letta.com/concepts/memfs/</li>
+<li>Letta Sleep-time Compute — <a href="../reference/cases/letta-sleep-time-compute_letta-blog.md">원문</a> · https://www.letta.com/blog/sleep-time-compute</li>
+<li>Mem0 README — <a href="../reference/cases/mem0_github-readme.md">원문</a> · https://github.com/mem0ai/mem0</li>
+<li>Graphiti README — <a href="../reference/cases/graphiti_github-readme.md">원문</a> · https://github.com/getzep/graphiti</li>
+<li>LangMem README — <a href="../reference/cases/langmem_github-readme.md">원문</a> · https://github.com/langchain-ai/langmem</li>
+<li>LangGraph memory — <a href="../reference/cases/langgraph-memory_langchain-docs.md">원문</a> · https://docs.langchain.com/oss/python/concepts/memory</li>
+<li>LlamaIndex memory — <a href="../reference/cases/llamaindex-memory_llamaindex-docs.md">원문</a> · https://developers.llamaindex.ai/python/framework/module_guides/deploying/agents/memory/</li>
+<li>cognee README — <a href="../reference/cases/cognee_github-readme.md">원문</a> · https://github.com/topoteretes/cognee</li>
+<li>Memobase README — <a href="../reference/cases/memobase_github-readme.md">원문</a> · https://github.com/memodb-io/memobase</li>
+<li>MemOS README — <a href="../reference/cases/memos_github-readme.md">원문</a> · https://github.com/MemTensor/MemOS</li>
+<li>Supermemory README — <a href="../reference/cases/supermemory_github-readme.md">원문</a> · https://github.com/supermemoryai/supermemory</li>
+<li>CrewAI memory — <a href="../reference/cases/crewai-memory_crewai-docs.md">원문</a> · https://docs.crewai.com/en/concepts/memory</li>
+<li>AutoGen memory — <a href="../reference/cases/autogen-memory_microsoft-docs.md">원문</a> · https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/memory.html</li>
+<li>Memory for agents (LangChain) — <a href="../reference/cases/memory-for-agents_langchain-blog.md">원문</a> · https://blog.langchain.com/memory-for-agents/</li>
+<li>Manus context engineering — <a href="../reference/cases/manus-context-engineering_manus-blog.md">원문</a> · https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus</li>
+<li>Effective context engineering (Anthropic) — <a href="../reference/cases/context-engineering_anthropic-engineering.md">원문</a> · https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents</li>
+<li>Multi-agent research system (Anthropic) — <a href="../reference/cases/multi-agent-research_anthropic-engineering.md">원문</a> · https://www.anthropic.com/engineering/multi-agent-research-system</li>
+</ul>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script>
+const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+mermaid.initialize({ startOnLoad: true, theme: dark ? 'dark' : 'default', securityLevel: 'loose', flowchart: { htmlLabels: true, curve: 'basis' } });
+</script>
+</body>
+</html>
