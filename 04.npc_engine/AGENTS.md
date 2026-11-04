@@ -18,7 +18,7 @@ AI가 게임 마스터와 NPC를 맡는 2D TRPG 엔진 실험. 질문/상태/날
 | Directory | Purpose |
 |-----------|---------|
 | `src/` | 엔진 코드: `world.py`(규칙), `engine.py`(흐름), `ai.py`(Claude), `fake_ai.py`, `server.py`, `playtest.py`, `web/` |
-| `scenarios/` | 시나리오 파일. 엔진 코드에 시나리오 전용 처리를 넣지 않는다 |
+| `scenarios/` | 시나리오 파일과 도트 데이터(`*.sprites.json`). 엔진 코드에 시나리오 전용 처리를 넣지 않는다 |
 | `docs/notes/` | 직접 작성한 스터디 문서 (번호 붙인 `NN.주제.md`) |
 | `docs/reference/` | 외부 자료 — 링크 모음, 받아 둔 원문 |
 | `docs/worklog/` | 날짜별 작업 기록 |

@@ -8,6 +8,7 @@ MAX_DEPTH = 2  # 반응이 반응을 낳는 사슬의 길이. 호출이 무한�
 MAX_SUGGESTED = 3
 MAX_REPLY_TRIES = 3
 MAX_SCHEDULE_RETRIES = 3
+ENGAGE_TICKS = 30
 SILENT_LINE = "……"
 
 
@@ -83,6 +84,8 @@ class Engine:
                 c["pending"] = None
                 return
             c["path"] = route
+        if w.tick < c["engaged_until"]:  # 플레이어와 마주하는 동안에는 걸어가 버리지 않는다
+            return
         if c["path"]:
             c["x"], c["y"] = c["path"].pop(0)
             return
@@ -258,6 +261,8 @@ class Engine:
                 return None
             is_char = target in w.chars
             alive = w.chars[target]["alive"] if is_char else True
+            if is_char:
+                w.chars[target]["engaged_until"] = w.tick + ENGAGE_TICKS
             base = []
             for a in self._allowed_actions(pid):
                 kind = "character" if is_char else "object"
@@ -314,6 +319,7 @@ class Engine:
                 return None
             pid = w.player_id
             pname = w.chars[pid]["name"]
+            w.chars[target]["engaged_until"] = w.tick + ENGAGE_TICKS
             w.remember(target, "heard", f"{pname}이(가) 나에게 말함: \"{text}\"", source=pid)
             self._overheard(pid, target, text)
             view = self._character_view(target)
@@ -364,6 +370,7 @@ class Engine:
                             for i, o in w.objects.items() if not o["holder"] and visible(o["x"], o["y"], i)],
                 "holding": [o["name"] for o in w.objects.values() if o["holder"] == w.player_id],
                 "known": p["memory"]["known"][-40:],
+                "known_total": len(p["memory"]["known"]),
                 "ai_errors": len(self.stats["ai_errors"]),
                 "schedule": [s["id"] for s in w.s.get("schedule", [])],
             }

@@ -30,6 +30,17 @@ def check_rules():
         if r["name"] != "감옥":
             assert w.path(start, w.room_center(r["name"])) is not None, r["name"]
     assert w.path(start, w.room_center("감옥")) is None, "감옥은 밖에서 걸어 들어갈 수 없다"
+    # 도트 데이터 형식이 틀리면 시작하지 않는다
+    assert s["sprites"]["characters"].keys() >= {c["id"] for c in s["characters"]} | {"player"}
+    assert s["sprites"]["tiles"].keys() >= set("".join(s["map"]))
+    bad = json.loads(json.dumps(s))
+    bad["sprites"]["characters"]["king"]["frames"]["down"][0] = "짧음"
+    try:
+        World(bad)
+    except AssertionError:
+        pass
+    else:
+        raise SystemExit("잘못된 도트 데이터를 받아들였다")
     # 코드가 잘못된 변경을 거부한다
     for bad in [{"type": "kill", "character": "player"}, {"type": "kill", "character": "ghost"},
                 {"type": "jail", "character": "king"}, {"type": "give", "object": "none", "character": "king"},
@@ -224,6 +235,17 @@ def check_fake():
     e.queue.append({"type": "decide", "actor": "guard", "trigger": "소리", "depth": 1})
     e.drain()
     assert e.w.chars["guard"]["pending"] is None
+
+    # 마주한 NPC는 일과로 걸어가 버리지 않는다
+    e = Engine(load_scenario(SCENARIO), FakeAI())
+    teleport(e, "player", 12, 7)
+    teleport(e, "guard", 13, 7)
+    e.w.chars["guard"]["hold_until"] = 0
+    assert e.interact("guard")
+    before = (e.w.chars["guard"]["x"], e.w.chars["guard"]["y"])
+    for _ in range(10):
+        e.step()
+    assert (e.w.chars["guard"]["x"], e.w.chars["guard"]["y"]) == before
 
     # 일정은 API 오류로 사라지지 않는다
     class Flaky(FakeAI):

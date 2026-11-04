@@ -15,7 +15,7 @@ ANTHROPIC_API_KEY=... uv run src/server.py          # 실제 Claude (비용 발�
 ANTHROPIC_API_KEY=... uv run src/playtest.py --real --runs 5   # 품질·비용 측정
 ```
 
-방향키로 이동, E로 인터랙션. 게임은 `scenarios/`의 시나리오 파일로 정의한다.
+방향키로 이동, E로 인터랙션, J로 기억 보기. 게임은 `scenarios/`의 시나리오 파일과 도트 데이터로 정의한다.
 
 ## 문서
 

@@ -1,5 +1,6 @@
 """세계 상태와 규칙. AI를 모른다. AI의 제안은 apply()를 통과해야만 세계를 바꾼다."""
 import json
+import pathlib
 from collections import deque
 
 DIRS = {"up": (0, -1), "down": (0, 1), "left": (-1, 0), "right": (1, 0)}
@@ -8,12 +9,28 @@ CHANGE_TYPES = ("set_fact", "set_object_state", "kill", "jail", "move", "give")
 
 def load_scenario(path):
     with open(path, encoding="utf-8") as f:
-        return json.load(f)
+        s = json.load(f)
+    if s.get("sprites_file"):
+        with open(pathlib.Path(path).parent / s["sprites_file"], encoding="utf-8") as f:
+            s["sprites"] = json.load(f)
+    return s
+
+
+def check_sprites(sprites, size=16):
+    """도트 데이터 형식 검사. 나중에 창작자 에디터도 이 형식으로 저장한다."""
+    for group, items in sprites.items():
+        for name, sp in items.items():
+            for frame, rows in sp["frames"].items():
+                where = f"{group}/{name}/{frame}"
+                assert len(rows) == size and all(len(r) == size for r in rows), f"{where}: {size}x{size}가 아니다"
+                unknown = set("".join(rows)) - set(sp["palette"]) - {"."}
+                assert not unknown, f"{where}: 팔레트에 없는 색 {unknown}"
 
 
 class World:
     def __init__(self, s):
         self.s = s
+        check_sprites(s.get("sprites", {}))
         self.map = s["map"]
         self.rooms = s["rooms"]
         self.tick = 0
@@ -23,7 +40,7 @@ class World:
             self.chars[c["id"]] = {
                 "id": c["id"], "name": c["name"], "x": c["x"], "y": c["y"], "sheet": c.get("sheet", {}),
                 "routine": c.get("routine", []), "alive": True, "jailed": False, "path": [], "pending": None,
-                "hold_until": 0,
+                "hold_until": 0, "engaged_until": 0,
                 "memory": {"known": [], "feelings": []},
             }
             for text in c.get("knows", []):

@@ -48,6 +48,9 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(403, {"error": "bad host"})
         if self.path == "/":
             return self._send(200, (HERE / "web" / "index.html").read_bytes(), "text/html; charset=utf-8")
+        if self.path == "/api/assets":
+            s = engine.w.s
+            return self._send(200, {"rooms": s["rooms"], "sprites": s.get("sprites", {})})
         if self.path == "/api/state":
             return self._send(200, {**engine.view(), "debug": debug_enabled})
         if self.path == "/api/metrics" and debug_enabled:
