@@ -3,6 +3,10 @@
 ## worklog
 날짜별 작업 로그 — [worklog](worklog/)
 
+## plan
+기능 설계·계획
+- [AI TRPG 캐릭터 엔진 설계](plan/active/2026_11_05_character-engine-design.md) — 현재 방향. 왕 독살 장면을 첫 완료 기준으로 한 엔진 설계
+
 ## report
 주요 실험 결과·보고서
 - [외부 자극 반응 NPC 자료 조사](report/2026_10_25_npc-stimulus-literature.md) — 2023-10~2026-10 논문·업계 사례 정리, 설계 축(지각/판단/실행/지연)

@@ -3,7 +3,7 @@
 # 04.npc_engine
 
 ## Purpose
-NPC 엔진 실험 (질문 작성 예정). 질문/상태/날짜/결론은 `README.md` 참조.
+AI가 게임 마스터와 NPC를 맡는 2D TRPG 엔진 실험. 질문/상태/날짜/결론은 `README.md` 참조.
 
 ## Key Files
 
