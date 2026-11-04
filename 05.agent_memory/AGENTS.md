@@ -1,4 +1,4 @@
-<!-- Generated: 2026-10-27 | Updated: 2026-10-27 -->
+<!-- Generated: 2026-10-27 | Updated: 2026-11-04 -->
 
 # 05.agent_memory
 
@@ -18,6 +18,7 @@
 |-----------|---------|
 | `docs/notes/` | 직접 작성한 스터디 문서 (번호 붙인 `NN.주제.md`) |
 | `docs/reference/` | 외부 자료 — 링크 모음, 받아 둔 원문 |
+| `docs/reference/datasets/` | 받아 둔 외부 데이터셋 원본 (ABCD). 큰 파일은 gitignore |
 | `docs/worklog/` | 날짜별 작업 기록 |
 | `docs/report/` | 실험 결과·보고서 |
 

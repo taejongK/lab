@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>에이전트 메모리의 발전</title>
+<style>
+:root { --bg:#ffffff; --fg:#1f2328; --muted:#59636e; --border:#d1d9e0; --code:#f6f8fa; --link:#0969da;
+  --note:#fff8c5; --tip:#dafbe1; --warn:#ffebe9; --s1:#8250df; --s2:#0969da; --s3:#1a7f37; --s4:#bc4c00;
+  --a-llm-f:#7c5cff; --a-llm-s:#5a3fd6; --a-llm-t:#ffffff;
+  --a-data-f:#dbeafe; --a-data-s:#3b82f6; --a-data-t:#0b2a5b;
+  --a-io-f:#f3f4f6; --a-io-s:#9ca3af; --a-io-t:#111827;
+  --a-proc-f:#fef3c7; --a-proc-s:#d97706; --a-proc-t:#5b4300;
+  --a-hit-f:#dafbe1; --a-hit-s:#1a7f37; --a-hit-t:#0f3d1e;
+  --a-noise-f:#fff1e5; --a-noise-s:#bc4c00; --a-noise-t:#5a2400;
+  --a-miss-f:#ffebe9; --a-miss-s:#cf222e; --a-miss-t:#6e0f16; }
+@media (prefers-color-scheme: dark) { :root { --bg:#0d1117; --fg:#e6edf3; --muted:#9198a1; --border:#3d444d; --code:#151b23; --link:#4493f8;
+  --note:#2b2611; --tip:#12261a; --warn:#2d1416; --s1:#ab7df8; --s2:#4493f8; --s3:#3fb950; --s4:#db6d28;
+  --a-llm-f:#6d4fe0; --a-llm-s:#9d85ff; --a-llm-t:#ffffff;
+  --a-data-f:#1c3150; --a-data-s:#4493f8; --a-data-t:#dbeafe;
+  --a-io-f:#262c36; --a-io-s:#6e7681; --a-io-t:#e6edf3;
+  --a-proc-f:#3d2e0e; --a-proc-s:#d29922; --a-proc-t:#fde68a;
+  --a-hit-f:#12301c; --a-hit-s:#3fb950; --a-hit-t:#aff5b4;
+  --a-noise-f:#3a2010; --a-noise-s:#f0883e; --a-noise-t:#ffd8b5;
+  --a-miss-f:#3a1418; --a-miss-s:#f85149; --a-miss-t:#ffdcd7; } }
+body { background:var(--bg); color:var(--fg); font:16px/1.75 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif; margin:0; }
+main { max-width:900px; margin:0 auto; padding:32px 16px 96px; }
+h1 { font-size:1.9em; line-height:1.35; border-bottom:1px solid var(--border); padding-bottom:.3em; }
+h2 { margin-top:2.6em; border-bottom:1px solid var(--border); padding-bottom:.3em; }
+h3 { margin-top:1.8em; }
+a { color:var(--link); }
+table { border-collapse:collapse; display:block; overflow-x:auto; margin:1em 0; }
+th,td { border:1px solid var(--border); padding:6px 12px; vertical-align:top; }
+th { background:var(--code); }
+code { background:var(--code); padding:.1em .35em; border-radius:4px; font-size:.9em; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--border); }
+.orig { display:block; color:var(--muted); font-size:.88em; margin-top:.2em; }
+.box { border:1px solid var(--border); border-radius:8px; padding:10px 16px; margin:1em 0; }
+.note { background:var(--note); } .tip { background:var(--tip); } .warn { background:var(--warn); }
+.box > b:first-child { display:block; margin-bottom:.2em; }
+.toc { background:var(--code); border:1px solid var(--border); border-radius:8px; padding:8px 20px; }
+.stage { display:inline-block; color:#fff; border-radius:999px; padding:0 10px; font-size:.85em; font-weight:600; margin-right:6px; }
+.st1 { background:var(--s1); } .st2 { background:var(--s2); } .st3 { background:var(--s3); } .st4 { background:var(--s4); }
+.ladder, .cards, .steps3 { display:grid; gap:10px; margin:1em 0; }
+.ladder { grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); }
+.ladder div { border:1px solid var(--border); border-top:5px solid; border-radius:8px; padding:8px 12px; }
+.ladder .l1 { border-top-color:var(--s1); } .ladder .l2 { border-top-color:var(--s2); } .ladder .l3 { border-top-color:var(--s3); } .ladder .l4 { border-top-color:var(--s4); }
+.cards { grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); }
+.cards div { border:1px solid var(--border); border-radius:8px; padding:8px 12px; background:var(--code); }
+.cards small { color:var(--muted); }
+.steps3 { grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); counter-reset:s; }
+.steps3 div { border:1px solid var(--border); border-radius:8px; padding:8px 12px; position:relative; }
+.steps3 div::before { counter-increment:s; content:counter(s); position:absolute; top:-10px; left:-8px; width:22px; height:22px; border-radius:50%; background:var(--s3); color:#fff; font-size:.8em; text-align:center; line-height:22px; }
+dl.gloss { display:grid; grid-template-columns:max-content 1fr; gap:4px 14px; margin:.5em 0; }
+dl.gloss dt { font-weight:700; } dl.gloss dd { margin:0; }
+@media (max-width:560px){ dl.gloss { grid-template-columns:1fr; } dl.gloss dd { margin-bottom:6px; } }
+details { border:1px solid var(--border); border-radius:8px; padding:6px 14px; margin:1em 0; }
+details summary { cursor:pointer; font-weight:600; color:var(--link); }
+.timeline { list-style:none; padding-left:0; border-left:3px solid var(--border); margin-left:8px; }
+.timeline li { position:relative; padding:2px 0 8px 18px; }
+.timeline li::before { content:""; position:absolute; left:-8px; top:10px; width:13px; height:13px; border-radius:50%; background:var(--border); }
+.timeline li.t2::before { background:var(--s2); } .timeline li.t3::before { background:var(--s3); } .timeline li.t4::before { background:var(--s4); }
+.timeline .d { color:var(--muted); font-variant-numeric:tabular-nums; margin-right:6px; }
+pre.mermaid { background:var(--code); border:1px solid var(--border); border-radius:8px; padding:16px; overflow-x:auto; text-align:center; }
+.legend { color:var(--muted); font-size:.9em; }
+/* animation player */
+.anim { border:1px solid var(--border); border-radius:10px; background:var(--code); padding:10px 12px 12px; margin:1.2em 0; }
+.anim .ttl { font-weight:700; margin-bottom:6px; }
+.anim svg { width:100%; height:auto; display:block; background:var(--bg); border-radius:6px; }
+.anim .cap { min-height:4.8em; margin:8px 2px 6px; }
+.anim .ctrl { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+.anim button { font:inherit; font-size:.9em; padding:4px 12px; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--fg); cursor:pointer; }
+.anim button:hover { border-color:var(--link); }
+.anim button:disabled { opacity:.4; cursor:default; }
+.anim .cnt { color:var(--muted); font-variant-numeric:tabular-nums; margin:0 4px; }
+.anim .it { transition:transform .75s ease, opacity .55s ease; }
+.anim .it .shape { transition:transform .75s ease, fill .4s, stroke .4s; transform-box:fill-box; transform-origin:left center; }
+.anim svg.noanim .it, .anim svg.noanim .it .shape { transition:none; }
+@media (prefers-reduced-motion: reduce) { .anim .it, .anim .it .shape { transition:none; } }
+.anim .shape { stroke-width:1.5; }
+.anim .lbl { font-size:10px; dominant-baseline:central; }
+.anim .lbl.big { font-size:12px; font-weight:600; }
+.anim .mono .lbl { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:9.5px; }
+.anim .frame { fill:none; stroke:var(--border); stroke-width:1.5; }
+.anim .frame.dash { stroke-dasharray:5 4; }
+.anim .ftxt { fill:var(--muted); font-size:10.5px; }
+.anim .c-llm .shape { fill:var(--a-llm-f); stroke:var(--a-llm-s); } .anim .c-llm .lbl { fill:var(--a-llm-t); }
+.anim .c-data .shape { fill:var(--a-data-f); stroke:var(--a-data-s); } .anim .c-data .lbl { fill:var(--a-data-t); }
+.anim .c-io .shape { fill:var(--a-io-f); stroke:var(--a-io-s); } .anim .c-io .lbl { fill:var(--a-io-t); }
+.anim .c-proc .shape { fill:var(--a-proc-f); stroke:var(--a-proc-s); } .anim .c-proc .lbl { fill:var(--a-proc-t); }
+.anim .c-hit .shape { fill:var(--a-hit-f); stroke:var(--a-hit-s); stroke-width:2.5; } .anim .c-hit .lbl { fill:var(--a-hit-t); }
+.anim .c-noise .shape { fill:var(--a-noise-f); stroke:var(--a-noise-s); stroke-width:2.5; } .anim .c-noise .lbl { fill:var(--a-noise-t); }
+.anim .c-miss .shape { fill:var(--a-miss-f); stroke:var(--a-miss-s); stroke-width:2.5; stroke-dasharray:5 3; } .anim .c-miss .lbl { fill:var(--a-miss-t); }
+.anim .c-ring .shape { fill:var(--a-hit-f); fill-opacity:.35; stroke:var(--a-hit-s); stroke-width:2; stroke-dasharray:6 4; }
+.anim .c-txt .lbl { fill:var(--fg); } .anim .c-mute .lbl { fill:var(--muted); }
+.anim .struck .lbl { text-decoration:line-through; } .anim .struck { opacity:.55 !important; }
+</style>
+</head>
+<body>
+<main>
+<h1>에이전트 메모리의 발전<br>통째로 넣기 → RAG → 에이전틱 메모리 → 학습된 관리</h1>
+<ul>
+<li>작성일: 2026-11-02 (개정) · 배경지식 없이 읽는 공부용 문서</li>
+<li>근거: 이 폴더에 모아 둔 <a href="../reference/papers/README.md">논문 48편</a>(초록)과 <a href="../reference/cases/README.md">구축 사례 34건</a>(원문). 함께 보면 좋은 문서: <a href="01.memory-architecture-patterns.md">01. 메모리 아키텍처 패턴</a>, <a href="../report/2026_10_27_agent-memory-design-comparison.html">설계 비교 보고서</a></li>
+</ul>
+<div class="box note"><b>읽기 전에</b>
+논문은 <b>초록만</b> 읽고 썼다. 초록에 없는 내부 구현은 쓰지 않았고, 논문 근거 없이 일반적인 설명을 한 곳은 "일반 설명"이라고 표시했다. 수치는 각 논문이 스스로 보고한 값이라 서로 직접 비교할 수 없다. 애니메이션은 이해를 돕기 위한 <b>단순화된 그림</b>이다.</div>
+
+<div class="toc">
+<b>목차</b>
+<ol>
+<li><a href="#s0">출발점: 용어, LLM은 왜 기억을 못 하나, 오늘의 예시</a></li>
+<li><a href="#s1">1단계 · 통째로 넣기</a></li>
+<li><a href="#s2">2단계 · 검색해서 넣기 (RAG)</a></li>
+<li><a href="#s3">3단계 · 에이전틱 메모리 (LLM이 직접 관리)</a></li>
+<li><a href="#s4">4단계 · 메모리 관리를 학습시키기</a></li>
+<li><a href="#cmp">같은 질문, 네 가지 방식 (비교)</a></li>
+<li><a href="#faq">자주 헷갈리는 것</a></li>
+<li><a href="#more">부록: 모델 안의 기억 · 연표 · 읽기 순서 · 출처</a></li>
+</ol>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="s0">0. 출발점</h2>
+
+<h3>먼저 알아 둘 용어 7개</h3>
+<div class="box">
+<dl class="gloss">
+<dt>LLM</dt><dd>대규모 언어 모델. 글을 읽고 그 다음에 올 글을 이어 쓰는 모델이다. ChatGPT, Claude 같은 것.</dd>
+<dt>프롬프트</dt><dd>LLM에게 한 번에 보내는 글 전체. 지시문, 참고 자료, 질문이 모두 여기에 들어간다.</dd>
+<dt>토큰</dt><dd>LLM이 글을 세는 단위. 글을 단어나 글자 조각으로 잘게 쪼갠 것이다. 길이 한도와 사용 요금이 모두 토큰 수로 계산된다 (일반 설명).</dd>
+<dt>컨텍스트 윈도우</dt><dd>LLM이 한 번에 읽을 수 있는 토큰의 최대 양. 이 문서에서는 <b>"책상"</b>이라고 부른다.</dd>
+<dt>에이전트</dt><dd>LLM이 혼자 답만 쓰는 게 아니라, <b>도구를 골라 쓰면서 생각 → 행동 → 결과 확인을 여러 번 반복</b>하는 프로그램.</dd>
+<dt>도구 호출</dt><dd>LLM이 <code>search("수령일")</code> 같은 "도구 사용 요청" 글을 출력하면, 프로그램이 그걸 실제로 실행하고 결과를 다시 프롬프트에 붙여 주는 것. LLM이 직접 DB를 만지는 게 아니다 (일반 설명, <a href="#tool">3단계에서 그림으로</a>).</dd>
+<dt>가중치</dt><dd>모델이 학습으로 얻은 내부 숫자들. 이것을 바꾸면 모델의 "습관"이 바뀐다. 대부분의 메모리 방식은 가중치를 <b>건드리지 않고</b> 프롬프트에 넣는 글만 바꾼다.</dd>
+</dl>
+<small class="legend">임베딩·RAG(2단계), 강화학습(4단계)은 처음 나오는 곳에서 설명한다.</small>
+</div>
+
+<h3>LLM은 "기억"이 없다</h3>
+<p>LLM은 프롬프트 하나를 받으면 답 하나를 내고 끝난다. 다음 질문을 받았을 때 앞의 대화를 기억하는 장치는 모델 안에 없다. 채팅창에서 대화가 이어지는 것처럼 느껴지는 이유는, 프로그램이 지난 대화를 매번 프롬프트에 <b>다시 붙여서</b> 보내기 때문이다.</p>
+<blockquote>LLM은 본질적으로 상태가 없고, 제한된 컨텍스트 윈도우에 묶여 있다.
+<span class="orig">원문: "they remain fundamentally stateless, constrained by limited context windows" — <a href="../reference/papers/memory_r1_arxiv-2508.19828.md">Memory-R1</a></span></blockquote>
+
+<p>그래서 LLM은 <b>책상 위에 펼쳐 둔 것만 보고</b> 답할 수 있다. 책상 크기에는 한계가 있고, 책상이 어지러울수록 중요한 걸 놓친다. 에이전트 메모리 연구는 모두 한 질문에 대한 답이다.</p>
+<div class="box tip"><b>핵심 질문</b>
+책상은 좁은데 기억할 것은 계속 늘어난다. <b>무엇을, 언제, 누가</b> 책상 위에 올려야 하나?</div>
+
+<h3>큰 그림: "누가 결정하나"가 옮겨 간 역사</h3>
+<div class="ladder">
+<div class="l1"><span class="stage st1">1단계</span><br><b>통째로 넣기</b><br>결정이 없다. 전부 올린다.</div>
+<div class="l2"><span class="stage st2">2단계</span><br><b>RAG</b><br><b>프로그램(코드)</b>이 검색해서 올린다.</div>
+<div class="l3"><span class="stage st3">3단계</span><br><b>에이전틱 메모리</b><br><b>LLM 자신</b>이 찾고, 쓰고, 고친다.</div>
+<div class="l4"><span class="stage st4">4단계</span><br><b>학습된 관리</b><br>LLM이 <b>잘 관리하도록 훈련</b>된다.</div>
+</div>
+<table>
+<tr><th>단계</th><th>시험 공부에 비유하면</th></tr>
+<tr><td><span class="stage st1">1</span></td><td>오픈북 시험에서 교과서 전체를 책상에 펼쳐 놓고 푼다.</td></tr>
+<tr><td><span class="stage st2">2</span></td><td>조교가 문제를 보고 관련 있어 보이는 페이지 몇 장을 복사해 준다. 학생은 받은 것만 본다.</td></tr>
+<tr><td><span class="stage st3">3</span></td><td>학생이 직접 노트를 만든다. 목차를 보고 필요한 페이지를 찾아가고, 새로 알게 된 걸 적고, 틀린 건 고친다.</td></tr>
+<tr><td><span class="stage st4">4</span></td><td>"노트 정리 잘하는 법" 자체를 연습해서, 성적이 오르는 방향으로 습관을 바꾼다.</td></tr>
+</table>
+
+<h3 id="example">이 문서 내내 쓸 예시</h3>
+<p>온라인 쇼핑몰 고객센터 챗봇이 아래 질문을 받았다고 하자. 모든 단계를 이 질문 하나로 비교한다.</p>
+<div class="box"><b>고객 질문 (11월 2일)</b>
+"지난주에 산 운동화가 작아요. 270으로 교환돼요?"</div>
+<p>챗봇이 제대로 답하려면 두 가지를 알아야 한다.</p>
+<ul>
+<li><b>규정:</b> "교환은 상품 <b>수령 후 7일 이내</b>, 착용하지 않은 경우만 가능" (규정집 어딘가에 있음)</li>
+<li><b>이 고객의 기록:</b> "10/29 주문 #A17 <b>수령 완료</b>" (수천 건의 과거 상담·배송 기록 어딘가에 있음)</li>
+</ul>
+<p>정답: 10/29 + 7일 = 11/5까지이므로 <b>교환 가능</b>(미착용이면). 수령일을 모르면 판단할 수 없다는 점이 포인트다.</p>
+<div class="box note"><b>순서에 대한 주의</b>
+4단계는 "개념의 발전 순서"다. 실제 논문은 시간상 겹친다. 2023년 봄에 검색형 메모리(MemoryBank)와 에이전트형 기억(Reflexion, Voyager)이 거의 동시에 나왔다. 그래도 2023 → 2025로 갈수록 결정 권한이 "코드 → LLM → 학습"으로 옮겨 가는 흐름은 뚜렷하다. 최근 서베이도 메모리의 발전을 <b>저장 → 반성 → 경험</b> 3단계로 정리한다 (<a href="../reference/papers/survey_storage_to_experience_arxiv-2605.06716.md">From Storage to Experience</a>).</div>
+
+<!-- ============================================================ -->
+<h2 id="s1"><span class="stage st1">1단계</span> 통째로 넣기</h2>
+<p>가장 단순한 방법이다. 지시문, 규정 문서, 지난 대화 기록을 <b>전부</b> 프롬프트에 이어 붙여 보낸다. 검색도 정리도 없다. 아래 애니메이션을 "다음"을 눌러 한 단계씩 보자.</p>
+
+<div class="anim" id="anim-ctx">
+<div class="ttl">애니메이션 1 · 책상(컨텍스트 윈도우)이 차오르는 모습</div>
+<svg role="img" aria-label="컨텍스트 윈도우에 블록이 쌓이며 넘치는 애니메이션"></svg>
+<div class="cap" aria-live="polite"></div>
+<div class="ctrl"><button data-a="first">↺ 처음</button><button data-a="prev">◀ 이전</button><span class="cnt"></span><button data-a="next">다음 ▶</button><button data-a="play">▶ 자동 재생</button></div>
+</div>
+
+<h3>장점</h3>
+<ul>
+<li><b>정보 누락이 없다.</b> 모든 게 책상 위에 있으니 "검색이 못 찾아서" 틀리는 일이 없다.</li>
+<li><b>만들기 쉽다.</b> 저장소도 검색기도 필요 없다.</li>
+<li>그래서 다른 방법을 평가할 때 <b>기준선</b>으로 자주 쓴다. Mem0 논문도 "대화 기록 전체를 처리하는 full-context 방식"을 비교 대상으로 넣었다 (<a href="../reference/papers/mem0_arxiv-2504.19413.md">Mem0</a>).</li>
+</ul>
+
+<h3>한계 (애니메이션의 마지막 세 장면)</h3>
+<table>
+<tr><th>문제</th><th>쉬운 설명</th><th>근거</th></tr>
+<tr><td>① 책상 크기 한계</td><td>한도를 넘는 자료는 아예 못 넣는다.</td><td>LLM은 "제한된 컨텍스트 윈도우"에 묶여 있다 — <a href="../reference/papers/memgpt_arxiv-2310.08560.md">MemGPT</a></td></tr>
+<tr><td>② 길수록 비싸고 느리다</td><td>질문 하나마다 전체를 처음부터 다시 읽는다.</td><td>모든 과거 턴을 붙이는 방식은 메모리가 끝없이 커지고 계산 비용이 늘어난다 — <a href="../reference/papers/mem1_arxiv-2506.15841.md">MEM1</a>. Mem0는 이 방식 대비 응답 지연(느린 쪽 5% 기준)을 91% 줄이고 토큰 비용을 90% 넘게 아꼈다고 보고 — <a href="../reference/papers/mem0_arxiv-2504.19413.md">Mem0</a></td></tr>
+<tr><td>③ 길수록 오히려 놓친다</td><td>넣었다고 다 보는 게 아니다. 글이 길어지면 회상 능력이 떨어진다.</td><td>장기 대화에서 상용 챗봇과 긴 컨텍스트 LLM의 정확도가 30% 떨어짐 — <a href="../reference/papers/longmemeval_arxiv-2410.10813.md">LongMemEval</a>. 토큰이 많아질수록 정보를 정확히 떠올리는 능력이 떨어지는 현상("context rot")이 있고, 그래서 컨텍스트는 "늘릴수록 효과가 줄어드는 한정 자원"이다 — <a href="../reference/cases/context-engineering_anthropic-engineering.md">Anthropic 엔지니어링 글</a></td></tr>
+<tr><td>④ 정리가 안 된다</td><td>날것의 기록만 쌓이고 "이 고객은 어떤 사람인가" 같은 요약은 생기지 않는다.</td><td>긴 컨텍스트나 RAG를 써도 아주 긴 대화에서는 "여전히 사람보다 크게 뒤처진다" — <a href="../reference/papers/locomo_arxiv-2402.17753.md">LoCoMo</a></td></tr>
+</table>
+<div class="box tip"><b>그래도 여전히 쓸모 있다</b>
+자료가 작고(예: 수십 쪽 규정집), 잘 바뀌지 않고, 대화가 짧다면 통째로 넣기가 가장 정확하고 단순할 수 있다. Claude Code도 <code>CLAUDE.md</code>는 처음부터 그냥 넣는다 (<a href="../reference/cases/context-engineering_anthropic-engineering.md">Anthropic 엔지니어링 글</a>). 메모리 구조는 복잡할수록 좋은 게 아니다.</div>
+
+<!-- ============================================================ -->
+<h2 id="s2"><span class="stage st2">2단계</span> 검색해서 넣기 (RAG)</h2>
+
+<h3>아이디어</h3>
+<p>책상에 전부 올리지 말고 <b>질문과 관련 있는 것만 골라서</b> 올리자. 자료는 책상 밖 "서랍"(외부 저장소)에 넣어 두고, 질문이 오면 <b>프로그램이</b> 서랍을 검색해 상위 몇 개를 꺼내 준다. 이것이 <b>RAG</b>(Retrieval-Augmented Generation, 검색으로 보강한 생성)다.</p>
+
+<h3>새 용어 3개</h3>
+<div class="box">
+<dl class="gloss">
+<dt>청크</dt><dd>긴 문서를 몇 문장 단위로 자른 조각.</dd>
+<dt>임베딩</dt><dd>글 조각을 "의미 좌표"(숫자 목록)로 바꾸는 것. 뜻이 비슷한 글은 가까운 좌표에 찍힌다. 실제로는 수백~수천 차원이지만, 아래 그림에서는 2차원 지도로 그렸다. 이 좌표들을 모아 둔 저장소를 <b>벡터 DB</b>(벡터 저장소)라고 한다 (일반 설명).</dd>
+<dt>top-k</dt><dd>질문 좌표에서 가장 가까운 조각 k개만 고르는 것. Mem0 논문이 RAG를 "청크 크기와 k값을 바꿔 가며" 비교한 것처럼, 청크 크기와 k가 RAG의 대표 조절 손잡이다 (<a href="../reference/papers/mem0_arxiv-2504.19413.md">Mem0</a>).</dd>
+</dl>
+</div>
+
+<div class="anim" id="anim-rag">
+<div class="ttl">애니메이션 2 · 자르기 → 의미 지도 → 가까운 k개 고르기</div>
+<svg role="img" aria-label="문서를 청크로 자르고 임베딩 공간에서 질문과 가까운 k개를 고르는 애니메이션"></svg>
+<div class="cap" aria-live="polite"></div>
+<div class="ctrl"><button data-a="first">↺ 처음</button><button data-a="prev">◀ 이전</button><span class="cnt"></span><button data-a="next">다음 ▶</button><button data-a="play">▶ 자동 재생</button></div>
+</div>
+
+<div class="box note"><b>여기서 가장 중요한 점</b>
+2단계에서 <b>무엇을 꺼낼지 결정하는 건 LLM이 아니라 검색 코드(거리 계산)</b>다. LLM은 받은 조각만 보고 답한다. 받은 조각이 틀렸거나 부족해도 LLM은 "다시 찾아볼게"라고 할 수 없다. 애니메이션에서 수령일 기록을 놓친 이유가 이것이다.</div>
+
+<h3>RAG의 한계: 논문들이 지적한 것</h3>
+<table>
+<tr><th>한계</th><th>쉬운 설명</th><th>근거</th></tr>
+<tr><td>질문이 명확해야 한다</td><td>"이 소설의 주제가 뭐야?"처럼 답이 어느 조각에 있는지 드러나지 않는 질문은 검색이 어렵다.</td><td>기존 RAG는 질문이 명시적이고 지식이 잘 정리돼 있다는 두 가지를 전제한다 — <a href="../reference/papers/memorag_arxiv-2409.05591.md">MemoRAG</a></td></tr>
+<tr><td>조각끼리 연결을 모른다</td><td>여러 조각을 이어야 답이 나오는 질문(<b>다중 홉</b>: 한 번에 못 가고 여러 번 건너가야 하는 질문)에 약하다. 예시 질문도 "주문 → 수령일"과 "상품 → 교환 규정"을 이어야 한다.</td><td>벡터 검색에 의존하면 사람 기억처럼 서로 연결된 기억을 흉내 내기 어렵다 — <a href="../reference/papers/hipporag2_arxiv-2502.14802.md">HippoRAG 2</a></td></tr>
+<tr><td>계속 들어오는 새 경험을 못 엮는다</td><td>새 정보를 기존 지식과 엮어 정리하지 못한다.</td><td>RAG를 써도 많은 양의 새 경험을 효율적으로 통합하기 어렵다 — <a href="../reference/papers/hipporag_arxiv-2405.14831.md">HippoRAG</a></td></tr>
+<tr><td>바뀌는 정보에 약하다</td><td>"예전엔 260이었는데 지금은 270"처럼 변하는 정보를 다루지 못한다.</td><td>RAG는 "정적인 문서 검색에 한정"된다 — <a href="../reference/papers/zep_arxiv-2501.13956.md">Zep</a></td></tr>
+<tr><td>비슷하다고 유용한 건 아니다</td><td>애니메이션의 "환불 규정"처럼 뜻은 비슷하지만 쓸모없는 조각이 뽑힌다.</td><td>수동적인 의미 매칭은 잡음을 자주 가져온다 — <a href="../reference/papers/memrl_arxiv-2601.03192.md">MemRL</a></td></tr>
+<tr><td>규칙이 고정돼 있다</td><td>무엇을 저장·검색할지가 사람이 정한 규칙에 묶여 있다.</td><td>기존 파이프라인은 정적이고 경험칙에 의존한다 — <a href="../reference/papers/memory_r1_arxiv-2508.19828.md">Memory-R1</a></td></tr>
+</table>
+
+<h3>RAG 안에서의 개선: 연결 구조를 더하기</h3>
+<p>"조각끼리 연결을 모른다"는 문제를 풀려고, 조각을 <b>점(사실)과 선(관계)으로 된 지도</b>, 즉 <b>지식 그래프</b>로 만들고 그 선을 따라 검색하는 방법이 나왔다.</p>
+<svg viewBox="0 0 420 150" style="width:100%;max-width:560px;height:auto;display:block;margin:0 auto" role="img" aria-label="질문에서 주문, 수령일, 상품, 교환 규정으로 이어지는 지식 그래프 경로">
+<style>.kg-n{fill:var(--a-data-f);stroke:var(--a-data-s);stroke-width:1.5}.kg-q{fill:var(--a-io-f);stroke:var(--a-io-s);stroke-width:1.5}.kg-h{fill:var(--a-hit-f);stroke:var(--a-hit-s);stroke-width:2.5}.kg-t{font-size:11px;dominant-baseline:central;text-anchor:middle;fill:var(--a-data-t)}.kg-e{stroke:var(--a-hit-s);stroke-width:2}.kg-el{font-size:10px;fill:var(--muted);text-anchor:middle}</style>
+<line class="kg-e" x1="70" y1="75" x2="160" y2="75"/><line class="kg-e" x1="210" y1="65" x2="300" y2="30"/><line class="kg-e" x1="210" y1="85" x2="300" y2="120"/><line class="kg-e" x1="350" y1="120" x2="350" y2="120"/>
+<text class="kg-el" x="115" y="66">고객의 주문</text><text class="kg-el" x="245" y="36">수령일</text><text class="kg-el" x="245" y="116">상품 종류</text>
+<rect class="kg-q" x="10" y="60" width="62" height="30" rx="6"/><text class="kg-t" x="41" y="75" style="fill:var(--a-io-t)">질문</text>
+<rect class="kg-n" x="160" y="60" width="54" height="30" rx="6"/><text class="kg-t" x="187" y="75">#A17</text>
+<rect class="kg-h" x="300" y="15" width="110" height="30" rx="6"/><text class="kg-t" x="355" y="30" style="fill:var(--a-hit-t)">10/29 수령</text>
+<rect class="kg-h" x="300" y="105" width="110" height="30" rx="6"/><text class="kg-t" x="355" y="120" style="fill:var(--a-hit-t)">운동화 → 교환 7일</text>
+</svg>
+<p class="legend" style="text-align:center">선을 따라 두 번 건너가면(다중 홉) 필요한 두 정보에 모두 닿는다.</p>
+<ul>
+<li><b><a href="../reference/papers/hipporag_arxiv-2405.14831.md">HippoRAG</a> (2024-05):</b> 뇌의 해마가 기억을 색인하는 방식에서 착안해 LLM + 지식 그래프로 연결을 따라간다. 다중 홉 질문에서 기존 RAG보다 최대 20% 좋았다고 보고.</li>
+<li><b><a href="../reference/papers/hipporag2_arxiv-2502.14802.md">HippoRAG 2</a> (2025-02):</b> 그래프를 붙이면 단순 사실 질문 성능이 떨어지던 문제를 고쳤다. 부제가 "From RAG to Memory"(RAG에서 메모리로)다.</li>
+<li><b><a href="../reference/papers/longmemeval_arxiv-2410.10813.md">LongMemEval</a> (2024-10):</b> 메모리 설계를 <b>색인 → 검색 → 읽기</b> 3단계로 나눠 각각 개선했다. RAG를 설계할 때 좋은 틀이다.</li>
+</ul>
+
+<details><summary>더 보기: RAG를 "기억"으로 쓰기 시작한 2023년 연구 5개</summary>
+<table>
+<tr><th>연구</th><th>새로 더한 아이디어</th></tr>
+<tr><td><a href="../reference/papers/generative_agents_arxiv-2304.03442.md">Generative Agents</a> (2023-04)</td><td>가상 마을 주민 25명이 경험을 전부 기록하고, 시간이 지나며 <b>상위 수준의 반성</b>으로 합성하고, 필요할 때 검색해 다음 계획을 세운다. 날것의 기록 위에 "요약된 생각"을 한 층 더 쌓았다.</td></tr>
+<tr><td><a href="../reference/papers/memorybank_arxiv-2305.10250.md">MemoryBank</a> (2023-05)</td><td>사람의 망각 곡선(에빙하우스)처럼, 시간이 지나고 덜 중요한 기억은 흐려지고 중요한 기억은 강화된다. "<b>잊기</b>"를 설계에 넣은 대표 사례.</td></tr>
+<tr><td><a href="../reference/papers/scm_arxiv-2304.13343.md">SCM</a> (2023-04)</td><td>"언제·어떻게 기억을 쓸지"를 결정하는 <b>메모리 컨트롤러</b>를 따로 둔다. 3단계로 가는 다리.</td></tr>
+<tr><td><a href="../reference/papers/ret_llm_arxiv-2305.14322.md">RET-LLM</a> (2023-05)</td><td>글 조각 대신 "주문#A17 - 수령일 - 10/29" 같은 세 칸짜리(삼중항) 구조로 저장한다. 갱신과 해석이 쉽다.</td></tr>
+<tr><td><a href="../reference/papers/chatdb_arxiv-2306.03901.md">ChatDB</a> (2023-06)</td><td>LLM이 데이터베이스 질의어(SQL)를 써서 표 형태 DB를 읽고 쓴다. 정확한 값이 필요한 다단계 추론에 유리.</td></tr>
+</table>
+<p>그 밖에 <a href="../reference/papers/memorag_arxiv-2409.05591.md">MemoRAG</a>(2024-09)는 긴 자료 전체의 요약 기억을 먼저 만들고, 초안 답변을 단서로 삼아 검색한다.</p>
+</details>
+
+<div class="box note"><b>2단계 정리</b>
+RAG는 "책상 크기" 문제를 풀었다. 하지만 <b>무엇을 꺼낼지, 무엇을 저장할지, 언제 고칠지</b>를 정해진 코드가 결정해서 상황에 맞춰 움직이지 못한다. 다음 단계는 이 결정을 LLM에게 넘긴다.</div>
+
+<!-- ============================================================ -->
+<h2 id="s3"><span class="stage st3">3단계</span> 에이전틱 메모리 (LLM이 직접 관리)</h2>
+
+<h3>무엇이 달라졌나</h3>
+<p>에이전틱 메모리에서는 <b>LLM 자신이 메모리를 다루는 행동을 고른다</b>. 찾을지 말지, 무엇을 열지, 무엇을 새로 적을지, 무엇을 고치거나 지울지를 LLM이 판단하고 <b>도구 호출</b>로 실행한다.</p>
+<blockquote>CoALA는 언어 에이전트를 "여러 메모리 부품"과 "그 메모리와 바깥 환경을 다루는 정해진 행동 목록"으로 설명한다. 즉 <b>메모리를 읽고 쓰는 것도 에이전트의 행동 중 하나</b>다.
+<span class="orig">원문: "modular memory components, a structured action space to interact with internal memory and external environments" — <a href="../reference/papers/coala_arxiv-2309.02427.md">CoALA</a></span></blockquote>
+<blockquote>실무에서도 흐름이 같다. 답하기 전에 임베딩 검색으로 미리 골라 넣던 방식에서, 에이전트가 파일 경로 같은 가벼운 "주소"만 들고 있다가 필요한 순간에 도구로 불러오는 "<b>그때그때(just in time)</b>" 방식으로 옮겨 가고 있다.
+<span class="orig">원문: "embedding-based pre-inference time retrieval" → "just in time" context strategies — <a href="../reference/cases/context-engineering_anthropic-engineering.md">Anthropic 엔지니어링 글</a></span></blockquote>
+
+<h3 id="tool">도구 호출은 실제로 이렇게 일어난다</h3>
+<div class="steps3">
+<div><b>LLM이 글을 출력</b><br>답 대신 <code>search("수령일")</code>이라는 글을 쓴다. "이 도구를 이 값으로 써 줘"라는 요청이다.</div>
+<div><b>프로그램이 실행</b><br>에이전트 프로그램이 그 글을 읽고, 실제로 메모리 저장소를 검색한다.</div>
+<div><b>결과를 책상에 붙임</b><br>검색 결과 "10/29 수령 완료"를 프롬프트 뒤에 붙여 LLM을 <b>다시</b> 부른다. LLM은 결과를 보고 다음 행동을 고른다.</div>
+</div>
+<p>이 세 칸이 한 번의 "도구 호출"이고, 에이전트는 필요한 만큼 반복한다(일반 설명). 2단계와 비교하면, 검색어와 검색 시점을 <b>LLM이 정한다</b>는 점이 다르다.</p>
+
+<div class="anim" id="anim-agent">
+<div class="ttl">애니메이션 3 · 에이전트가 메모리를 찾고, 읽고, 고치는 과정</div>
+<svg role="img" aria-label="LLM이 도구 호출로 메모리를 검색하고 규정을 읽고 메모를 수정하는 애니메이션"></svg>
+<div class="cap" aria-live="polite"></div>
+<div class="ctrl"><button data-a="first">↺ 처음</button><button data-a="prev">◀ 이전</button><span class="cnt"></span><button data-a="next">다음 ▶</button><button data-a="play">▶ 자동 재생</button></div>
+</div>
+
+<h3>정지 그림으로 요약</h3>
+<p class="legend">보라 = LLM, 파랑 원통 = 저장된 데이터, 회색 = 입력·출력. 실선 = 매번 일어나는 흐름, 점선 = 항상 일어나지는 않는 흐름(가끔·나중에).</p>
+<pre class="mermaid">
+flowchart LR
+Q["고객 질문"]:::io --> L(["LLM 에이전트<br/>책상(컨텍스트) 위에서 판단"]):::llm
+L -->|"도구 호출: 검색 · 열기"| M[("장기 메모리<br/>규정 · 기록 · 고객 메모")]:::data
+M -->|"결과를 책상에 붙임"| L
+L -->|"도구 호출: 쓰기 · 수정 · 삭제"| M
+L --> A["답변"]:::io
+B(["정리 LLM<br/>(상담 끝난 뒤)"]):::llm -.->|"병합 · 요약 · 오래된 것 정리"| M
+classDef llm fill:#7c5cff,stroke:#5a3fd6,color:#ffffff;
+classDef data fill:#dbeafe,stroke:#3b82f6,color:#0b2a5b;
+classDef io fill:#f3f4f6,stroke:#9ca3af,color:#111827;
+</pre>
+
+<h3>무엇을 기억하나: 메모리 4종</h3>
+<p>3단계부터는 기억하는 것의 종류가 다양해진다. 사람의 기억 분류를 빌려 쓴다 (<a href="../reference/papers/coala_arxiv-2309.02427.md">CoALA</a>). 예시 상담에서 나오는 기억으로 보면 이렇다.</p>
+<div class="cards">
+<div><b>작업 기억</b><br>지금 하는 일에 필요한 것. 책상 위.<br><small>"고객이 270 교환을 원함, 수령일 확인 중"</small></div>
+<div><b>일화 기억</b><br>과거에 있었던 일 하나하나.<br><small>"10/29 주문 #A17 수령 완료"</small></div>
+<div><b>의미 기억 (사실)</b><br>일반적인 사실·지식.<br><small>"교환은 수령 7일 이내", "이 고객 발 사이즈 270"</small></div>
+<div><b>절차 기억 (경험)</b><br>어떻게 하는지, 노하우.<br><small>"교환 문의는 수령일부터 확인하면 빨리 끝난다"</small></div>
+</div>
+<details><summary>더 보기: 서베이들의 분류 방법</summary>
+<ul>
+<li><a href="../reference/papers/survey_memory_age_of_agents_arxiv-2512.13564.md">Memory in the Age of AI Agents</a>: 기능으로 <b>사실 / 경험 / 작업</b> 메모리로 나눈다. 저장 형태로는 <b>글(토큰)로 저장 / 모델 가중치에 저장 / 모델 내부 숫자 표현(잠재, latent)으로 저장</b>으로 나눈다.</li>
+<li><a href="../reference/papers/survey_rethinking_memory_arxiv-2505.00675.md">Rethinking Memory</a>: 메모리 연산을 <b>통합·갱신·색인·망각·검색·압축</b> 6개로 정리한다.</li>
+</ul>
+</details>
+
+<h3>3-1. 메모리를 운영체제처럼: MemGPT (2023-10)</h3>
+<p>에이전틱 메모리의 대표 출발점이다. 컴퓨터는 작고 빠른 메모리(RAM)와 크고 느린 저장 장치(디스크) 사이에서 데이터를 옮겨 "메모리가 큰 것처럼" 보이게 한다. MemGPT는 같은 원리로 LLM이 <b>여러 메모리 계층 사이에서 정보를 옮기며</b> 좁은 책상 너머의 정보를 다룬다.</p>
+<blockquote>운영체제의 계층형 메모리에서 착안한 "가상 컨텍스트 관리"로, 여러 메모리 계층을 관리해 제한된 컨텍스트 안에서 더 긴 맥락을 제공한다.
+<span class="orig">원문: "virtual context management ... a system that intelligently manages different memory tiers" — <a href="../reference/papers/memgpt_arxiv-2310.08560.md">MemGPT</a></span></blockquote>
+<ul>
+<li>비유: 책상 = RAM, 서랍 = 디스크. 무엇을 책상에 올리고 서랍으로 내릴지를 LLM이 정한다.</li>
+<li>MemGPT 팀이 만든 Letta는 지금 "에이전트의 메모리는 에이전트가 배우면서 직접 편집한다"고 설명한다 (<a href="../reference/cases/letta-memory_letta-docs.md">Letta docs</a>).</li>
+<li>같은 비유를 이어받은 후속작: <a href="../reference/papers/memoryos_arxiv-2506.06326.md">MemoryOS</a>(단기·중기·장기 3계층), <a href="../reference/papers/memos_arxiv-2507.03724.md">MemOS</a>.</li>
+</ul>
+
+<h3>3-2. 쓰기와 정리도 LLM이: 추출·통합·연결</h3>
+<p>2단계는 원문을 그대로 잘라 넣었다. 3단계에서는 <b>LLM이 대화에서 기억할 만한 것을 뽑고, 기존 기억과 합치고, 서로 연결</b>한다. 예를 들어 상담 대화 전체 대신 "이 고객 발 사이즈 270" 한 줄만 남긴다.</p>
+<details open><summary>대표 연구 4개</summary>
+<table>
+<tr><th>연구</th><th>쉬운 설명</th></tr>
+<tr><td><a href="../reference/papers/mem0_arxiv-2504.19413.md">Mem0</a> (2025-04)</td><td>대화에서 중요한 정보를 뽑고(추출), 기존 기억과 합치고(통합), 필요할 때 꺼낸다. 긴 대화 기억 시험(LoCoMo)에서 LLM이 채점한 점수가 OpenAI 메모리보다 26% 높았다고 보고.</td></tr>
+<tr><td><a href="../reference/papers/a_mem_arxiv-2502.12110.md">A-MEM</a> (2025-02)</td><td>메모 카드를 서로 연결하는 정리법(제텔카스텐)을 따른다. 새 기억이 들어오면 LLM이 설명·키워드·태그가 붙은 카드를 만들고 관련된 옛 카드와 링크한다. 새 기억 때문에 <b>옛 카드 설명이 고쳐지기도</b> 한다("기억의 진화").</td></tr>
+<tr><td><a href="../reference/papers/zep_arxiv-2501.13956.md">Zep</a> (2025-01)</td><td>사실과 관계를 그래프로 저장하면서 "언제부터 언제까지 맞았는지" 시간 정보도 남긴다. "예전엔 260, 지금은 270"을 다룰 수 있다.</td></tr>
+<tr><td><a href="../reference/papers/mirix_arxiv-2507.07957.md">MIRIX</a> (2025-07)</td><td>메모리를 6종으로 나누고 여러 에이전트가 나눠서 갱신·검색한다.</td></tr>
+</table>
+</details>
+
+<h3>3-3. 사실에서 경험으로: 스스로 요령을 쌓는 에이전트</h3>
+<p>3단계의 또 다른 흐름은 <b>고객에 대한 사실</b>이 아니라 <b>에이전트 자신의 경험</b>을 기억하는 것이다. 사람이 시행착오로 요령을 익히듯, 과거 시도에서 교훈·스킬·전략을 뽑아 다음에 쓴다. 모델 가중치는 그대로 두고 <b>메모리에 적힌 글만</b> 바뀐다.</p>
+<pre class="mermaid">
+flowchart LR
+T["새 상담"]:::io --> L(["에이전트 LLM"]):::llm
+M[("경험 메모리<br/>교훈 · 전략")]:::data -->|"① 비슷한 경험 불러오기"| L
+L -->|"② 응대"| E["결과<br/>해결됨 / 실패"]:::io
+E -->|"③ 무엇이 통했나"| R(["반성 LLM"]):::llm
+R -->|"④ 교훈 추가 · 수정"| M
+classDef llm fill:#7c5cff,stroke:#5a3fd6,color:#ffffff;
+classDef data fill:#dbeafe,stroke:#3b82f6,color:#0b2a5b;
+classDef io fill:#f3f4f6,stroke:#9ca3af,color:#111827;
+</pre>
+<p>예시: 교환 상담 여러 건을 거치며 "교환 문의는 수령일부터 확인" 같은 전략이 경험 메모리에 쌓이고, 다음 상담에서 ①로 불려 온다.</p>
+<details><summary>더 보기: 경험 메모리 연구의 흐름 (2023 → 2025)</summary>
+<table>
+<tr><th>연구</th><th>무엇을 기억하나</th><th>쉬운 설명</th></tr>
+<tr><td><a href="../reference/papers/reflexion_arxiv-2303.11366.md">Reflexion</a> (2023-03)</td><td>말로 쓴 반성문</td><td>실패하면 "왜 틀렸는지"를 글로 반성해 저장하고 다음 시도에 참고한다. 가중치 대신 "말로 된 피드백"으로 나아진다. 코딩 문제를 첫 시도에 맞힌 비율 91% 보고(당시 GPT-4는 80%).</td></tr>
+<tr><td><a href="../reference/papers/voyager_arxiv-2305.16291.md">Voyager</a> (2023-05)</td><td>실행 가능한 코드 스킬</td><td>마인크래프트에서 익힌 행동을 코드로 "스킬 라이브러리"에 저장하고 꺼내 쓴다. 새 세계에서도 재사용.</td></tr>
+<tr><td><a href="../reference/papers/expel_arxiv-2308.10144.md">ExpeL</a> (2023-08)</td><td>경험에서 뽑은 통찰</td><td>여러 연습 과제를 하며 깨달은 점을 글로 정리하고, 실전에서 불러온다.</td></tr>
+<tr><td><a href="../reference/papers/agent_workflow_memory_arxiv-2409.07429.md">AWM</a> (2024-09)</td><td>자주 쓰는 작업 순서</td><td>웹사이트 조작 과제에서 반복되는 절차를 뽑아 둔다. 성공률이 상대적으로 51.1% 올랐다고 보고.</td></tr>
+<tr><td><a href="../reference/papers/dynamic_cheatsheet_arxiv-2504.07952.md">Dynamic Cheatsheet</a> (2025-04)</td><td>스스로 고르는 커닝페이퍼</td><td>대화 전체가 아니라 짧고 옮겨 쓸 수 있는 전략·코드만 골라 둔다. 숫자 4개로 24 만들기 퍼즐에서 GPT-4o 성공률 10% → 99% 보고.</td></tr>
+<tr><td><a href="../reference/papers/reasoningbank_arxiv-2509.25140.md">ReasoningBank</a> (2025-09)</td><td>일반화된 추론 전략</td><td>성공뿐 아니라 <b>실패</b>에서도 전략을 뽑는다. 원본 기록이나 성공 절차만 저장하는 방식보다 낫다고 보고.</td></tr>
+<tr><td><a href="../reference/papers/ace_arxiv-2510.04618.md">ACE</a> (2025-10)</td><td>계속 자라는 플레이북</td><td>요약을 반복하면 세부가 사라지는 문제("컨텍스트 붕괴")를 막으려고, 통째로 다시 쓰지 않고 <b>조금씩 덧붙이고 고치는</b> 방식으로 플레이북을 키운다.</td></tr>
+<tr><td><a href="../reference/papers/memp_arxiv-2508.06433.md">Memp</a> (2025-08)</td><td>절차 기억</td><td>단계별 지시와 요약 스크립트를 만들고, 고치고, 폐기하는 전략을 비교. 강한 모델이 만든 절차 기억을 약한 모델에 옮겨도 효과가 있었다고 보고.</td></tr>
+</table>
+<p>서베이 <a href="../reference/papers/survey_storage_to_experience_arxiv-2605.06716.md">From Storage to Experience</a>는 이 흐름을 <b>저장(기록 보존) → 반성(기록 다듬기) → 경험(기록에서 요령 추상화)</b>으로 정리하고, <a href="../reference/papers/survey_agent_memory_second_half_arxiv-2602.06052.md">Agent Memory in the Second Half</a>는 메모리가 에이전트가 <b>스스로 발전하는 기반</b>이 되고 있다고 본다.</p>
+</details>
+
+<h3>3단계의 새 문제</h3>
+<ul>
+<li><b>LLM이 잘못 쓰면 메모리가 오염된다.</b> 틀린 사실을 저장하거나 맞는 기억을 지울 수 있다.</li>
+<li><b>규칙(프롬프트)에 기댄다.</b> "언제 무엇을 저장하라"를 사람이 프롬프트로 정해 준다. 메모리가 복잡해질수록 LLM은 무엇을 저장하고, 어떻게 정리하고, 언제 고칠지 판단하기 어려워한다 — <a href="../reference/papers/mem_alpha_arxiv-2509.25911.md">Mem-α</a></li>
+<li><b>모든 능력을 갖춘 방법은 아직 없다.</b> 정확히 찾기·쓰면서 배우기·긴 흐름 이해·골라서 잊기 네 가지를 시험했더니 현재 방법들은 넷 다 해내지 못했다 — <a href="../reference/papers/memoryagentbench_arxiv-2507.05257.md">MemoryAgentBench</a></li>
+<li><b>느려진다.</b> 애니메이션 3에서 보듯 LLM 호출이 여러 번 일어난다(일반 설명).</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="s4"><span class="stage st4">4단계</span> 메모리 관리를 학습시키기</h2>
+
+<h3>새 용어</h3>
+<div class="box">
+<dl class="gloss">
+<dt>강화학습(RL)</dt><dd>시도 → 점수(보상) 받기 → 점수가 높았던 행동을 더 자주 하도록 가중치를 조금 고치기를 수없이 반복해 "습관"을 만드는 학습법 (일반 설명).</dd>
+<dt>보상</dt><dd>행동이 좋았는지 나빴는지 알려 주는 점수. 여기서는 "나중에 질문에 정답을 맞혔는가".</dd>
+<dt>ADD / UPDATE / DELETE / NOOP</dt><dd>메모리에 대한 네 가지 행동: 새로 추가 / 기존 것 수정 / 삭제 / 아무것도 안 함.</dd>
+<dt>PPO, GRPO</dt><dd>강화학습 알고리즘의 이름. 이 문서에서는 몰라도 된다.</dd>
+</dl>
+</div>
+
+<h3>아이디어</h3>
+<p>3단계는 "잘 관리하라"는 지시를 프롬프트로 줬다. 4단계는 <b>결과를 점수로 삼아 메모리 관리 행동 자체를 훈련</b>한다. 예시에서 고객이 "270으로 바꿀게요"라고 했을 때, 기존 메모 "사이즈 260"을 어떻게 다뤄야 할까?</p>
+
+<div class="anim" id="anim-rl">
+<div class="ttl">애니메이션 4 · 점수가 "습관"을 바꾸는 과정 (훈련)</div>
+<svg role="img" aria-label="강화학습으로 메모리 관리 행동의 확률이 UPDATE 쪽으로 기우는 애니메이션"></svg>
+<div class="cap" aria-live="polite"></div>
+<div class="ctrl"><button data-a="first">↺ 처음</button><button data-a="prev">◀ 이전</button><span class="cnt"></span><button data-a="next">다음 ▶</button><button data-a="play">▶ 자동 재생</button></div>
+</div>
+
+<h3>훈련할 때와 사용할 때를 나눠 보면</h3>
+<pre class="mermaid">
+flowchart LR
+subgraph train["훈련할 때 (서비스 전에 미리)"]
+S["대화 · 정보"]:::io --> MM(["메모리 관리자 LLM"]):::llm
+MM -->|"ADD / UPDATE / DELETE / NOOP"| M[("메모리")]:::data
+M --> AA(["답변 LLM"]):::llm
+AA -->|"정답과 비교"| RW["점수"]:::io
+RW -->|"점수 높은 행동을 더 자주 하도록<br/>가중치 조정"| MM
+end
+subgraph use["사용할 때 (서비스 중)"]
+S2["대화 · 정보"]:::io --> MM2(["학습된 관리자 LLM"]):::llm
+MM2 -->|"훈련된 습관대로 선택"| M2[("메모리")]:::data
+M2 --> AA2(["답변 LLM"]):::llm --> A2["답변"]:::io
+end
+classDef llm fill:#7c5cff,stroke:#5a3fd6,color:#ffffff;
+classDef data fill:#dbeafe,stroke:#3b82f6,color:#0b2a5b;
+classDef io fill:#f3f4f6,stroke:#9ca3af,color:#111827;
+</pre>
+
+<details open><summary>대표 연구 5개</summary>
+<table>
+<tr><th>연구</th><th>무엇을 학습시키나</th><th>보고된 결과 (쉽게)</th></tr>
+<tr><td><a href="../reference/papers/memory_r1_arxiv-2508.19828.md">Memory-R1</a> (2025-08)</td><td>메모리 관리자(ADD·UPDATE·DELETE·NOOP 고르기)와 답변 에이전트(쓸 기억 고르기)를 강화학습으로</td><td>훈련용 질문-답 152쌍만으로 강한 기존 방법들을 넘었고, 다른 시험과 다른 크기 모델에도 통했다</td></tr>
+<tr><td><a href="../reference/papers/mem_alpha_arxiv-2509.25911.md">Mem-α</a> (2025-09)</td><td>핵심·일화·의미 3종 메모리를 도구로 관리하는 법. 점수 = 전체 기록에 대한 질문 정답률</td><td>기존 메모리 에이전트보다 크게 나아졌다고 보고</td></tr>
+<tr><td><a href="../reference/papers/mem1_arxiv-2506.15841.md">MEM1</a> (2025-06)</td><td>매 턴 작은 메모 하나만 고쳐 쓰며 필요 없는 건 버리는 법 (기억 정리와 추론을 함께)</td><td>메모리 크기를 일정하게 유지. 두 배 큰 모델보다 성능 3.5배, 메모리 사용 3.7배 적음</td></tr>
+<tr><td><a href="../reference/papers/memagent_arxiv-2507.02259.md">MemAgent</a> (2025-07)</td><td>긴 글을 조각씩 읽으며 메모를 덮어쓰는 법</td><td>약 8천 토큰짜리 책상으로 훈련했는데 350만 토큰 길이의 글에 대한 질문에서도 성능 손실 5% 미만</td></tr>
+<tr><td><a href="../reference/papers/memrl_arxiv-2601.03192.md">MemRL</a> (2026-01)</td><td><b>예외: 모델 가중치는 바꾸지 않는다.</b> 대신 일화 메모리 쪽에서 강화학습을 해, 환경 피드백으로 실제로 쓸모 있는 전략을 골라낸다(초록 기준)</td><td>4개 시험에서 기존 방법보다 좋았다고 보고</td></tr>
+</table>
+</details>
+<div class="box note"><b>4단계 정리</b>
+최근 서베이는 메모리 연산을 다루는 정책 자체를 학습하는 흐름을 짚는다 (<a href="../reference/papers/survey_agent_memory_second_half_arxiv-2602.06052.md">Agent Memory in the Second Half</a>). 다만 훈련 데이터와 모델 훈련이 필요해서, API로만 모델을 쓰는 서비스는 바로 적용하기 어렵다. 실서비스는 대부분 아직 3단계에 있다 (<a href="../report/2026_10_27_agent-memory-design-comparison.html">설계 비교 보고서</a>).</div>
+
+<!-- ============================================================ -->
+<h2 id="cmp">같은 질문, 네 가지 방식</h2>
+<p>지금까지 본 네 단계를 예시 질문 하나로 나란히 놓으면, 결국 차이는 <b>"책상 위에 무엇이 올라가는가"</b>이고 그걸 <b>"누가 결정하는가"</b>다.</p>
+
+<div class="anim" id="anim-cmp">
+<div class="ttl">애니메이션 5 · 단계별로 책상 위에 올라가는 것</div>
+<svg role="img" aria-label="같은 질문에 대해 네 방식의 책상 내용을 나란히 비교하는 애니메이션"></svg>
+<div class="cap" aria-live="polite"></div>
+<div class="ctrl"><button data-a="first">↺ 처음</button><button data-a="prev">◀ 이전</button><span class="cnt"></span><button data-a="next">다음 ▶</button><button data-a="play">▶ 자동 재생</button></div>
+</div>
+
+<table>
+<tr><th></th><th><span class="stage st1">1 통째로</span></th><th><span class="stage st2">2 RAG</span></th><th><span class="stage st3">3 에이전틱</span></th><th><span class="stage st4">4 학습된 관리</span></th></tr>
+<tr><td><b>무엇을 꺼낼지</b></td><td>결정 없음 (전부)</td><td>검색 코드</td><td>LLM (도구 호출)</td><td>훈련된 LLM</td></tr>
+<tr><td><b>무엇을 저장할지</b></td><td>결정 없음 (전부 쌓기)</td><td>코드 (원문 조각)</td><td>LLM (추출·요약·연결)</td><td>훈련된 LLM</td></tr>
+<tr><td><b>고치기·잊기</b></td><td>없음</td><td>규칙 (예: 망각 곡선)</td><td>LLM이 수정·삭제, 나중에 정리</td><td>훈련된 ADD/UPDATE/DELETE</td></tr>
+<tr><td><b>강점</b></td><td>누락 없음, 단순</td><td>자료가 커도 됨, 빠름</td><td>유연함, 스스로 정리·성장</td><td>관리 품질을 데이터로 최적화</td></tr>
+<tr><td><b>약점</b></td><td>길이·비용 한계, 중간을 놓침</td><td>못 찾으면 끝, 연결·시간에 약함</td><td>잘못 쓰면 오염, 느림</td><td>훈련 데이터·비용 필요</td></tr>
+<tr><td><b>대표</b></td><td>full-context 기준선</td><td>Generative Agents, MemoryBank, HippoRAG</td><td>MemGPT, Mem0, A-MEM, Zep, ReasoningBank, ACE</td><td>Memory-R1, Mem-α, MEM1, MemAgent</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="faq">자주 헷갈리는 것</h2>
+<h3>Q. 에이전틱 메모리가 RAG보다 항상 좋은가?</h3>
+<p>아니다. 단계가 올라갈수록 유연해지지만 LLM 호출이 늘어 느려지고, 잘못 쓰면 메모리가 오염된다. 자료가 작고 고정적이면 1단계가, 큰 문서에서 사실을 찾는 일이면 2단계가 나을 수 있다. 실서비스는 섞어 쓴다. Claude Code는 <code>CLAUDE.md</code>를 처음부터 넣고(1단계), 나머지는 에이전트가 파일 도구로 필요할 때 찾아 읽는(3단계) 혼합 방식이다 (<a href="../reference/cases/context-engineering_anthropic-engineering.md">Anthropic 엔지니어링 글</a>).</p>
+<h3>Q. RAG와 "메모리"는 같은 말인가?</h3>
+<p>겹치지만 다르다. 서베이 <a href="../reference/papers/survey_memory_age_of_agents_arxiv-2512.13564.md">Memory in the Age of AI Agents</a>는 에이전트 메모리를 RAG·컨텍스트 엔지니어링과 구분하는 것부터 시작한다. 간단히 말해 RAG는 주로 "이미 있는 자료를 <b>읽는</b> 방법"이고, 에이전트 메모리는 경험하면서 <b>쓰고, 고치고, 잊는</b> 것까지 포함한다.</p>
+<h3>Q. "에이전틱"의 핵심은?</h3>
+<p>메모리 연산(찾기·읽기·쓰기·수정·삭제)을 <b>LLM이 행동으로 고른다</b>는 것이다. 저장소가 벡터 DB든 파일이든 그래프든 상관없다. A-MEM은 이를 "에이전트 주도 의사결정의 유연함"이라고 표현한다 (<a href="../reference/papers/a_mem_arxiv-2502.12110.md">A-MEM</a>).</p>
+<h3>Q. 그럼 CS 챗봇에는?</h3>
+<p>이 폴더의 <a href="../report/2026_11_01_cs-chatbot-memory-architecture.html">CS 챗봇 메모리 구조 보고서</a> 참고. 규정은 1단계(그대로 넣기) 또는 3단계의 "목차 보고 열기", 과거 상담 기록은 3-3의 경험 메모리(사례 카드·플레이북)가 맞는 자리다.</p>
+
+<!-- ============================================================ -->
+<h2 id="more">부록</h2>
+
+<h3>곁가지 · 모델 안에 기억을 넣기</h3>
+<p>지금까지는 전부 "모델 밖"(책상과 서랍)에 기억을 두는 방식이었다. 다른 갈래로 <b>모델 내부</b>에 기억 장치를 넣는 연구도 있다.</p>
+<ul>
+<li><a href="../reference/papers/longmem_arxiv-2306.07174.md">LongMem</a> (2023-06): 원래 모델은 그대로 두고, 별도 작은 네트워크가 과거 문맥을 저장해 두고 꺼내 읽는다.</li>
+<li><a href="../reference/papers/memoryllm_arxiv-2402.04624.md">MemoryLLM</a> (2024-02): 모델 내부 숫자 공간에 고정 크기 메모리 칸을 두고 새 지식으로 스스로 갱신한다. 후속작 <a href="../reference/papers/mplus_arxiv-2502.00592.md">M+</a> (2025-02)는 이를 더 큰 장기 메모리로 늘렸다(제목 기준).</li>
+<li><a href="../reference/papers/titans_arxiv-2501.00663.md">Titans</a> (2024-12): 모델이 글을 읽는 기본 장치(어텐션)를 "단기 기억"으로, 새로 붙인 신경망 메모리를 "장기 기억"으로 보고 둘을 결합했다. 200만 토큰 이상으로 확장.</li>
+</ul>
+<p>검색 없이 기억이 모델에 녹아든다는 장점이 있지만, 무엇을 기억하는지 사람이 들여다보거나 고치기 어렵다(일반 설명).</p>
+
+<h3>연표</h3>
+<p class="legend">점 색: <span class="stage st2">2 검색형</span> <span class="stage st3">3 에이전틱</span> <span class="stage st4">4 학습</span> · 회색 = 서베이·벤치마크·모델 내부 메모리</p>
+<ul class="timeline">
+<li class="t3"><span class="d">2023-03</span>Reflexion — 반성문을 기억</li>
+<li class="t2"><span class="d">2023-04</span>Generative Agents — 기록 + 반성 + 검색 / SCM — 메모리 컨트롤러</li>
+<li class="t2"><span class="d">2023-05</span>MemoryBank — 망각 곡선 / RET-LLM — 삼중항</li>
+<li class="t3"><span class="d">2023-05</span>Voyager — 코드 스킬 라이브러리</li>
+<li class="t2"><span class="d">2023-06</span>ChatDB — SQL 메모리</li>
+<li><span class="d">2023-06</span>LongMem — 모델 쪽 장기 메모리</li>
+<li class="t3"><span class="d">2023-08</span>ExpeL — 경험에서 통찰</li>
+<li><span class="d">2023-09</span>CoALA — 메모리 = 행동</li>
+<li class="t3"><span class="d">2023-10</span>MemGPT — OS식 가상 컨텍스트</li>
+<li><span class="d">2024-02</span>LoCoMo 벤치마크 / MemoryLLM</li>
+<li class="t2"><span class="d">2024-05</span>HippoRAG — 그래프 검색</li>
+<li class="t2"><span class="d">2024-09</span>MemoRAG</li>
+<li class="t3"><span class="d">2024-09</span>AWM — 작업 흐름 메모리</li>
+<li><span class="d">2024-10</span>LongMemEval</li>
+<li><span class="d">2024-12</span>Titans</li>
+<li class="t3"><span class="d">2025-01</span>Zep — 시간 지식 그래프</li>
+<li class="t3"><span class="d">2025-02</span>A-MEM — 제텔카스텐식 메모리</li>
+<li class="t2"><span class="d">2025-02</span>HippoRAG 2 — "From RAG to Memory"</li>
+<li class="t3"><span class="d">2025-04</span>Dynamic Cheatsheet / Mem0</li>
+<li class="t3"><span class="d">2025-05~07</span>MemoryOS / MemOS / MIRIX</li>
+<li class="t4"><span class="d">2025-06</span>MEM1</li>
+<li class="t4"><span class="d">2025-07</span>MemAgent</li>
+<li class="t3"><span class="d">2025-08</span>Memp — 절차 기억</li>
+<li class="t4"><span class="d">2025-08</span>Memory-R1</li>
+<li class="t3"><span class="d">2025-09</span>ReasoningBank</li>
+<li class="t4"><span class="d">2025-09</span>Mem-α</li>
+<li class="t3"><span class="d">2025-10</span>ACE — 자라는 플레이북</li>
+<li><span class="d">2025-12</span>서베이 Memory in the Age of AI Agents</li>
+<li class="t4"><span class="d">2026-01</span>MemRL</li>
+<li><span class="d">2026-05</span>서베이 From Storage to Experience</li>
+</ul>
+
+<h3>추천 읽기 순서 (초록 원문)</h3>
+<ol>
+<li>문제 확인: <a href="../reference/papers/locomo_arxiv-2402.17753.md">LoCoMo</a> → <a href="../reference/papers/longmemeval_arxiv-2410.10813.md">LongMemEval</a></li>
+<li>검색형 기억: <a href="../reference/papers/generative_agents_arxiv-2304.03442.md">Generative Agents</a> → <a href="../reference/papers/memorybank_arxiv-2305.10250.md">MemoryBank</a> → <a href="../reference/papers/hipporag_arxiv-2405.14831.md">HippoRAG</a></li>
+<li>틀 잡기: <a href="../reference/papers/coala_arxiv-2309.02427.md">CoALA</a></li>
+<li>에이전틱 메모리: <a href="../reference/papers/memgpt_arxiv-2310.08560.md">MemGPT</a> → <a href="../reference/papers/mem0_arxiv-2504.19413.md">Mem0</a> → <a href="../reference/papers/a_mem_arxiv-2502.12110.md">A-MEM</a> → <a href="../reference/papers/zep_arxiv-2501.13956.md">Zep</a></li>
+<li>경험 메모리: <a href="../reference/papers/reflexion_arxiv-2303.11366.md">Reflexion</a> → <a href="../reference/papers/voyager_arxiv-2305.16291.md">Voyager</a> → <a href="../reference/papers/reasoningbank_arxiv-2509.25140.md">ReasoningBank</a> → <a href="../reference/papers/ace_arxiv-2510.04618.md">ACE</a></li>
+<li>학습된 관리: <a href="../reference/papers/memory_r1_arxiv-2508.19828.md">Memory-R1</a> → <a href="../reference/papers/mem1_arxiv-2506.15841.md">MEM1</a></li>
+<li>전체 지도: <a href="../reference/papers/survey_memory_age_of_agents_arxiv-2512.13564.md">Memory in the Age of AI Agents</a> → <a href="../reference/papers/survey_storage_to_experience_arxiv-2605.06716.md">From Storage to Experience</a></li>
+<li>실무 감각: <a href="../reference/cases/context-engineering_anthropic-engineering.md">Anthropic: Effective context engineering</a></li>
+</ol>
+
+<h3 id="src">출처</h3>
+<p>모든 논문은 arXiv 초록 원문을 <code>docs/reference/papers/</code>에 저장해 두었다 (괄호 안 링크).</p>
+<ul>
+<li>Reflexion — <a href="https://arxiv.org/abs/2303.11366">arXiv:2303.11366</a> (<a href="../reference/papers/reflexion_arxiv-2303.11366.md">원문</a>)</li>
+<li>Generative Agents — <a href="https://arxiv.org/abs/2304.03442">arXiv:2304.03442</a> (<a href="../reference/papers/generative_agents_arxiv-2304.03442.md">원문</a>)</li>
+<li>SCM — <a href="https://arxiv.org/abs/2304.13343">arXiv:2304.13343</a> (<a href="../reference/papers/scm_arxiv-2304.13343.md">원문</a>)</li>
+<li>MemoryBank — <a href="https://arxiv.org/abs/2305.10250">arXiv:2305.10250</a> (<a href="../reference/papers/memorybank_arxiv-2305.10250.md">원문</a>)</li>
+<li>RET-LLM — <a href="https://arxiv.org/abs/2305.14322">arXiv:2305.14322</a> (<a href="../reference/papers/ret_llm_arxiv-2305.14322.md">원문</a>)</li>
+<li>Voyager — <a href="https://arxiv.org/abs/2305.16291">arXiv:2305.16291</a> (<a href="../reference/papers/voyager_arxiv-2305.16291.md">원문</a>)</li>
+<li>ChatDB — <a href="https://arxiv.org/abs/2306.03901">arXiv:2306.03901</a> (<a href="../reference/papers/chatdb_arxiv-2306.03901.md">원문</a>)</li>
+<li>LongMem — <a href="https://arxiv.org/abs/2306.07174">arXiv:2306.07174</a> (<a href="../reference/papers/longmem_arxiv-2306.07174.md">원문</a>)</li>
+<li>ExpeL — <a href="https://arxiv.org/abs/2308.10144">arXiv:2308.10144</a> (<a href="../reference/papers/expel_arxiv-2308.10144.md">원문</a>)</li>
+<li>CoALA — <a href="https://arxiv.org/abs/2309.02427">arXiv:2309.02427</a> (<a href="../reference/papers/coala_arxiv-2309.02427.md">원문</a>)</li>
+<li>MemGPT — <a href="https://arxiv.org/abs/2310.08560">arXiv:2310.08560</a> (<a href="../reference/papers/memgpt_arxiv-2310.08560.md">원문</a>)</li>
+<li>MemoryLLM — <a href="https://arxiv.org/abs/2402.04624">arXiv:2402.04624</a> (<a href="../reference/papers/memoryllm_arxiv-2402.04624.md">원문</a>)</li>
+<li>LoCoMo — <a href="https://arxiv.org/abs/2402.17753">arXiv:2402.17753</a> (<a href="../reference/papers/locomo_arxiv-2402.17753.md">원문</a>)</li>
+<li>HippoRAG — <a href="https://arxiv.org/abs/2405.14831">arXiv:2405.14831</a> (<a href="../reference/papers/hipporag_arxiv-2405.14831.md">원문</a>)</li>
+<li>MemoRAG — <a href="https://arxiv.org/abs/2409.05591">arXiv:2409.05591</a> (<a href="../reference/papers/memorag_arxiv-2409.05591.md">원문</a>)</li>
+<li>Agent Workflow Memory — <a href="https://arxiv.org/abs/2409.07429">arXiv:2409.07429</a> (<a href="../reference/papers/agent_workflow_memory_arxiv-2409.07429.md">원문</a>)</li>
+<li>LongMemEval — <a href="https://arxiv.org/abs/2410.10813">arXiv:2410.10813</a> (<a href="../reference/papers/longmemeval_arxiv-2410.10813.md">원문</a>)</li>
+<li>Titans — <a href="https://arxiv.org/abs/2501.00663">arXiv:2501.00663</a> (<a href="../reference/papers/titans_arxiv-2501.00663.md">원문</a>)</li>
+<li>Zep — <a href="https://arxiv.org/abs/2501.13956">arXiv:2501.13956</a> (<a href="../reference/papers/zep_arxiv-2501.13956.md">원문</a>)</li>
+<li>M+ — <a href="https://arxiv.org/abs/2502.00592">arXiv:2502.00592</a> (<a href="../reference/papers/mplus_arxiv-2502.00592.md">원문</a>)</li>
+<li>A-MEM — <a href="https://arxiv.org/abs/2502.12110">arXiv:2502.12110</a> (<a href="../reference/papers/a_mem_arxiv-2502.12110.md">원문</a>)</li>
+<li>HippoRAG 2 — <a href="https://arxiv.org/abs/2502.14802">arXiv:2502.14802</a> (<a href="../reference/papers/hipporag2_arxiv-2502.14802.md">원문</a>)</li>
+<li>Dynamic Cheatsheet — <a href="https://arxiv.org/abs/2504.07952">arXiv:2504.07952</a> (<a href="../reference/papers/dynamic_cheatsheet_arxiv-2504.07952.md">원문</a>)</li>
+<li>Mem0 — <a href="https://arxiv.org/abs/2504.19413">arXiv:2504.19413</a> (<a href="../reference/papers/mem0_arxiv-2504.19413.md">원문</a>)</li>
+<li>Rethinking Memory (서베이) — <a href="https://arxiv.org/abs/2505.00675">arXiv:2505.00675</a> (<a href="../reference/papers/survey_rethinking_memory_arxiv-2505.00675.md">원문</a>)</li>
+<li>MemoryOS — <a href="https://arxiv.org/abs/2506.06326">arXiv:2506.06326</a> (<a href="../reference/papers/memoryos_arxiv-2506.06326.md">원문</a>)</li>
+<li>MEM1 — <a href="https://arxiv.org/abs/2506.15841">arXiv:2506.15841</a> (<a href="../reference/papers/mem1_arxiv-2506.15841.md">원문</a>)</li>
+<li>MemAgent — <a href="https://arxiv.org/abs/2507.02259">arXiv:2507.02259</a> (<a href="../reference/papers/memagent_arxiv-2507.02259.md">원문</a>)</li>
+<li>MemOS — <a href="https://arxiv.org/abs/2507.03724">arXiv:2507.03724</a> (<a href="../reference/papers/memos_arxiv-2507.03724.md">원문</a>)</li>
+<li>MemoryAgentBench — <a href="https://arxiv.org/abs/2507.05257">arXiv:2507.05257</a> (<a href="../reference/papers/memoryagentbench_arxiv-2507.05257.md">원문</a>)</li>
+<li>MIRIX — <a href="https://arxiv.org/abs/2507.07957">arXiv:2507.07957</a> (<a href="../reference/papers/mirix_arxiv-2507.07957.md">원문</a>)</li>
+<li>Memp — <a href="https://arxiv.org/abs/2508.06433">arXiv:2508.06433</a> (<a href="../reference/papers/memp_arxiv-2508.06433.md">원문</a>)</li>
+<li>Memory-R1 — <a href="https://arxiv.org/abs/2508.19828">arXiv:2508.19828</a> (<a href="../reference/papers/memory_r1_arxiv-2508.19828.md">원문</a>)</li>
+<li>ReasoningBank — <a href="https://arxiv.org/abs/2509.25140">arXiv:2509.25140</a> (<a href="../reference/papers/reasoningbank_arxiv-2509.25140.md">원문</a>)</li>
+<li>Mem-α — <a href="https://arxiv.org/abs/2509.25911">arXiv:2509.25911</a> (<a href="../reference/papers/mem_alpha_arxiv-2509.25911.md">원문</a>)</li>
+<li>ACE — <a href="https://arxiv.org/abs/2510.04618">arXiv:2510.04618</a> (<a href="../reference/papers/ace_arxiv-2510.04618.md">원문</a>)</li>
+<li>Memory in the Age of AI Agents (서베이) — <a href="https://arxiv.org/abs/2512.13564">arXiv:2512.13564</a> (<a href="../reference/papers/survey_memory_age_of_agents_arxiv-2512.13564.md">원문</a>)</li>
+<li>MemRL — <a href="https://arxiv.org/abs/2601.03192">arXiv:2601.03192</a> (<a href="../reference/papers/memrl_arxiv-2601.03192.md">원문</a>)</li>
+<li>Agent Memory in the Second Half (서베이) — <a href="https://arxiv.org/abs/2602.06052">arXiv:2602.06052</a> (<a href="../reference/papers/survey_agent_memory_second_half_arxiv-2602.06052.md">원문</a>)</li>
+<li>From Storage to Experience (서베이) — <a href="https://arxiv.org/abs/2605.06716">arXiv:2605.06716</a> (<a href="../reference/papers/survey_storage_to_experience_arxiv-2605.06716.md">원문</a>)</li>
+<li>Anthropic, Effective context engineering for AI agents — <a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents">anthropic.com</a> (<a href="../reference/cases/context-engineering_anthropic-engineering.md">원문</a>)</li>
+<li>Letta Memory docs — <a href="https://docs.letta.com/agent-sdk/memory/">docs.letta.com</a> (<a href="../reference/cases/letta-memory_letta-docs.md">원문</a>)</li>
+</ul>
+</main>
+
+<script>
+/* ---------- 작은 단계형 애니메이션 엔진 ----------
+   items: 화면 요소(상자·점·막대·고리·글자·선). 각 step은 바뀌는 상태만 적고, 상태는 앞 단계부터 누적된다.
+   상태: x,y(위치) o(투명도) c(색 클래스) t(글자) s(막대 길이 비율) k(확대) st(취소선) */
+(function(){
+const NS='http://www.w3.org/2000/svg';
+function mk(tag,attrs,parent){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e;}
+function setLabel(t,label,w,kind){
+  while(t.firstChild)t.removeChild(t.firstChild);
+  const lines=String(label).split('\n');
+  lines.forEach((ln,i)=>{const s=mk('tspan',{x:t.getAttribute('x'),dy:i===0?((-(lines.length-1)*6)+'px'):'12px'},t);s.textContent=ln;});
+}
+function makeAnim(id,def){
+  const root=document.getElementById(id); if(!root)return;
+  const svg=root.querySelector('svg'),cap=root.querySelector('.cap'),cnt=root.querySelector('.cnt');
+  svg.setAttribute('viewBox','0 0 '+def.w+' '+def.h);
+  const defs=mk('defs',{},svg);
+  const mid=id+'-arr';
+  const m=mk('marker',{id:mid,viewBox:'0 0 10 10',refX:'9',refY:'5',markerWidth:'7',markerHeight:'7',orient:'auto-start-reverse'},defs);
+  mk('path',{d:'M0,0 L10,5 L0,10 z',style:'fill:var(--muted)'},m);
+  (def.frames||[]).forEach(f=>{
+    if(f.r){mk('rect',{x:f.r[0],y:f.r[1],width:f.r[2],height:f.r[3],rx:8,class:'frame'+(f.dash?' dash':'')},svg);}
+    if(f.t){const t=mk('text',{x:f.t[0],y:f.t[1],class:'ftxt'},svg);t.textContent=f.t[2];}
+  });
+  if(def.clip){const cp=mk('clipPath',{id:id+'-clip'},defs);mk('rect',{x:def.clip[0],y:def.clip[1],width:def.clip[2],height:def.clip[3]},cp);}
+  const els={};
+  def.items.forEach(it=>{
+    const holder=it.clip&&def.clip?mk('g',{'clip-path':'url(#'+id+'-clip)'},svg):svg;
+    const g=mk('g',{class:'it'},holder); let shape=null, tx=null;
+    const w=it.w||80,h=it.h||22;
+    if(it.kind==='box'||it.kind==='bar'){shape=mk('rect',{x:0,y:0,width:w,height:h,rx:it.kind==='bar'?3:6,class:'shape'},g);}
+    else if(it.kind==='ring'){shape=mk('circle',{cx:0,cy:0,r:it.r,class:'shape'},g);}
+    else if(it.kind==='line'){shape=mk('line',{x1:0,y1:0,x2:it.dx,y2:it.dy,style:'stroke:var(--muted);stroke-width:1.5','marker-end':'url(#'+mid+')'},g);}
+    if(it.kind==='box'){tx=mk('text',{x:w/2,y:h/2,'text-anchor':'middle',class:'lbl'+(it.big?' big':'')},g);}
+    else if(it.kind==='text'){tx=mk('text',{x:0,y:0,'text-anchor':it.anchor||'start',class:'lbl'+(it.big?' big':'')},g);}
+    if(it.mono)g.classList.add('mono');
+    els[it.id]={g,shape,tx,it};
+  });
+  const base={}; def.items.forEach(it=>{base[it.id]={x:it.x||0,y:it.y||0,o:it.o===undefined?1:it.o,c:it.c||'c-txt',t:it.label===undefined?'':it.label,s:it.s===undefined?1:it.s,k:it.k===undefined?1:it.k,st:false};});
+  let idx=0,timer=null;
+  function stateAt(n){const st=JSON.parse(JSON.stringify(base));for(let i=0;i<=n;i++){const set=def.steps[i].set||{};for(const id in set){Object.assign(st[id],set[id]);}}return st;}
+  function render(n){
+    const st=stateAt(n);
+    for(const id in els){const e=els[id],s=st[id];
+      e.g.style.transform='translate('+s.x+'px,'+s.y+'px) scale('+s.k+')';
+      e.g.style.opacity=s.o;
+      e.g.setAttribute('class','it '+s.c+(e.it.mono?' mono':'')+(s.st?' struck':''));
+      if(e.tx&&e.lastT!==s.t){setLabel(e.tx,s.t);e.lastT=s.t;}
+      if(e.it.kind==='bar'&&e.shape){e.shape.style.transform='scaleX('+s.s+')';}
+    }
+    cap.innerHTML=def.steps[n].cap; cnt.textContent=(n+1)+' / '+def.steps.length;
+    root.querySelector('[data-a=prev]').disabled=n===0; root.querySelector('[data-a=first]').disabled=n===0;
+    root.querySelector('[data-a=next]').disabled=n===def.steps.length-1;
+  }
+  function stop(){if(timer){clearInterval(timer);timer=null;root.querySelector('[data-a=play]').textContent='▶ 자동 재생';}}
+  function go(n){idx=Math.max(0,Math.min(def.steps.length-1,n));render(idx);}
+  root.querySelector('.ctrl').addEventListener('click',ev=>{const a=ev.target.getAttribute&&ev.target.getAttribute('data-a');if(!a)return;
+    if(a==='play'){if(timer){stop();return;} if(idx===def.steps.length-1)go(0); ev.target.textContent='⏸ 멈춤'; timer=setInterval(()=>{if(idx>=def.steps.length-1){stop();return;}go(idx+1);},2800);return;}
+    stop(); if(a==='next')go(idx+1); else if(a==='prev')go(idx-1); else if(a==='first')go(0);});
+  svg.classList.add('noanim'); render(0); requestAnimationFrame(()=>requestAnimationFrame(()=>svg.classList.remove('noanim')));
+  root._go=go; root._n=def.steps.length;
+}
+window.__makeAnim=makeAnim;
+
+/* ===== 애니메이션 1: 책상이 차오름 ===== */
+(function(){
+  const slot=i=>12+i*48, Y=56;
+  const blocks=[['S','응대\n지시','c-io'],['R1','교환\n규정','c-data'],['R2','환불\n규정','c-data'],['R3','배송비\n규정','c-data'],['H1','10/29\n수령','c-data'],['H2','배송\n문의','c-data'],['H3','가방\n환불','c-data'],['Q','질문','c-io']];
+  const items=[];
+  blocks.forEach((b,i)=>items.push({id:b[0],kind:'box',x:slot(i),y:Y-40,w:44,h:50,label:b[1],c:b[2],o:0}));
+  items.push({id:'T1',kind:'box',x:slot(0),y:150,w:44,h:50,label:'오늘\n대화1',c:'c-miss',o:0});
+  items.push({id:'T2',kind:'box',x:slot(1),y:150,w:44,h:50,label:'오늘\n대화2',c:'c-miss',o:0});
+  items.push({id:'ovf',kind:'text',x:110,y:175,label:'← 한도 초과: 책상에 못 올림',c:'c-txt',o:0});
+  items.push({id:'cnt',kind:'text',x:10,y:16,label:'사용 0 / 8칸',big:true,c:'c-txt'});
+  items.push({id:'cost',kind:'text',x:410,y:16,anchor:'end',label:'',c:'c-mute'});
+  items.push({id:'llm',kind:'box',x:300,y:150,w:110,h:44,label:'LLM\n책상 전체를 읽음',c:'c-llm',o:0});
+  const s=(ids,extra)=>{const o={};ids.forEach(i=>o[i]=Object.assign({o:1,y:Y},extra||{}));return o;};
+  __makeAnim('anim-ctx',{w:420,h:215,
+    frames:[{r:[8,50,390,62]},{t:[10,40,'책상 = 컨텍스트 윈도우 (한도: 8칸)']}],
+    items,
+    steps:[
+      {cap:'LLM은 <b>책상(컨텍스트 윈도우)</b> 위에 올린 글만 볼 수 있다. 책상 크기는 정해져 있다. 여기서는 8칸이라고 하자.'},
+      {cap:'통째로 넣기: 응대 지시와 <b>규정 문서를 전부</b> 올린다.',set:Object.assign(s(['S','R1','R2','R3']),{cnt:{t:'사용 4 / 8칸'}})},
+      {cap:'고객의 <b>지난 기록도 전부</b> 올린다. 교환 판단에 필요한 "10/29 수령"도 여기 섞여 있다.',set:Object.assign(s(['H1','H2','H3']),{cnt:{t:'사용 7 / 8칸'}})},
+      {cap:'질문까지 올리니 책상이 꽉 찼다. LLM은 답할 때마다 이 <b>8칸 전부를 처음부터 다시</b> 읽는다. 자료가 길수록 비용과 시간이 커진다.',set:Object.assign(s(['Q']),{cnt:{t:'사용 8 / 8칸 (꽉 참)'},cost:{t:'질문 1개당 8칸을 매번 다시 읽음'},llm:{o:1}})},
+      {cap:'대화가 이어지면 <b>한도를 넘는다</b>. 넘친 내용은 아예 책상에 올릴 수 없다. 보통은 오래된 것부터 잘라 낸다.',set:{T1:{o:1},T2:{o:1},ovf:{o:1},cnt:{t:'필요 10칸 > 한도 8칸',c:'c-txt'},llm:{o:0}}},
+      {cap:'다 들어가도 문제가 남는다. 글이 길수록 모델은 <b>중간 내용을 놓치기 쉽다</b>(context rot). 정답에 꼭 필요한 "10/29 수령"이 하필 중간에 묻혀 있다.',set:{R2:{o:.3},R3:{o:.3},H2:{o:.3},H3:{o:.3},H1:{c:'c-hit'},T1:{o:0},T2:{o:0},ovf:{o:0},cnt:{t:'중간이 흐릿해짐'}}}
+    ]});
+})();
+
+/* ===== 애니메이션 2: RAG ===== */
+(function(){
+  const P=[ // id, label, 의미지도 중심좌표
+    ['R1','교환 규정',[55,175]],['R2','환불 규정',[120,132]],['R3','배송비 규정',[225,300]],['R4','회원 등급',[60,300]],
+    ['R5','포인트 적립',[60,245]],['H1','10/29 수령완료',[140,285]],['H2','배송 지연 문의',[205,235]],['H3','9/12 가방 환불',[205,150]]];
+  const W=80,H=22, items=[];
+  P.forEach((p,i)=>{const col=i%4,row=Math.floor(i/4);items.push({id:p[0],kind:'box',x:8+col*102,y:18+row*26,w:W,h:H,label:p[1],c:'c-data',o:0});});
+  items.unshift({id:'doc',kind:'box',x:8,y:16,w:404,h:50,label:'원본: 규정집(수십 쪽) + 상담·배송 기록(수천 건)',c:'c-data'});
+  items.push({id:'ring',kind:'ring',r:87,x:130,y:180,k:.01,c:'c-ring',o:0,clip:true});
+  items.push({id:'Q',kind:'box',x:105,y:169,w:50,h:22,label:'질문',c:'c-io',o:0});
+  items.push({id:'llm',kind:'box',x:290,y:250,w:112,h:44,label:'LLM\n받은 3개로 답함',c:'c-llm',o:0});
+  items.push({id:'note',kind:'text',x:16,y:330,label:'',c:'c-txt'});
+  const at=id=>{const p=P.find(q=>q[0]===id)[2];return {x:p[0]-W/2,y:p[1]-H/2};};
+  const scatter={};P.forEach(p=>scatter[p[0]]=Object.assign({o:1},at(p[0])));
+  const desk=(id,i)=>({x:290,y:104+i*34,o:1});
+  __makeAnim('anim-rag',{w:420,h:342,clip:[9,104,260,223],
+    frames:[{r:[8,80,262,248]},{t:[14,96,'의미 지도 (임베딩 공간)']},{r:[278,80,134,248]},{t:[284,96,'책상']}],
+    items,
+    steps:[
+      {cap:'준비물: 규정집과 수천 건의 상담·배송 기록. 전부 책상에 올리기엔 너무 많다.'},
+      {cap:'<b>① 자르기(청크):</b> 몇 문장 단위의 조각으로 자른다. 여기서는 조각 8개만 그렸다.',set:Object.assign({doc:{o:0}},Object.fromEntries(P.map(p=>[p[0],{o:1}])))},
+      {cap:'<b>② 임베딩:</b> 조각마다 "의미 좌표"를 계산해 지도에 찍는다. 뜻이 비슷한 조각끼리 가까이 모인다. 교환·환불은 위쪽, 배송은 오른쪽 아래, 회원·포인트는 왼쪽 아래.',set:scatter},
+      {cap:'<b>③ 질문도 좌표로:</b> "지난주 산 운동화, 270으로 교환돼요?"도 같은 방식으로 지도에 찍는다. 교환·환불 근처에 떨어진다.',set:{Q:{o:1}}},
+      {cap:'<b>④ 가장 가까운 k=3개 고르기:</b> 질문에서 거리가 가까운 순서로 3개를 고른다. 고르는 건 LLM이 아니라 <b>거리를 계산하는 코드</b>다.',set:{ring:{o:1,k:1},R1:{c:'c-hit'},R2:{c:'c-hit'},H3:{c:'c-hit'}}},
+      {cap:'<b>⑤ 고른 3개만 책상에 올린다.</b> LLM은 이 3개와 질문만 보고 답한다.',set:{R2:desk('R2',0),R1:desk('R1',1),H3:desk('H3',2),llm:{o:1}}},
+      {cap:'결과 확인: <b>교환 규정</b>은 찾았다(초록). 하지만 <b>환불 규정</b>과 <b>가방 환불</b>은 뜻만 비슷한 잡음이다(주황). 정작 필요한 <b>"10/29 수령완료"</b>는 "교환"이라는 단어가 없어서 지도에서 멀리 떨어져 있었고, <b>놓쳤다</b>(빨강). 수령일을 모르니 7일 이내인지 판단할 수 없다.',set:{R1:{c:'c-hit'},R2:{c:'c-noise',t:'환불 규정 ✗'},H3:{c:'c-noise',t:'가방 환불 ✗'},H1:{c:'c-miss',t:'10/29 수령 ⚠놓침'}}},
+      {cap:'<b>k를 6으로 늘리면?</b> 수령 기록도 원 안에 들어오지만 배송 지연·포인트 같은 잡음도 함께 들어와 책상이 다시 붐빈다. k에는 정답이 없다. 그리고 LLM은 "수령일이 더 필요해"라고 다시 찾아볼 수 없다.',set:{ring:{k:1.27},H1:{c:'c-hit',t:'10/29 수령완료'},H2:{c:'c-noise'},R5:{c:'c-noise'}}}
+    ]});
+})();
+
+/* ===== 애니메이션 3: 에이전트 루프 ===== */
+(function(){
+  const LY=i=>46+i*33, items=[];
+  const L=[['L0','질문: 270으로 교환돼요?','c-io',0],['L1','목차: 규정 3 · 기록 · 고객 메모','c-data',0],
+    ['L2','search("주문 수령일")','c-llm',1],['L3','→ 10/29 주문 #A17 수령 완료','c-hit',0],
+    ['L4','read("규정/교환")','c-llm',1],['L5','→ 수령 7일 이내 · 미착용 시 가능','c-hit',0],
+    ['L6','판단: 10/29 + 7일 = 11/5 → 가능','c-llm',0],['L7','답변: 11/5까지 교환돼요(미착용)','c-io',0],
+    ['L8','update("사이즈 260" → "270")','c-llm',1]];
+  const MY=i=>112+i*33;
+  const M=[['M1','규정/교환'],['M2','규정/환불'],['M3','규정/배송비'],['M4','기록: 10/29 수령'],['M5','메모: 사이즈 260']];
+  M.forEach((m,i)=>items.push({id:m[0],kind:'box',x:262,y:MY(i),w:146,h:26,label:m[1],c:'c-data'}));
+  items.push({id:'M6',kind:'box',x:262,y:MY(5),w:146,h:26,label:'메모: 사이즈 270 (11/2)',c:'c-hit',o:0});
+  L.forEach(l=>{const it={id:l[0],kind:'box',x:16,y:LY(+l[0].slice(1)),w:220,h:27,label:l[1],c:l[2],mono:!!l[3],o:0};items.push(it);});
+  // 메모리에서 책상으로 날아오는 결과 줄: 처음 위치를 메모리 카드 위치로
+  items.find(i=>i.id==='L3').x=262; items.find(i=>i.id==='L3').y=MY(3);
+  items.find(i=>i.id==='L5').x=262; items.find(i=>i.id==='L5').y=MY(0);
+  ['tk1','tk2','tk3'].forEach((t,i)=>items.push({id:t,kind:'box',x:16,y:LY([2,4,8][i]),w:130,h:22,label:['search(...)','read(...)','update(...)'][i],c:'c-llm',mono:true,o:0}));
+  const show=(id,y)=>({[id]:{o:1,x:16,y:LY(y)}});
+  __makeAnim('anim-agent',{w:420,h:352,
+    frames:[{r:[8,8,236,336]},{t:[16,30,'LLM의 책상 (컨텍스트)']},{r:[254,8,158,62],dash:true},{t:[262,24,'프로그램 (도구를 실제로 실행)']},{r:[254,80,158,264]},{t:[262,100,'메모리 저장소']}],
+    items,
+    steps:[
+      {cap:'처음 책상에는 <b>질문</b>과 메모리의 <b>목차</b>만 있다. 내용 전체가 아니라 "무엇이 어디 있는지"만 안다. Claude Code가 <code>MEMORY.md</code> 목차만 먼저 읽는 것과 같다.',set:{L0:{o:1},L1:{o:1}}},
+      {cap:'LLM이 스스로 판단한다. "교환 기한을 보려면 <b>수령일</b>이 필요하다." 그래서 답 대신 <b>도구 호출 글</b>을 출력한다.',set:{L2:{o:1}}},
+      {cap:'<b>프로그램</b>이 그 글을 받아 실제로 메모리를 검색한다. 이것이 도구 호출이다. LLM은 DB를 직접 만지지 않는다.',set:{tk1:{o:1,x:268,y:36},M4:{c:'c-hit'}}},
+      {cap:'검색 결과가 <b>책상에 다시 붙는다</b>. 2단계와 달리 검색어("주문 수령일")를 LLM이 골랐기 때문에, 단어가 달라도 필요한 기록을 찾았다.',set:Object.assign({tk1:{o:0}},show('L3',3))},
+      {cap:'결과를 보고 <b>다음 행동을 또 고른다</b>: 교환 규정을 연다.',set:Object.assign({L4:{o:1},tk2:{o:1,x:268,y:36},M1:{c:'c-hit'}},{})},
+      {cap:'규정 내용이 책상에 붙는다. 이제 판단에 필요한 두 정보가 모두 책상 위에 있다.',set:Object.assign({tk2:{o:0}},show('L5',5))},
+      {cap:'LLM이 계산하고 답한다: 10/29 + 7일 = 11/5, 아직 기한 안이므로 <b>교환 가능</b>.',set:{L6:{o:1},L7:{o:1}}},
+      {cap:'마지막으로 <b>기억을 고친다</b>. 옛 메모 "사이즈 260"을 지우고(취소선) "사이즈 270"으로 바꾼다. 다음 상담에서는 이 메모가 쓰인다. 읽기뿐 아니라 <b>쓰기·수정</b>까지 LLM이 정하는 것이 에이전틱 메모리다.',set:{L8:{o:1},tk3:{o:1,x:268,y:36},M5:{st:true},M6:{o:1}}}
+    ]});
+})();
+
+/* ===== 애니메이션 4: 강화학습 ===== */
+(function(){
+  const acts=[['ADD','추가'],['UPDATE','수정'],['DELETE','삭제'],['NOOP','그대로']];
+  const BY=i=>96+i*34, items=[];
+  items.push({id:'info',kind:'box',x:8,y:12,w:128,h:44,label:'새 정보\n"270으로 바꿀게요"',c:'c-io'});
+  items.push({id:'mgr',kind:'box',x:150,y:12,w:120,h:44,label:'메모리 관리자\nLLM',c:'c-llm'});
+  items.push({id:'mem',kind:'box',x:284,y:12,w:128,h:44,label:'메모\n사이즈 260',c:'c-data'});
+  items.push({id:'a1',kind:'line',x:136,y:34,dx:12,dy:0});items.push({id:'a2',kind:'line',x:270,y:34,dx:12,dy:0});
+  acts.forEach((a,i)=>{
+    items.push({id:'n'+i,kind:'text',x:8,y:BY(i)+10,label:a[0]+' ('+a[1]+')',c:'c-txt'});
+    items.push({id:'b'+i,kind:'bar',x:118,y:BY(i),w:220,h:20,s:.25,c:'c-data'});
+    items.push({id:'p'+i,kind:'text',x:346,y:BY(i)+10,label:'25%',c:'c-txt'});
+  });
+  items.push({id:'ep',kind:'text',x:8,y:76,label:'학습 전',big:true,c:'c-txt'});
+  items.push({id:'res',kind:'text',x:8,y:248,label:'',c:'c-txt'});
+  items.push({id:'res2',kind:'text',x:8,y:268,label:'',c:'c-mute'});
+  const bars=v=>{const o={};v.forEach((x,i)=>{o['b'+i]={s:x,c:'c-data'};o['p'+i]={t:Math.round(x*100)+'%'};});return o;};
+  const pick=(i,good)=>({['b'+i]:{c:good?'c-hit':'c-miss'}});
+  __makeAnim('anim-rl',{w:420,h:282,
+    items,
+    steps:[
+      {cap:'<b>학습 전:</b> 관리자는 새 정보를 보고 네 가지 행동 중 하나를 고른다. 아직 습관이 없어서 확률이 고르게 퍼져 있다.'},
+      {cap:'<b>1회차:</b> ADD를 골랐다. 메모가 "260"과 "270" 두 개가 됐다. 나중에 "이 고객 사이즈는?"이라고 물었더니 260이라고 답했다. 오답이므로 <b>점수 −1</b>.',set:Object.assign(pick(0,false),{ep:{t:'1회차'},mem:{t:'메모 260\n+ 메모 270'},res:{t:'선택: ADD → 답 "260" ✗'},res2:{t:'점수 −1'}})},
+      {cap:'점수가 낮았던 행동이 덜 나오도록 <b>가중치를 조금 고친다</b>. ADD 확률이 줄었다.',set:Object.assign(bars([.15,.35,.25,.25]),{res:{t:''},res2:{t:'가중치 조정 → ADD 확률 ↓'}})},
+      {cap:'<b>2회차:</b> DELETE를 골랐다. 메모가 사라져서 "모르겠다"고 답했다. <b>점수 −1</b>.',set:Object.assign(pick(2,false),{ep:{t:'2회차'},mem:{t:'(메모 없음)'},res:{t:'선택: DELETE → 답 "모름" ✗'},res2:{t:'점수 −1'}})},
+      {cap:'DELETE 확률도 줄어든다.',set:Object.assign(bars([.15,.5,.1,.25]),{res:{t:''},res2:{t:'가중치 조정 → DELETE 확률 ↓'}})},
+      {cap:'<b>3회차:</b> UPDATE를 골랐다. 메모가 "270"으로 바뀌었고 정답을 맞혔다. <b>점수 +1</b>.',set:Object.assign(pick(1,true),{ep:{t:'3회차'},mem:{t:'메모\n사이즈 270'},res:{t:'선택: UPDATE → 답 "270" ✓'},res2:{t:'점수 +1'}})},
+      {cap:'이런 회차를 <b>수없이 반복</b>하면 "정보가 바뀌면 UPDATE"라는 습관이 생긴다. 이 훈련은 서비스 전에 미리 한다. 실제 상담에서는 학습된 습관대로 고르기만 한다.',set:Object.assign(bars([.07,.82,.04,.07]),{b1:{s:.82,c:'c-hit'},ep:{t:'수천 회차 후'},res:{t:'습관: 정보가 바뀌면 UPDATE'},res2:{t:'훈련 끝 → 서비스에서는 이대로 사용'}})}
+    ]});
+})();
+
+/* ===== 애니메이션 5: 네 방식 비교 ===== */
+(function(){
+  const CX=j=>6+j*104, RY=i=>66+i*23, items=[];
+  const heads=['1 통째로','2 RAG','3 에이전틱','4 학습된 관리'];
+  const cols=[
+    [['응대 지시','c-io'],['교환 규정','c-data'],['환불 규정','c-data'],['배송비 규정','c-data'],['회원 등급','c-data'],['10/29 수령','c-hit'],['배송 문의','c-data'],['가방 환불','c-data'],['질문','c-io'],['대화(넘침)','c-miss'],['대화(넘침)','c-miss']],
+    [['질문','c-io'],['환불 규정 ✗','c-noise'],['교환 규정 ✓','c-hit'],['가방 환불 ✗','c-noise'],['10/29 수령 ⚠','c-miss']],
+    [['질문','c-io'],['목차','c-data'],['search(수령일)','c-llm'],['10/29 수령 ✓','c-hit'],['read(교환 규정)','c-llm'],['7일 이내 ✓','c-hit'],['판단: 가능','c-llm'],['update(270)','c-llm']],
+    [['질문','c-io'],['목차','c-data'],['search(수령일)','c-llm'],['10/29 수령 ✓','c-hit'],['read(교환 규정)','c-llm'],['7일 이내 ✓','c-hit'],['판단: 가능','c-llm'],['UPDATE ✓ 학습됨','c-hit']]];
+  const frames=[];
+  heads.forEach((h,j)=>{frames.push({r:[CX(j),8,98,316]});frames.push({t:[CX(j)+6,28,h]});});
+  cols.forEach((col,j)=>col.forEach((b,i)=>items.push({id:'c'+j+'_'+i,kind:'box',x:CX(j)+4,y:RY(i)-10,w:90,h:20,label:b[0],c:b[1],o:0})));
+  items.push({id:'f0',kind:'text',x:CX(0)+6,y:44,label:'결정: 없음',c:'c-mute'});
+  items.push({id:'f1',kind:'text',x:CX(1)+6,y:44,label:'결정: 코드',c:'c-mute',o:0});
+  items.push({id:'f2',kind:'text',x:CX(2)+6,y:44,label:'결정: LLM',c:'c-mute',o:0});
+  items.push({id:'f3',kind:'text',x:CX(3)+6,y:44,label:'결정: 훈련된 LLM',c:'c-mute',o:0});
+  const showCol=(j,extra)=>{const o={};cols[j].forEach((b,i)=>o['c'+j+'_'+i]={o:1,y:RY(i)-10});o['f'+j]={o:1};return Object.assign(o,extra||{});};
+  __makeAnim('anim-cmp',{w:420,h:330,frames,items,
+    steps:[
+      {cap:'같은 질문 "지난주 산 운동화, 270으로 교환돼요?"를 네 방식에 던져 보자. 각 칸은 그 방식에서 <b>LLM의 책상 위에 올라가는 것</b>이다.',set:{f0:{o:0}}},
+      {cap:'<b>1 통째로:</b> 전부 올린다. 필요한 "10/29 수령"도 있지만 잡다한 것에 묻혀 있고, 대화가 길어지면 넘친다.',set:showCol(0,{c0_2:{o:.4},c0_3:{o:.4},c0_4:{o:.4},c0_6:{o:.4},c0_7:{o:.4}})},
+      {cap:'<b>2 RAG:</b> 검색 코드가 비슷한 3개만 올린다. 짧고 빠르지만, 잡음이 섞이고 수령일을 놓쳤다. LLM은 다시 찾을 수 없다.',set:showCol(1)},
+      {cap:'<b>3 에이전틱:</b> LLM이 목차를 보고 <b>필요한 것만, 필요한 순서대로</b> 도구로 가져오고, 마지막에 기억을 고친다. 대신 LLM 호출이 여러 번이라 느리다.',set:showCol(2)},
+      {cap:'<b>4 학습된 관리:</b> 겉모습은 3과 비슷하다. 차이는 <b>무엇을 찾고 어떻게 기록할지가 훈련으로 다듬어진 습관</b>이라는 점이다. 예를 들어 바뀐 정보는 UPDATE한다.',set:showCol(3)},
+      {cap:'정리: 책상에 무엇이 올라가는가 = <b>누가 결정하는가</b>. 없음 → 코드 → LLM → 훈련된 LLM. 오른쪽으로 갈수록 유연하지만 느리고 만들기 어렵다. 상황에 맞는 단계를 고르면 된다.'}
+    ]});
+})();
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script>
+const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+mermaid.initialize({ startOnLoad: true, theme: dark ? 'dark' : 'default', securityLevel: 'loose', flowchart: { htmlLabels: true, curve: 'basis' } });
+</script>
+</body>
+</html>

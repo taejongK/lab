@@ -3,7 +3,7 @@
 - 질문: 에이전트 메모리 설계 비교
 - 상태: 진행중
 - 시작일: 2026-10-27
-- 최종 수정일: 2026-11-01
+- 최종 수정일: 2026-11-04
 - 결론: (아직 없음)
 
 ## 문서
@@ -13,6 +13,7 @@
 | 파일 | 내용 |
 |---|---|
 | [docs/notes/01.memory-architecture-patterns.md](docs/notes/01.memory-architecture-patterns.md) | 6개 카테고리별 대표 메모리 아키텍처 정리 |
+| [docs/notes/02.memory-evolution.html](docs/notes/02.memory-evolution.html) | 메모리 구조 발전 과정 공부용 설명 (통째로 넣기 → RAG → 에이전틱 → 학습) |
 | [docs/report/2026_10_27_agent-memory-design-comparison.html](docs/report/2026_10_27_agent-memory-design-comparison.html) | 설계 비교 보고서 |
 | [docs/report/2026_11_01_cs-chatbot-memory-architecture.html](docs/report/2026_11_01_cs-chatbot-memory-architecture.html) | CS 챗봇(규정 + 과거 대응 기록) 메모리 구조 제안 |
 | [docs/reference/](docs/reference/) | 외부 자료 링크 모음 |
