@@ -1,4 +1,4 @@
-<!-- Generated: 2026-10-25 | Updated: 2026-10-25 -->
+<!-- Generated: 2026-10-25 | Updated: 2026-11-05 -->
 
 # 04.npc_engine
 
@@ -17,6 +17,8 @@ AI가 게임 마스터와 NPC를 맡는 2D TRPG 엔진 실험. 질문/상태/날
 
 | Directory | Purpose |
 |-----------|---------|
+| `src/` | 엔진 코드: `world.py`(규칙), `engine.py`(흐름), `ai.py`(Claude), `fake_ai.py`, `server.py`, `playtest.py`, `web/` |
+| `scenarios/` | 시나리오 파일. 엔진 코드에 시나리오 전용 처리를 넣지 않는다 |
 | `docs/notes/` | 직접 작성한 스터디 문서 (번호 붙인 `NN.주제.md`) |
 | `docs/reference/` | 외부 자료 — 링크 모음, 받아 둔 원문 |
 | `docs/worklog/` | 날짜별 작업 기록 |
@@ -30,10 +32,11 @@ AI가 게임 마스터와 NPC를 맡는 2D TRPG 엔진 실험. 질문/상태/날
 - 기본은 버려도 되는 코드. 테스트/추상화는 명시적 요청 시에만.
 
 ### Testing Requirements
-- 스크립트 직접 실행으로 동작 확인 (Python은 PEP 723 + `uv run`).
+- 스크립트 직접 실행으로 동작 확인 (Python은 PEP 723 + `uv run`). 엔진 변경 후 `uv run src/playtest.py`.
 
 ### Common Patterns
-- (아직 없음)
+- AI는 세계를 직접 바꾸지 않는다. `World.apply()`를 통과한 변경만 적용한다.
+- 캐릭터에게는 자기 메모리와 주변만 준다. 세계 전체는 게임 마스터에게만 준다.
 
 <!-- MANUAL: -->
 <!--

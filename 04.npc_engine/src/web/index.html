@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>캐릭터 엔진</title>
+<style>
+  :root { color-scheme: dark; font-family: system-ui, sans-serif; }
+  body { margin: 0; background: #14151a; color: #e7e6e1; display: flex; gap: 16px; padding: 16px; align-items: flex-start; flex-wrap: wrap; }
+  canvas { background: #000; border: 1px solid #333; display: block; }
+  #side { width: 360px; display: flex; flex-direction: column; gap: 10px; }
+  section { background: #1e2027; border: 1px solid #30333c; border-radius: 6px; padding: 10px; }
+  h2 { font-size: 13px; margin: 0 0 6px; color: #a9abb3; font-weight: 600; }
+  #known { max-height: 260px; overflow-y: auto; font-size: 13px; line-height: 1.5; }
+  #known div { padding: 2px 0; border-bottom: 1px solid #2a2c34; }
+  #known .announced { color: #f0c674; }
+  #chatlog { max-height: 200px; overflow-y: auto; font-size: 14px; line-height: 1.5; margin-bottom: 6px; }
+  button { background: #2c3040; color: inherit; border: 1px solid #454a5c; border-radius: 4px; padding: 6px 10px; cursor: pointer; font: inherit; margin: 2px 2px 2px 0; }
+  button:hover, button:focus-visible { background: #3a4057; outline: 2px solid #7f8cff; }
+  button.ai { border-color: #c9a227; }
+  input { width: 100%; box-sizing: border-box; background: #14151a; color: inherit; border: 1px solid #454a5c; border-radius: 4px; padding: 6px; font: inherit; }
+  #status { font-size: 13px; color: #a9abb3; min-height: 18px; }
+  .hint { font-size: 12px; color: #8a8c94; margin: 6px 0 0; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div>
+  <canvas id="c" width="768" height="448" aria-label="게임 화면"></canvas>
+  <p class="hint">방향키: 이동 · E: 앞의 대상과 인터랙션 · Esc: 닫기</p>
+  <div id="status" role="status"></div>
+</div>
+<div id="side">
+  <section id="menu" hidden>
+    <h2 id="menuTitle"></h2>
+    <div id="menuItems"></div>
+  </section>
+  <section id="chat" hidden>
+    <h2 id="chatTitle"></h2>
+    <div id="chatlog"></div>
+    <div id="choices"></div>
+    <form id="chatForm"><input id="chatInput" maxlength="500" placeholder="말을 입력하세요" aria-label="대사 입력"></form>
+  </section>
+  <section>
+    <h2>내가 아는 것</h2>
+    <div id="known"></div>
+  </section>
+  <section id="debug" hidden>
+    <h2>디버그</h2>
+    <button data-notice="all">항상 발각</button>
+    <button data-notice="none">항상 미발각</button>
+    <button data-notice="">AI 판정</button>
+    <span id="fires"></span>
+  </section>
+</div>
+<script>
+const T = 32, ctx = document.getElementById("c").getContext("2d");
+const $ = id => document.getElementById(id);
+let state = null, chatTarget = null, waiting = false, facing = [0, 1];
+
+const post = (path, body) => fetch(path, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
+
+function draw() {
+  if (!state) return;
+  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  ctx.font = "12px system-ui"; ctx.textAlign = "center";
+  state.map.forEach((row, y) => [...row].forEach((ch, x) => {
+    ctx.fillStyle = {"#": "#3a3d48", ".": "#22242c", "+": "#6b5230", "B": "#4d5560"}[ch] || "#000";
+    ctx.fillRect(x * T, y * T, T - 1, T - 1);
+    if (ch === "B") { ctx.fillStyle = "#14151a"; for (let i = 6; i < T; i += 8) ctx.fillRect(x * T + i, y * T, 2, T - 1); }
+  }));
+  for (const o of state.objects) {
+    ctx.fillStyle = "#c9a227"; ctx.fillRect(o.x * T + 10, o.y * T + 10, 12, 12);
+    ctx.fillStyle = "#e7e6e1"; ctx.fillText(o.name, o.x * T + T / 2, o.y * T - 2);
+  }
+  for (const c of state.people) {
+    ctx.fillStyle = c.alive ? "#d0604f" : "#55565c";
+    ctx.beginPath(); ctx.arc(c.x * T + T / 2, c.y * T + T / 2, 11, 0, 7); ctx.fill();
+    ctx.fillStyle = "#e7e6e1"; ctx.fillText(c.alive ? c.name : c.name + " (쓰러짐)", c.x * T + T / 2, c.y * T - 2);
+  }
+  const p = state.player;
+  ctx.fillStyle = "#57a6e8"; ctx.beginPath(); ctx.arc(p.x * T + T / 2, p.y * T + T / 2, 11, 0, 7); ctx.fill();
+  ctx.fillStyle = "#e7e6e1"; ctx.fillText(p.name, p.x * T + T / 2, p.y * T - 2);
+}
+
+function renderKnown() {
+  const el = $("known"), atEnd = el.scrollTop + el.clientHeight >= el.scrollHeight - 4;
+  el.replaceChildren(...state.known.map(m => {
+    const d = document.createElement("div"); d.textContent = m.text; d.className = m.kind; return d;
+  }));
+  if (atEnd) el.scrollTop = el.scrollHeight;
+}
+
+async function refresh() {
+  const s = await (await fetch("/api/state")).json();
+  const changed = !state || JSON.stringify(s.known) !== JSON.stringify(state.known);
+  state = s; draw();
+  if (changed) renderKnown();
+  if (s.debug && $("debug").hidden) {
+    $("debug").hidden = false;
+    $("fires").replaceChildren(...s.schedule.map(id => {
+      const b = document.createElement("button"); b.dataset.fire = id; b.textContent = `일정 실행: ${id}`; return b;
+    }));
+  }
+  const where = s.room || "문턱";
+  const holding = s.holding.length ? ` · 소지품: ${s.holding.join(", ")}` : "";
+  const jailed = s.player.jailed ? " · 갇힘" : "";
+  const errors = s.ai_errors ? ` · AI 오류 ${s.ai_errors}건` : "";
+  $("status").textContent = `${where}${holding}${jailed}${errors}` + (s.busy || waiting ? " · 세계가 움직이는 중…" : "");
+}
+
+function targetsNear() {
+  const p = state.player, all = [...state.people, ...state.objects];
+  const dist = e => Math.abs(e.x - p.x) + Math.abs(e.y - p.y);
+  const reach = e => {
+    if (dist(e) <= 1) return true;
+    if (dist(e) !== 2 || (e.x !== p.x && e.y !== p.y)) return false;
+    return state.map[(e.y + p.y) / 2][(e.x + p.x) / 2] === "B";
+  };
+  return all.filter(reach).sort((a, b) => dist(a) - dist(b));
+}
+
+function closePanels() { $("menu").hidden = true; $("chat").hidden = true; chatTarget = null; }
+
+function showTargets() {
+  const near = targetsNear();
+  if (!near.length) { $("status").textContent = "가까이에 인터랙션할 대상이 없습니다."; return; }
+  if (near.length === 1) return openActions(near[0]);
+  showMenu("누구와?", near.map(t => ({label: t.name, run: () => openActions(t)})));
+}
+
+function showMenu(title, items) {
+  $("chat").hidden = true; chatTarget = null;
+  $("menu").hidden = false; $("menuTitle").textContent = title;
+  $("menuItems").replaceChildren(...items.map(i => {
+    const b = document.createElement("button"); b.textContent = i.label; b.onclick = i.run;
+    if (i.ai) { b.className = "ai"; b.title = "상황에 맞춰 AI가 추가한 행위"; }
+    return b;
+  }));
+  $("menuItems").firstChild?.focus();
+}
+
+async function openActions(t) {
+  showMenu(`${t.name}: 생각 중…`, []);
+  const res = await post("/api/interact", {target: t.id});
+  if (!res.ok) { closePanels(); return; }
+  const {actions} = await res.json();
+  showMenu(t.name, actions.map(a => ({label: a.label, ai: a.ai, run: () => doAction(t, a)})));
+}
+
+async function doAction(t, a) {
+  if (a.id === "talk") return openChat(t);
+  closePanels();
+  await post("/api/act", {target: t.id, label: a.label});
+}
+
+function openChat(t) {
+  $("menu").hidden = true; $("chat").hidden = false;
+  chatTarget = t; $("chatTitle").textContent = `${t.name}와(과) 대화`;
+  $("chatlog").replaceChildren(); $("choices").replaceChildren();
+  $("chatInput").value = ""; $("chatInput").focus();
+}
+
+function addLine(who, text) {
+  const d = document.createElement("div"); d.textContent = `${who}: ${text}`;
+  $("chatlog").append(d); $("chatlog").scrollTop = $("chatlog").scrollHeight;
+}
+
+async function say(text) {
+  if (!chatTarget || waiting || !text.trim()) return;
+  waiting = true; $("choices").replaceChildren();
+  const t = chatTarget; addLine("나", text);
+  const res = await post("/api/say", {target: t.id, text});
+  waiting = false;
+  if (!res.ok) { addLine("-", "상대가 대화할 수 없는 곳에 있습니다."); return; }
+  const r = await res.json();
+  addLine(t.name, r.speech);
+  $("choices").replaceChildren(...r.suggested_replies.map(s => {
+    const b = document.createElement("button"); b.textContent = s; b.onclick = () => say(s); return b;
+  }));
+}
+
+$("chatForm").onsubmit = e => { e.preventDefault(); const v = $("chatInput").value; $("chatInput").value = ""; say(v); };
+$("debug").onclick = e => {
+  const d = e.target.dataset; if (d.fire) post("/api/debug", {fire: d.fire});
+  if (d.notice !== undefined) post("/api/debug", {notice: d.notice || null});
+};
+
+const KEYS = {ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right"};
+addEventListener("keydown", e => {
+  if (e.key === "Escape") return closePanels();
+  if (e.target.tagName === "INPUT") return;
+  if (KEYS[e.key]) {
+    e.preventDefault(); closePanels();
+    post("/api/move", {dir: KEYS[e.key]}).then(refresh);
+  } else if (e.key === "e" || e.key === "E") { e.preventDefault(); showTargets(); }
+});
+
+refresh(); setInterval(refresh, 400);
+</script>
+</body>
+</html>

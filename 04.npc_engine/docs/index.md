@@ -6,6 +6,7 @@
 ## plan
 기능 설계·계획
 - [AI TRPG 캐릭터 엔진 설계](plan/active/2026_11_05_character-engine-design.md) — 현재 방향. 왕 독살 장면을 첫 완료 기준으로 한 엔진 설계
+- [구현 계획](plan/active/2026_11_05_character-engine-plan.md) — 파일 구성과 단계
 
 ## report
 주요 실험 결과·보고서
