@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NPC 엔진 동작 원리</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/galmuri/dist/galmuri.css">
+<style>
+  :root { --ink:#241c2e; --night:#1b1a2e; --parchment:#f3e7c4; --shade:#c9b98a; --gold:#d8a93a; --dim:#6a5d7c; --red:#8a2f1f; --blue:#35527a; --green:#3f6b3a; --paper:#fff8e0; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--night); color:var(--ink); font-family:"Apple SD Gothic Neo","Noto Sans KR",sans-serif; font-size:16px; line-height:1.7; }
+  h1,h2,h3,.px { font-family:Galmuri11,"Apple SD Gothic Neo",monospace; font-weight:400; }
+  .hero { max-width:980px; margin:0 auto; padding:44px 20px 26px; color:var(--parchment); }
+  .hero h1 { font-size:36px; line-height:1.25; margin:0 0 12px; color:var(--gold); }
+  .hero p { margin:0; max-width:680px; }
+  .cast { display:flex; gap:6px; margin-bottom:18px; }
+  .cast canvas { width:64px; height:64px; image-rendering:pixelated; }
+  main { max-width:980px; margin:0 auto; padding:0 20px 56px; }
+  section { background:var(--parchment); border:5px solid var(--ink); box-shadow:inset 0 0 0 3px var(--shade); padding:26px 28px; margin-bottom:20px; }
+  h2 { font-size:21px; margin:0 0 10px; line-height:1.4; }
+  h3 { font-size:15px; margin:20px 0 6px; }
+  p { margin:0 0 12px; max-width:72ch; }
+  ul { margin:0 0 12px; padding-left:22px; max-width:72ch; }
+  code { font-family:ui-monospace,Menlo,monospace; font-size:.88em; background:rgba(36,28,46,.09); padding:1px 5px; }
+  .note { color:var(--dim); font-size:14px; }
+  .scroll { overflow-x:auto; }
+  table { border-collapse:collapse; width:100%; font-size:15px; margin:8px 0 12px; }
+  th,td { border:2px solid var(--shade); padding:7px 10px; text-align:left; vertical-align:top; line-height:1.5; }
+  th { background:rgba(201,185,138,.45); font-weight:600; white-space:nowrap; }
+  .flow { display:grid; gap:0; margin:12px 0 14px; }
+  .step { display:grid; grid-template-columns:96px 1fr; gap:14px; align-items:start; padding:11px 14px; background:var(--paper); border:2px solid var(--ink); }
+  .step + .step { margin-top:18px; position:relative; }
+  .step + .step::before { content:"▼"; position:absolute; top:-21px; left:38px; font-size:13px; color:var(--ink); line-height:18px; }
+  .who { font-family:Galmuri11,monospace; font-size:13px; padding:2px 6px; color:var(--parchment); text-align:center; align-self:start; }
+  .code { background:var(--blue); } .ai { background:var(--red); } .you { background:var(--green); } .data { background:var(--dim); }
+  .step b { display:block; font-weight:600; }
+  .step span.d { font-size:15px; }
+  .legend { display:flex; flex-wrap:wrap; gap:6px 14px; font-size:14px; margin:6px 0 2px; }
+  .legend i { display:inline-block; width:12px; height:12px; margin-right:5px; vertical-align:-1px; }
+  .three { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:10px 0 12px; }
+  .box { background:var(--paper); border:2px solid var(--ink); padding:12px 14px; font-size:15px; line-height:1.55; }
+  .box h3 { margin:0 0 6px; }
+  .warn { border:4px solid var(--red); background:var(--paper); padding:14px 18px; }
+  .warn h2 { color:var(--red); }
+  .big { font-family:Galmuri11,monospace; font-size:30px; color:var(--red); line-height:1.2; }
+  nav.toc { display:flex; flex-wrap:wrap; gap:6px 16px; margin-top:18px; font-size:14px; }
+  nav.toc a { color:var(--gold); }
+  @media (max-width:720px) { .three { grid-template-columns:1fr; } section { padding:20px 16px; } .hero h1 { font-size:28px; } .step { grid-template-columns:1fr; gap:6px; } .who { justify-self:start; } }
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="cast" id="cast" aria-hidden="true"></div>
+  <h1>NPC 엔진 동작 원리</h1>
+  <p>AI가 게임 마스터와 NPC를 맡는 2D TRPG입니다. 창작자는 세계를 데이터로 만들고, 플레이어는 자기 캐릭터만 움직이며, 나머지 인물은 자기가 아는 것만 가지고 반응합니다.</p>
+  <nav class="toc">
+    <a href="#status">현재 상태</a><a href="#rule">핵심 규칙</a><a href="#roles">세 역할</a><a href="#time">시간</a><a href="#interact">인터랙션</a><a href="#event">사건 처리</a><a href="#memory">기억</a><a href="#succession">계승</a><a href="#create">게임 만들기</a>
+  </nav>
+</header>
+<main>
+
+<section class="warn" id="status">
+  <h2>먼저 알아 둘 현재 상태</h2>
+  <p>이 문서는 만들어진 구조를 설명합니다. 구조대로 흐른다는 것은 가짜 AI로만 끝까지 확인했습니다.</p>
+  <p class="big">실제 모델 5판 중 왕 사망 0판</p>
+  <p>DeepSeek(<code>deepseek/deepseek-v4.1-flash</code>)로 측정한 결과, 독 타기 제안은 5판 모두 나왔지만 왕은 한 번도 죽지 않았고 새 왕도 나오지 않았습니다. 원인은 아직 모릅니다. 5판째는 크레딧 부족 오류로 뒷부분이 온전하지 않습니다. <a href="2026_11_05_openrouter-real-run.md">측정 보고서</a></p>
+</section>
+
+<section id="rule">
+  <h2>핵심 규칙 하나: AI는 제안하고, 세계는 코드가 바꾼다</h2>
+  <p>AI가 내놓는 것은 언제나 제안입니다. 사람이 죽거나 물건이 옮겨지는 일은 코드(<code>World.apply</code>)의 검사를 통과해야 일어납니다. AI가 틀린 답을 해도 세계의 규칙은 깨지지 않습니다.</p>
+  <div class="scroll"><table>
+    <tr><th>코드가 정하는 것</th><th>AI가 정하는 것</th></tr>
+    <tr><td>걷는 경로, 누가 목격할 수 있는지(후보), 계승 순서와 공표, 처벌의 상한, 허용되는 변경 6종</td><td>행위의 결과, 후보 중 실제로 알아챈 사람과 본 내용, 인물의 말과 속마음, 어디로 갈지, 상황에 맞는 추가 행위</td></tr>
+  </table></div>
+  <p>허용되는 변경은 <code>set_fact</code>, <code>set_object_state</code>, <code>kill</code>, <code>jail</code>, <code>move</code>, <code>give</code>뿐입니다. 플레이어를 죽이는 변경과 AI가 플레이어를 옮기는 변경은 거부되고, 가장 무거운 처벌은 감옥입니다.</p>
+</section>
+
+<section id="roles">
+  <h2>세 역할: 보는 범위가 다르다</h2>
+  <p>"앞에서 일어난 일을 잊고 엉뚱하게 반응하는 것"이 이 게임의 실패입니다. 그래서 AI 역할마다 받는 정보를 코드에서 나눕니다.</p>
+  <div class="three">
+    <div class="box"><h3 class="px">플레이어</h3>방향키로 이동하고, E로 인터랙션하고, 말을 입력합니다. 화면에는 같은 방과 창살 너머 닿는 곳, 자기 기억만 보입니다.</div>
+    <div class="box"><h3 class="px">게임 마스터 AI</h3>세계 전체를 봅니다. 숨겨진 물건 상태까지 알고 행위의 결과를 판정합니다. 인물을 연기하지 않습니다.</div>
+    <div class="box"><h3 class="px">NPC AI</h3>자기 설정, 자기 기억, 지금 주변만 받습니다. 세계 전체는 받지 않습니다. 술잔에 독이 들었는지는 겉보기로 알 수 없습니다.</div>
+  </div>
+</section>
+
+<section id="time">
+  <h2>시간: 멈추지 않는 두 개의 고리</h2>
+  <p>서버 안에서 두 고리가 따로 돕니다. AI 응답을 기다리는 동안에도 세계의 시계는 계속 갑니다.</p>
+  <div class="three">
+    <div class="box"><h3 class="px">1초마다: 세계</h3>시계가 한 칸 갑니다. 시간이 된 일정 사건을 대기열에 넣고, NPC를 한 칸씩 걷게 합니다.</div>
+    <div class="box"><h3 class="px">0.1초마다: 사건</h3>대기열에서 사건을 하나 꺼내 AI에게 묻고 결과를 반영합니다. 사건은 한 번에 하나씩 처리합니다.</div>
+    <div class="box"><h3 class="px">0.4초마다: 화면</h3>브라우저가 플레이어에게 보이는 상태를 가져옵니다. 플레이어의 걸음은 화면에서 먼저 움직이고 서버에 알립니다.</div>
+  </div>
+  <h3>NPC가 움직이는 이유 세 가지 (위가 먼저)</h3>
+  <ul>
+    <li>플레이어와 마주한 동안: 30틱 동안 제자리에 머뭅니다.</li>
+    <li>AI가 정한 목적지나 대상: 코드가 경로를 찾아 걸어갑니다. 대상에 닿으면 그때 행위가 사건이 됩니다.</li>
+    <li>일과: 40틱마다 창작자가 정한 다음 방으로 갑니다. AI가 보낸 곳에서는 일과가 잠시 멈춥니다.</li>
+  </ul>
+</section>
+
+<section id="interact">
+  <h2>인터랙션: 대상 앞에서 E를 누르면</h2>
+  <div class="legend"><span><i class="you"></i>플레이어</span><span><i class="code"></i>코드</span><span><i class="ai"></i>AI</span></div>
+  <div class="flow">
+    <div class="step"><span class="who you">플레이어</span><span class="d"><b>대상 앞에서 E</b>화면이 전용 인터랙션 화면으로 전환됩니다. NPC는 그동안 걸어가지 않습니다.</span></div>
+    <div class="step"><span class="who code">코드</span><span class="d"><b>기본 행위를 고른다</b>창작자가 정한 행위 중 대상 종류와 생사, 사용 가능한 캐릭터가 맞는 것만 남깁니다.</span></div>
+    <div class="step"><span class="who ai">AI</span><span class="d"><b>행위를 최대 3개 더한다</b>소지품과 상황을 보고 제안합니다. 실패해도 기본 행위만으로 플레이는 이어집니다. 메뉴에서는 붉은 글자와 ✦로 구분합니다.</span></div>
+    <div class="step"><span class="who you">플레이어</span><span class="d"><b>행위를 고르거나 대화한다</b>서버는 방금 보여 준 행위만 받고, 대상이 아직 닿는 거리인지 다시 확인합니다.</span></div>
+  </div>
+  <p>대화는 사건 대기열을 타지 않고 바로 응답합니다. NPC의 답은 일관성 검사를 거치고, 어긋나면 이유를 알려 주며 최대 3번까지 다시 만듭니다. 그래도 통과하지 못하면 "……"라고만 답합니다. 틀린 말을 하느니 말을 하지 않습니다.</p>
+</section>
+
+<section id="event">
+  <h2>사건 처리: 행위 하나가 세계에 퍼지는 길</h2>
+  <p>플레이어의 행위, NPC의 행위, 일정 사건이 모두 이 길을 지납니다.</p>
+  <div class="flow">
+    <div class="step"><span class="who code">코드</span><span class="d"><b>행위 시점에 목격 후보를 계산</b>행위자와 대상이 있는 방의 산 사람이 후보입니다. AI를 기다리는 사이 사람들이 움직여도 후보는 바뀌지 않습니다.</span></div>
+    <div class="step"><span class="who ai">게임 마스터</span><span class="d"><b>판정</b>세계 전체를 보고 결과, 알아챈 사람과 본 내용, 세계 변경을 제안합니다.</span></div>
+    <div class="step"><span class="who code">코드</span><span class="d"><b>검증하고 반영</b>규칙을 어긴 변경은 버리고 기록합니다. 후보 밖의 사람을 목격자로 지목해도 인정하지 않습니다. 행위자와 목격자의 기억에 각자 아는 내용을 넣습니다.</span></div>
+    <div class="step"><span class="who ai">NPC</span><span class="d"><b>알게 된 인물만 반응</b>말, 속마음, 행위, 이동을 정합니다. 말은 다른 사람에게 닿기 전에 일관성 검사를 거치고, 어긋나면 하지 않은 말이 됩니다.</span></div>
+    <div class="step"><span class="who code">코드</span><span class="d"><b>말은 들은 사람의 기억으로</b>같은 방 사람은 "누가 이렇게 말했다"로 기억합니다. 행위는 다시 대기열로 들어가 같은 길을 지납니다.</span></div>
+  </div>
+  <p class="note">반응이 반응을 낳는 사슬은 2단계에서 끊습니다. 호출이 끝없이 늘지 않게 하려는 장치이며, 게임당 호출 상한은 기본 400회입니다. AI 오류가 나면 상태를 바꾸지 않고 게임을 계속합니다. 일정 사건만 3번까지 다시 시도합니다.</p>
+</section>
+
+<section id="memory">
+  <h2>기억: 인물마다 따로, 출처와 함께</h2>
+  <div class="scroll"><table>
+    <tr><th>종류</th><th>들어오는 때</th><th>다루는 법</th></tr>
+    <tr><td><code>initial</code></td><td>창작자가 "처음부터 아는 것"에 적었을 때</td><td>이 인물의 출발점입니다. 여기 없는 일은 모릅니다.</td></tr>
+    <tr><td><code>witnessed</code></td><td>직접 겪거나 보았을 때, 자기가 한 말</td><td>자기 경험입니다. 잊은 듯 말하면 검사에서 걸립니다.</td></tr>
+    <tr><td><code>heard</code></td><td>같은 방에서 누가 말하는 것을 들었을 때</td><td>말한 사람을 함께 저장합니다. 사실로 단정하지 않습니다.</td></tr>
+    <tr><td><code>announced</code></td><td>코드가 공표했을 때 (왕의 죽음과 후계)</td><td>살아 있는 모두가 압니다. 사인 같은 비공개 내용은 넣지 않습니다.</td></tr>
+  </table></div>
+  <p>속마음(<code>feelings</code>)은 따로 저장해 다음 판단에 함께 줍니다. 지금은 기억 전체를 통째로 전달합니다. 수백 건을 넘겨 비용이 문제가 되면 관련 기억만 찾아 주도록 바꿀 자리입니다.</p>
+  <h3>예시: 술잔에 독을 타는 장면이 경비대장에게만 보였다면</h3>
+  <div class="scroll"><table>
+    <tr><th>인물</th><th>술잔에 독을 탄 일</th><th>왕이 죽었을 때</th></tr>
+    <tr><td>약초상 (플레이어)</td><td>안다, 직접 함</td><td>공표로 안다</td></tr>
+    <tr><td>경비대장</td><td>안다, 직접 봄</td><td>공표로 안다. 두 기억을 이어 의심할 수 있다</td></tr>
+    <tr><td>공주, 재상</td><td>모른다. 경비대장의 말을 들으면 "들은 말"로 안다</td><td>공표로 왕의 죽음과 후계만 안다. 사인은 모른다</td></tr>
+  </table></div>
+  <p class="note">설계된 정보 흐름을 보여 주는 예시이며, 실제 모델의 대사나 측정 결과가 아닙니다.</p>
+</section>
+
+<section id="succession">
+  <h2>계승: "새 왕이 탄생했다"는 코드가 공표한다</h2>
+  <div class="flow">
+    <div class="step"><span class="who data">시나리오</span><span class="d"><b>역할을 정의</b>왕의 현재 인물은 왕 아르덴, 계승 순서는 공주, 재상입니다.</span></div>
+    <div class="step"><span class="who ai">게임 마스터</span><span class="d"><b>일정 사건 판정</b>저녁 식사 시간에 습관과 물건 상태를 보고, 왕이 죽는다고 판단하면 <code>kill</code>을 제안합니다.</span></div>
+    <div class="step"><span class="who code">코드</span><span class="d"><b>사망과 승계를 처리</b>소지품을 내려놓고, 순서상 살아 있는 다음 사람에게 역할을 넘기고, 모두에게 공표합니다.</span></div>
+    <div class="step"><span class="who ai">NPC</span><span class="d"><b>모두가 반응</b>공표를 받은 NPC가 각자 자기 기억으로 판단합니다. 플레이어에게는 소식 창으로 보입니다.</span></div>
+  </div>
+  <p>독은 물건 상태일 뿐입니다. 코드에는 독이나 왕에 대한 처리가 없고, 술잔 상태를 보고 결과를 정하는 일은 게임 마스터에게 맡겨져 있습니다. 실제 모델에서 왕이 죽지 않은 문제는 이 판정 단계와 맞닿아 있을 가능성이 크지만, 판정 원문을 남기지 않아 아직 확인하지 못했습니다.</p>
+</section>
+
+<section id="create">
+  <h2>게임 만들기: 창작자의 입력이 곧 게임이다</h2>
+  <p>게임 하나는 코드가 아니라 파일 두 개입니다. 엔진에는 특정 시나리오 전용 처리를 넣지 않습니다. 창작자 페이지의 편집 상태도 이 파일 형식과 같습니다.</p>
+  <div class="scroll"><table>
+    <tr><th>탭</th><th>창작자가 정하는 것</th><th>게임에서 쓰이는 곳</th></tr>
+    <tr><td>세계관</td><td>제목, 줄거리, 열린 세계와 엄격한 진행, 지킬 목표</td><td>게임 마스터의 판정 기준. NPC는 직접 보지 못합니다.</td></tr>
+    <tr><td>캐릭터</td><td>도트 3면, 성격, 특징, 목표, 관계, 처음부터 아는 것, 일과, 플레이어 지정</td><td>NPC AI의 설정과 첫 기억, 일과 이동</td></tr>
+    <tr><td>공간</td><td>지도, 방, 문, 창살, 물건, 시작 위치, 감옥 칸, NPC가 서는 자리</td><td>이동, 목격 범위(같은 방), 체포, 화면</td></tr>
+    <tr><td>규칙</td><td>기본 행위, 역할과 계승, 정해진 사건</td><td>인터랙션 메뉴, 승계, 일정 사건</td></tr>
+  </table></div>
+  <div class="flow">
+    <div class="step"><span class="who you">창작자</span><span class="d"><b>만들고 저장</b>미완성이어도 저장됩니다. 작업을 잃지 않는 것이 먼저입니다.</span></div>
+    <div class="step"><span class="who code">코드</span><span class="d"><b>플레이 전 검사</b>길이 막힌 일과, 없는 방, 빠진 도트처럼 게임을 멈추게 할 문제를 문장으로 알려 주고 플레이를 막습니다.</span></div>
+    <div class="step"><span class="who you">플레이어</span><span class="d"><b>홈에서 카드 선택</b>게임 선택하기에 만든 게임이 카드로 나옵니다. 미완성 게임은 고치러 가는 링크가 나옵니다.</span></div>
+    <div class="step"><span class="who code">코드</span><span class="d"><b>엔진을 새로 시작</b>시나리오를 읽어 새 세계를 만듭니다. 고를 때마다 처음부터 시작합니다.</span></div>
+  </div>
+  <p>도트는 이미지가 아니라 16×16 문자열과 팔레트로 저장합니다. 위쪽의 인물들도 이 데이터를 그대로 그린 것입니다. 걷기는 좌우 반전으로, 인터랙션 화면의 큰 그림은 같은 도트를 확대해 만듭니다.</p>
+</section>
+
+<section>
+  <h2>구성 요소</h2>
+  <div class="scroll"><table>
+    <tr><th>위치</th><th>맡은 일</th></tr>
+    <tr><td><code>src/world.py</code></td><td>세계 상태, 규칙, 변경 검증, 메모리, 시나리오 검사. AI를 모릅니다.</td></tr>
+    <tr><td><code>src/engine.py</code></td><td>시간, 사건 대기열, 판정과 반응 흐름, 인터랙션, 대화</td></tr>
+    <tr><td><code>src/ai.py</code></td><td>OpenRouter 호출, 역할별 프롬프트, 응답 형식. 키와 모델은 <code>.env</code>에서 읽습니다.</td></tr>
+    <tr><td><code>src/fake_ai.py</code></td><td>비용 없이 흐름만 확인하는 가짜 응답. 판단의 질은 검증하지 못합니다.</td></tr>
+    <tr><td><code>src/server.py</code></td><td>웹 서버, 저장과 게임 시작. API 키는 브라우저로 보내지 않습니다.</td></tr>
+    <tr><td><code>src/web/</code></td><td><code>home.html</code> 홈과 카드, <code>index.html</code> 게임, <code>create.html</code> 창작자 페이지</td></tr>
+    <tr><td><code>scenarios/</code></td><td>게임 데이터. <code>_blank</code>는 새 게임의 틀입니다.</td></tr>
+    <tr><td><code>src/playtest.py</code></td><td>자동 검사와 실제 모델 측정</td></tr>
+  </table></div>
+</section>
+
+<section>
+  <h2>아직 없는 것과 미확인 사항</h2>
+  <ul>
+    <li>실제 모델에서 새 왕이 탄생하는지: 5판 모두 실패, 원인 미확인</li>
+    <li>판정 응답의 원문 기록: 없음. 원인을 찾으려면 먼저 필요</li>
+    <li>저장과 이어하기: 없음. 세계는 메모리에만 있고 서버를 끄면 사라집니다</li>
+    <li>여러 사람의 동시 플레이: 서버에 게임이 하나뿐이라 불가능합니다</li>
+    <li>체포 후 풀려나는 방법: 없음</li>
+    <li>키보드만으로 도트 그리기: 없음</li>
+    <li><code>왕의 술잔</code>을 빈 화면부터 페이지로 다시 만드는 전체 과정: 미확인. 다른 작은 게임을 만들어 플레이하는 것만 확인했습니다</li>
+  </ul>
+</section>
+</main>
+<script>
+const CAST = {"player": {"palette": {"k": "#241c2e", "s": "#f0c8a0", "h": "#4f7a3a", "c": "#b98a4e", "d": "#6b4a2e", "a": "#e8d9a8"}, "rows": ["................", "....kkkkkkkk....", "...khhhhhhhhk...", ".kkhhhhhhhhhhkk.", "kaaaaaaaaaaaaaak", "..kssssssssssk..", "..kssssssssssk..", "..kssksssskssk..", "..kssssssssssk..", "...kssssssssk...", "...kcccaaccck...", "..kskccaaccksk..", "..kskccccccksk..", "...kddddddddk...", "...kddk..kddk...", "....kk....kk...."]}, "king": {"palette": {"k": "#241c2e", "s": "#f0c8a0", "h": "#e8e4d8", "c": "#a8302f", "d": "#6a1f2e", "a": "#e0b23a"}, "rows": ["....a..aa..a....", "....aaaaaaaa....", "...khhhhhhhhk...", "..khhhhhhhhhhk..", "..khhhhhhhhhhk..", "..khsshhhhsshk..", "..kssssssssssk..", "..kssksssskssk..", "..kshhhhhhhhsk..", "...khhhhhhhhk...", "...kchhhhhhck...", "..kskccaaccksk..", "..kskccccccksk..", "..kddddddddddk..", "..kddddddddddk..", "...kkkkkkkkkk..."]}, "princess": {"palette": {"k": "#241c2e", "s": "#f0c8a0", "h": "#c8622f", "c": "#e8a0b4", "d": "#b5607f", "a": "#f4e38a"}, "rows": ["................", "....kkkaakkk....", "...khhhhhhhhk...", "..khhhhhhhhhhk..", "..khhhhhhhhhhk..", "..khsshhhhsshk..", "..kssssssssssk..", "..kssksssskssk..", "..khsssssssshk..", "..khksssssskhk..", "..khkccaacckhk..", "..khkccaacckhk..", "..kkkcccccckkk..", "..kddddddddddk..", "..kddddddddddk..", "...kkkkkkkkkk..."]}, "chancellor": {"palette": {"k": "#241c2e", "s": "#f0c8a0", "h": "#3a2f6a", "c": "#54469a", "d": "#2c2552", "a": "#c8c2e8"}, "rows": [".....kkkkkk.....", "....khhhhhhk....", "...khhhhhhhhk...", "..khhhhhhhhhhk..", "..khhhhhhhhhhk..", "..khsshhhhsshk..", "..kssssssssssk..", "..kssksssskssk..", "..kssssssssssk..", "...ksskkkkssk...", "...kccaaaaacck..", "..kskccaaccksk..", "..kskccccccksk..", "..kddddddddddk..", "..kddddddddddk..", "...kkkkkkkkkk..."]}, "guard": {"palette": {"k": "#241c2e", "s": "#f0c8a0", "h": "#8a93a6", "c": "#6c7588", "d": "#3f4656", "a": "#b23a2f"}, "rows": [".......aa.......", ".....kkaakk.....", "...khhhhhhhhk...", "..khhhhhhhhhhk..", "..khhhhhhhhhhk..", "..khhhhhhhhhhk..", "..khhhhhhhhhhk..", "..kssksssskssk..", "..kssssssssssk..", "...kssssssssk...", "...kcccaaccck...", "..kskccaaccksk..", "..kskccccccksk..", "...kddddddddk...", "...kddk..kddk...", "....kk....kk...."]}};
+for (const id of ["player", "king", "princess", "chancellor", "guard"]) {
+  const c = document.createElement("canvas"); c.width = c.height = 16;
+  const g = c.getContext("2d"), s = CAST[id];
+  s.rows.forEach((r, y) => [...r].forEach((ch, x) => { if (ch !== "." ) { g.fillStyle = s.palette[ch]; g.fillRect(x, y, 1, 1); } }));
+  document.getElementById("cast").append(c);
+}
+</script>
+</body>
+</html>

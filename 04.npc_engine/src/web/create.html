@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>게임 만들기</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/galmuri/dist/galmuri.css">
+<style>
+  :root {
+    color-scheme: dark;
+    --ink: #241c2e; --night: #1b1a2e; --parchment: #f3e7c4; --shade: #c9b98a; --gold: #d8a93a; --dim: #8d84a0; --paper: #fff8e0; --red: #8a2f1f;
+    font-family: Galmuri11, "Apple SD Gothic Neo", monospace; font-size: 14px;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--night); color: var(--ink); min-height: 100vh; }
+  [hidden] { display: none !important; }
+  button, input, select, textarea { font: inherit; color: var(--ink); }
+  input, select, textarea { background: var(--paper); border: 2px solid var(--ink); padding: 5px 7px; max-width: 100%; }
+  textarea { width: 100%; resize: vertical; line-height: 1.5; }
+  input[type=text], input:not([type]) { width: 100%; }
+  button { background: var(--shade); border: 2px solid var(--ink); padding: 5px 10px; cursor: pointer; box-shadow: inset -2px -2px 0 rgba(36,28,46,.28); }
+  button:hover { background: var(--gold); }
+  button.on, button[aria-selected=true] { background: var(--ink); color: var(--parchment); }
+  button.primary { background: var(--gold); }
+  button.danger { color: var(--red); }
+  :focus-visible { outline: 3px solid var(--gold); outline-offset: 1px; }
+
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px 16px; color: var(--parchment); }
+  header h1 { font: inherit; font-size: 18px; margin: 0 8px 0 0; }
+  header label { display: flex; align-items: center; gap: 6px; }
+  header input { width: 170px !important; }
+  header a { color: var(--gold); margin-left: auto; }
+  #status { color: var(--gold); }
+  #problems { margin: 0 16px 10px; padding: 8px 12px 8px 28px; background: var(--paper); border: 3px solid var(--red); color: var(--red); line-height: 1.6; }
+  nav { display: flex; gap: 4px; padding: 0 16px; }
+  nav button { padding: 8px 18px; border-bottom: 0; }
+  main { margin: 0 16px 24px; padding: 16px; background: var(--parchment); border: 4px solid var(--ink); box-shadow: inset 0 0 0 3px var(--shade); }
+
+  h2 { font: inherit; font-size: 16px; margin: 0 0 10px; }
+  h3 { font: inherit; font-size: 14px; margin: 14px 0 6px; }
+  .hint { color: #6a5d7c; font-size: 12px; margin: 2px 0 8px; line-height: 1.5; }
+  .field { display: block; margin-bottom: 10px; }
+  .field > span { display: block; margin-bottom: 3px; }
+  .narrow { max-width: 640px; }
+  .split { display: grid; grid-template-columns: 200px minmax(0, 1fr) auto; gap: 18px; align-items: start; }
+  .split2 { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 18px; align-items: start; }
+  @media (max-width: 960px) { .split, .split2 { grid-template-columns: 1fr; } }
+  .list { display: flex; flex-direction: column; gap: 4px; }
+  .list button { display: flex; align-items: center; gap: 8px; text-align: left; }
+  .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 6px; }
+  .card { border: 2px solid var(--shade); padding: 8px; margin-bottom: 8px; background: rgba(255,248,224,.5); }
+  canvas.thumb { width: 32px; height: 32px; image-rendering: pixelated; }
+  canvas.thumb.big { width: 48px; height: 48px; background: var(--shade); cursor: pointer; border: 2px solid transparent; }
+  canvas.thumb.big.on { border-color: var(--ink); }
+  .dots { display: block; touch-action: none; cursor: crosshair; border: 2px solid var(--ink); }
+  .swatches { display: flex; flex-wrap: wrap; gap: 3px; max-width: 324px; margin: 6px 0; }
+  .swatches button { width: 24px; height: 24px; padding: 0; box-shadow: none; }
+  .swatches button.on { outline: 3px solid var(--gold); }
+  .mapwrap { overflow: auto; max-width: 100%; width: fit-content; border: 2px solid var(--ink); }
+  #mapc { display: block; touch-action: none; cursor: crosshair; }
+  .chip { background: var(--ink); color: var(--parchment); padding: 2px 8px; }
+  details { margin-top: 12px; }
+  summary { cursor: pointer; }
+</style>
+</head>
+<body>
+<header>
+  <h1>게임 만들기</h1>
+  <label>불러오기 <select id="pick" aria-label="저장된 게임"></select></label>
+  <button id="newBtn" type="button">새 게임</button>
+  <label>저장 이름 <input id="fname" maxlength="40" autocomplete="off" placeholder="제목으로 자동"></label>
+  <button id="save" type="button">저장</button>
+  <button id="overwrite" type="button" class="danger" hidden>덮어쓰기</button>
+  <button id="play" type="button" class="primary">저장하고 플레이</button>
+  <span id="status" role="status"></span>
+  <a href="/">홈으로</a>
+</header>
+<ul id="problems" hidden></ul>
+<nav role="tablist" id="tabs"></nav>
+<main id="panel" role="tabpanel"></main>
+<script>
+/* 편집 상태는 시나리오 JSON 그대로다. 저장 형식과 따로 두지 않는다. */
+const $ = id => document.getElementById(id);
+const post = (path, body) => fetch(path, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
+const clone = x => JSON.parse(JSON.stringify(x));
+const blankRows = () => Array(16).fill(".".repeat(16));
+function h(tag, props = {}, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) { if (k in e) e[k] = v; else e.setAttribute(k, v); }
+  e.append(...kids.flat().filter(k => k !== null && k !== undefined));
+  return e;
+}
+
+let S = null, template = null, current = null, tab = "world", isDirty = false;
+let selChar = null, selObj = null;
+const everyone = () => [S.player, ...S.characters];
+const dirty = () => { isDirty = true; $("status").textContent = "저장 안 됨"; };
+addEventListener("beforeunload", e => { if (isDirty) e.preventDefault(); });
+
+/* --- 입력 부품 --- */
+function field(label, obj, key, {area = 0, hint, placeholder = ""} = {}) {
+  const input = h(area ? "textarea" : "input", {value: obj[key] ?? "", placeholder, oninput: e => { obj[key] = e.target.value; dirty(); }});
+  if (area) input.rows = area;
+  return h("label", {className: "field"}, h("span", {}, label), hint ? h("p", {className: "hint"}, hint) : null, input);
+}
+function linesField(label, obj, key, hint) {
+  const input = h("textarea", {rows: 3, value: (obj[key] || []).join("\n"),
+    oninput: e => { obj[key] = e.target.value.split("\n").map(s => s.trim()).filter(Boolean); dirty(); }});
+  return h("label", {className: "field"}, h("span", {}, label), h("p", {className: "hint"}, hint), input);
+}
+/* 순서 있는 선택 목록: 일과, 계승 순서, 행위를 쓸 수 있는 캐릭터 */
+function orderedPick(label, arr, options, rerender, addLabel = "+ 추가") {
+  const rows = arr.map((v, i) => h("div", {className: "row"},
+    h("select", {"aria-label": `${label} ${i + 1}`, onchange: e => { arr[i] = e.target.value; dirty(); }},
+      options.map(o => h("option", {value: o.v, selected: o.v === v}, o.l))),
+    h("button", {type: "button", "aria-label": `${label} ${i + 1} 지우기`, onclick: () => { arr.splice(i, 1); dirty(); rerender(); }}, "×")));
+  return h("div", {}, h("div", {}, label), rows,
+    h("button", {type: "button", disabled: !options.length, onclick: () => { arr.push(options[0].v); dirty(); rerender(); }}, addLabel));
+}
+const charOptions = () => everyone().map(c => ({v: c.id, l: c.name || c.id}));
+const roomOptions = () => S.rooms.map(r => ({v: r.name, l: r.name}));
+function newId(prefix) {
+  const used = new Set([...everyone(), ...S.objects].map(e => e.id));
+  for (let i = 1; ; i++) if (!used.has(prefix + i)) return prefix + i;
+}
+function freeTile() {
+  const r = S.rooms[0] || {x0: 1, y0: 1, x1: S.map[0].length - 2, y1: S.map.length - 2};
+  for (let y = r.y0; y <= r.y1; y++) for (let x = r.x0; x <= r.x1; x++) {
+    if (S.map[y]?.[x] === "." && ![...everyone(), ...S.objects].some(e => e.x === x && e.y === y)) return {x, y};
+  }
+  return {x: r.x0, y: r.y0};
+}
+
+/* --- 도트 --- */
+function paint(g, sprite, frame, ox = 0, oy = 0, scale = 1) {
+  sprite.frames[frame].forEach((row, y) => [...row].forEach((ch, x) => {
+    if (ch === "." && !sprite.palette["."]) return;
+    g.fillStyle = sprite.palette[ch]; g.fillRect(ox + x * scale, oy + y * scale, scale, scale);
+  }));
+}
+function thumb(sprite, frame, cls = "thumb") {
+  const c = h("canvas", {width: 16, height: 16, className: cls});
+  if (sprite) paint(c.getContext("2d"), sprite, frame);
+  return c;
+}
+let activeUndo = null;
+addEventListener("keydown", e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === "z" && activeUndo && !/INPUT|TEXTAREA/.test(document.activeElement.tagName)) { e.preventDefault(); activeUndo(); }
+});
+function dotEditor(sprite, frames, onChange = () => {}) {
+  const C = 20, cv = h("canvas", {width: 16 * C, height: 16 * C, className: "dots", "aria-label": "도트 그리기 판. 마우스로 칸을 칠한다"}), g = cv.getContext("2d");
+  let frame = frames[0][0], tool = "pen", color = Object.keys(sprite.palette)[0], undo = [], drawing = false, last = null;
+  const toolBar = h("div", {className: "row"}), frameBar = h("div", {className: "row"}), swatches = h("div", {className: "swatches"});
+  const picker = h("input", {type: "color", "aria-label": "선택한 색 바꾸기", oninput: e => { sprite.palette[color] = e.target.value; changed(); drawSwatches(); }});
+  function draw() {
+    g.clearRect(0, 0, cv.width, cv.height);
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { g.fillStyle = (x + y) % 2 ? "#e6dcbc" : "#fff8e0"; g.fillRect(x * C, y * C, C, C); }
+    paint(g, sprite, frame, 0, 0, C);
+    g.fillStyle = "rgba(36,28,46,.16)";
+    for (let i = 1; i < 16; i++) { g.fillRect(i * C, 0, 1, cv.height); g.fillRect(0, i * C, cv.width, 1); }
+    g.fillStyle = "rgba(36,28,46,.45)"; g.fillRect(8 * C, 0, 1, cv.height); g.fillRect(0, 8 * C, cv.width, 1);
+  }
+  function drawFrames() {
+    frameBar.replaceChildren(...frames.map(([k, label]) => {
+      const t = thumb(sprite, k, "thumb big" + (k === frame ? " on" : ""));
+      t.title = label; t.onclick = () => { frame = k; draw(); drawFrames(); drawTools(); };
+      return h("div", {}, t, h("div", {className: "hint"}, label));
+    }));
+  }
+  function drawSwatches() {
+    swatches.replaceChildren(...Object.entries(sprite.palette).map(([k, v]) => {
+      const b = h("button", {type: "button", className: k === color && tool !== "eraser" ? "on" : "", "aria-label": `색 ${v}`, title: v, onclick: () => { color = k; if (tool === "eraser") tool = "pen"; drawTools(); drawSwatches(); }});
+      b.style.background = v; return b;
+    }), h("button", {type: "button", title: "색 추가", "aria-label": "색 추가", onclick: () => {
+      const k = [..."abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"].find(ch => !(ch in sprite.palette));
+      if (!k) return;
+      sprite.palette[k] = "#808080"; color = k; if (tool === "eraser") tool = "pen"; changed(); drawTools(); drawSwatches();
+    }}, "+"));
+    picker.value = sprite.palette[color] || "#000000";
+  }
+  function drawTools() {
+    const mk = (id, label) => h("button", {type: "button", className: tool === id ? "on" : "", onclick: () => { tool = id; drawTools(); drawSwatches(); }}, label);
+    const copies = frames.filter(([k]) => k !== frame).map(([k, label]) => h("button", {type: "button", onclick: () => { snapshot(); sprite.frames[frame] = [...sprite.frames[k]]; changed(); }}, `${label} 복사`));
+    toolBar.replaceChildren(mk("pen", "연필"), mk("eraser", "지우개"), mk("fill", "채우기"),
+      h("button", {type: "button", onclick: doUndo}, "되돌리기"),
+      h("button", {type: "button", onclick: () => { snapshot(); sprite.frames[frame] = blankRows(); changed(); }}, "비우기"), ...copies);
+  }
+  function changed() { dirty(); draw(); drawFrames(); onChange(); }
+  function snapshot() { undo.push({frame, rows: [...sprite.frames[frame]]}); if (undo.length > 50) undo.shift(); activeUndo = doUndo; }
+  function doUndo() { const u = undo.pop(); if (!u) return; sprite.frames[u.frame] = u.rows; frame = u.frame; changed(); drawTools(); }
+  function setPx(x, y, ch) {
+    const rows = sprite.frames[frame];
+    if (rows[y][x] !== ch) rows[y] = rows[y].slice(0, x) + ch + rows[y].slice(x + 1);
+  }
+  function fill(x, y, ch) {
+    const from = sprite.frames[frame][y][x];
+    if (from === ch) return;
+    const stack = [[x, y]];
+    while (stack.length) {
+      const [a, b] = stack.pop();
+      if (a < 0 || b < 0 || a > 15 || b > 15 || sprite.frames[frame][b][a] !== from) continue;
+      setPx(a, b, ch); stack.push([a + 1, b], [a - 1, b], [a, b + 1], [a, b - 1]);
+    }
+  }
+  const cell = e => { const r = cv.getBoundingClientRect(); return [Math.floor((e.clientX - r.left - cv.clientLeft) / C), Math.floor((e.clientY - r.top - cv.clientTop) / C)]; };
+  const inkOf = () => tool === "eraser" ? "." : color;
+  cv.onpointerdown = e => {
+    const [x, y] = cell(e); if (x < 0 || y < 0 || x > 15 || y > 15) return;
+    snapshot();
+    if (tool === "fill") { fill(x, y, inkOf()); changed(); return; }
+    drawing = true; last = [x, y]; cv.setPointerCapture(e.pointerId); setPx(x, y, inkOf()); draw();
+  };
+  cv.onpointermove = e => {
+    if (!drawing) return;
+    const [x, y] = cell(e), steps = Math.max(Math.abs(x - last[0]), Math.abs(y - last[1]), 1);
+    for (let i = 1; i <= steps; i++) {  // 빠르게 움직여도 선이 끊기지 않게
+      const a = Math.round(last[0] + (x - last[0]) * i / steps), b = Math.round(last[1] + (y - last[1]) * i / steps);
+      if (a >= 0 && b >= 0 && a <= 15 && b <= 15) setPx(a, b, inkOf());
+    }
+    last = [x, y]; draw();
+  };
+  cv.onpointerup = cv.onpointercancel = () => { if (drawing) { drawing = false; changed(); } };
+  draw(); drawFrames(); drawSwatches(); drawTools();
+  return h("div", {}, frameBar, toolBar, cv, swatches, h("div", {className: "row"}, h("span", {}, "선택한 색"), picker));
+}
+
+/* --- 세계관 --- */
+function renderWorld() {
+  const goal = field("반드시 지킬 목표나 결말", S, "goal", {area: 3, hint: "AI 게임 마스터가 이 내용이 깨지지 않게 판정합니다."});
+  goal.hidden = S.strictness !== "strict";
+  const choice = (v, label, text) => h("label", {className: "row"},
+    h("input", {type: "radio", name: "strict", value: v, checked: S.strictness === v, onchange: () => { S.strictness = v; goal.hidden = v !== "strict"; dirty(); }}),
+    h("span", {}, h("span", {}, label), h("div", {className: "hint"}, text)));
+  return h("div", {className: "narrow"},
+    field("게임 제목", S, "title"),
+    field("세계관", S, "story", {area: 8, hint: "배경, 큰 줄거리, 이 세계의 목표를 자유롭게 적습니다. AI 게임 마스터가 항상 참고합니다. NPC는 이 글을 직접 보지 못하고, 캐릭터 탭의 내용만 압니다."}),
+    h("div", {className: "field"}, h("span", {}, "줄거리 방식"),
+      choice("open", "열린 세계", "플레이어가 줄거리를 벗어나도 세계가 받아 이어 갑니다."),
+      choice("strict", "엄격한 진행", "정해 둔 목표나 결말을 지키는 쪽으로 판정합니다.")),
+    goal);
+}
+
+/* --- 캐릭터 --- */
+function renderChars() {
+  if (!everyone().some(c => c.id === selChar)) selChar = S.player.id;
+  const c = everyone().find(x => x.id === selChar), isPlayer = c === S.player;
+  c.sheet ||= {};
+  const list = h("div", {className: "list"}, everyone().map(x => h("button", {type: "button", className: x === c ? "on" : "", onclick: () => { selChar = x.id; render(); }},
+    thumb(S.sprites.characters[x.id], "down"), h("span", {}, (x.name || x.id) + (x === S.player ? " ★" : "")))),
+    h("button", {type: "button", onclick: () => {
+      const id = newId("c");
+      S.characters.push({id, name: "새 캐릭터", ...freeTile(), sheet: {}, knows: [], routine: []});
+      S.sprites.characters[id] = clone(template.sprites.characters._new);
+      selChar = id; dirty(); render();
+    }}, "+ 캐릭터 추가"));
+  const form = h("div", {},
+    field("이름", c, "name"),
+    isPlayer ? h("p", {className: "row"}, h("span", {className: "chip"}, "플레이어"), "유저가 조작하는 캐릭터입니다.")
+      : h("div", {className: "row"},
+        h("button", {type: "button", onclick: () => { S.characters = S.characters.filter(x => x !== c); S.characters.unshift(S.player); S.player = c; dirty(); render(); }}, "플레이어로 지정"),
+        h("button", {type: "button", className: "danger", onclick: () => { purge(c.id); dirty(); render(); }}, "캐릭터 삭제")),
+    field("성격", c.sheet, "personality", {area: 2}),
+    field("특징", c.sheet, "traits", {area: 2, hint: "습관이나 능력처럼 사건에 영향을 주는 것도 적습니다."}),
+    field("목표", c.sheet, "goal", {area: 2}),
+    field("관계", c.sheet, "relations", {area: 2}),
+    linesField("처음부터 아는 것", c, "knows", "한 줄에 하나씩. 여기 없는 일은 이 캐릭터가 모릅니다."),
+    isPlayer ? null : orderedPick("일과 (이 순서로 오갑니다)", c.routine ||= [], roomOptions(), render, "+ 방 추가"),
+    h("p", {className: "hint"}, `시작 위치: (${c.x}, ${c.y}). 공간 탭의 배치 도구로 옮깁니다.`));
+  const editor = h("div", {}, h("h3", {}, "도트 그림"),
+    h("p", {className: "hint"}, "16×16칸. 옆면은 왼쪽을 보는 모습으로 그리면 오른쪽은 자동으로 뒤집습니다."),
+    dotEditor(S.sprites.characters[c.id], [["down", "정면"], ["up", "뒷면"], ["side", "옆면"]]));
+  return h("div", {className: "split"}, list, form, editor);
+}
+function purge(id) {
+  S.characters = S.characters.filter(x => x.id !== id);
+  delete S.sprites.characters[id];
+  for (const r of Object.values(S.roles)) {
+    r.succession = r.succession.filter(x => x !== id);
+    if (r.holder === id) r.holder = r.succession.shift() ?? S.player.id;
+  }
+  for (const e of S.schedule) if (e.actor === id) e.actor = null;
+  for (const a of S.base_actions) if (a.actors) { a.actors = a.actors.filter(x => x !== id); if (!a.actors.length) delete a.actors; }
+}
+
+/* --- 공간 --- */
+const SCALE = 2, T = 16 * SCALE;
+const TILES = [[".", "바닥"], ["#", "벽"], ["+", "문"], ["B", "창살"]];
+let mapTool = ".", placeId = null;
+function setTile(x, y, ch) { S.map[y] = S.map[y].slice(0, x) + ch + S.map[y].slice(x + 1); }
+function roomAt(x, y) { return S.rooms.find(r => r.x0 <= x && x <= r.x1 && r.y0 <= y && y <= r.y1); }
+function renderSpace() {
+  const w = S.map[0].length, ht = S.map.length;
+  const cv = h("canvas", {id: "mapc", width: w * T, height: ht * T, "aria-label": "지도 편집 판. 도구를 고른 뒤 칸을 누른다"}), g = cv.getContext("2d");
+  const note = h("p", {className: "hint"});
+  let drag = null;
+  function drawMap(rect) {
+    g.imageSmoothingEnabled = false;
+    const baked = {};
+    for (const [ch] of TILES) { baked[ch] = h("canvas", {width: 16, height: 16}); paint(baked[ch].getContext("2d"), S.sprites.tiles[ch], "idle"); }
+    S.map.forEach((row, y) => [...row].forEach((ch, x) => g.drawImage(baked[ch], x * T, y * T, T, T)));
+    for (const r of S.rooms) {
+      g.fillStyle = r.backdrop + "40"; g.fillRect(r.x0 * T, r.y0 * T, (r.x1 - r.x0 + 1) * T, (r.y1 - r.y0 + 1) * T);
+      g.fillStyle = "#d8a93a";
+      for (const [sx, sy] of r.spots || []) g.fillRect(sx * T + T / 2 - 4, sy * T + T / 2 - 4, 8, 8);
+    }
+    if (S.jail_cell) { g.strokeStyle = "#e0402f"; g.lineWidth = 3; g.strokeRect(S.jail_cell[0] * T + 2, S.jail_cell[1] * T + 2, T - 4, T - 4); }
+    for (const o of S.objects) paint(g, S.sprites.objects[o.id], "idle", o.x * T, o.y * T, SCALE);
+    for (const c of everyone()) paint(g, S.sprites.characters[c.id], "down", c.x * T, c.y * T, SCALE);
+    // 방 경계와 이름은 캐릭터에 가리지 않게 맨 위에 그린다
+    g.font = "12px Galmuri11, monospace"; g.textBaseline = "top";
+    for (const r of S.rooms) {
+      const x = r.x0 * T, y = r.y0 * T, tw = g.measureText(r.name).width;
+      g.strokeStyle = "#f3e7c4"; g.lineWidth = 2; g.setLineDash([6, 4]);
+      g.strokeRect(x + 1, y + 1, (r.x1 - r.x0 + 1) * T - 2, (r.y1 - r.y0 + 1) * T - 2); g.setLineDash([]);
+      g.fillStyle = "#241c2e"; g.fillRect(x, y, tw + 8, 16);
+      g.fillStyle = "#f3e7c4"; g.fillText(r.name, x + 4, y + 2);
+    }
+    if (rect) { g.strokeStyle = "#d8a93a"; g.lineWidth = 3; g.strokeRect(rect.x0 * T, rect.y0 * T, (rect.x1 - rect.x0 + 1) * T, (rect.y1 - rect.y0 + 1) * T); }
+  }
+  const at = e => { const r = cv.getBoundingClientRect(); return [Math.floor((e.clientX - r.left) / T), Math.floor((e.clientY - r.top) / T)]; };
+  const inside = (x, y) => x >= 0 && y >= 0 && x < w && y < ht;
+  const rectOf = (a, b) => ({x0: Math.min(a[0], b[0]), y0: Math.min(a[1], b[1]), x1: Math.max(a[0], b[0]), y1: Math.max(a[1], b[1])});
+  cv.onpointerdown = e => {
+    const [x, y] = at(e); if (!inside(x, y)) return;
+    note.textContent = "";
+    if (TILES.some(t => t[0] === mapTool)) { drag = {paint: true}; cv.setPointerCapture(e.pointerId); setTile(x, y, mapTool); dirty(); drawMap(); }
+    else if (mapTool === "room") { drag = {start: [x, y], end: [x, y]}; cv.setPointerCapture(e.pointerId); drawMap(rectOf(drag.start, drag.end)); }
+    else if (mapTool === "place") {
+      const ent = [...everyone(), ...S.objects].find(i => i.id === placeId);
+      if (ent) { ent.x = x; ent.y = y; dirty(); drawMap(); }
+    } else if (mapTool === "jail") {
+      S.jail_cell = S.jail_cell && S.jail_cell[0] === x && S.jail_cell[1] === y ? null : [x, y]; dirty(); drawMap();
+    } else if (mapTool === "spot") {
+      const r = roomAt(x, y);
+      if (!r) { note.textContent = "방 안의 칸을 눌러 주세요."; return; }
+      r.spots ||= [];
+      const i = r.spots.findIndex(p => p[0] === x && p[1] === y);
+      if (i >= 0) r.spots.splice(i, 1); else r.spots.push([x, y]);
+      if (!r.spots.length) delete r.spots;
+      dirty(); drawMap();
+    }
+  };
+  cv.onpointermove = e => {
+    if (!drag) return;
+    const [x, y] = at(e); if (!inside(x, y)) return;
+    if (drag.paint) { setTile(x, y, mapTool); dirty(); drawMap(); }
+    else { drag.end = [x, y]; drawMap(rectOf(drag.start, drag.end)); }
+  };
+  cv.onpointerup = cv.onpointercancel = () => {
+    if (!drag) return;
+    const d = drag; drag = null;
+    if (d.paint) return;
+    const rect = rectOf(d.start, d.end);
+    if (S.rooms.some(r => !(rect.x1 < r.x0 || r.x1 < rect.x0 || rect.y1 < r.y0 || r.y1 < rect.y0))) {
+      note.textContent = "다른 방과 겹치게 만들 수 없습니다."; drawMap(); return;
+    }
+    let n = S.rooms.length + 1; while (S.rooms.some(r => r.name === `방 ${n}`)) n++;
+    S.rooms.push({name: `방 ${n}`, backdrop: "#4f4168", ...rect});
+    for (let y = rect.y0; y <= rect.y1; y++) for (let x = rect.x0; x <= rect.x1; x++) if (S.map[y][x] === "#") setTile(x, y, ".");
+    dirty(); render();
+  };
+  const toolBtn = (id, label) => h("button", {type: "button", className: mapTool === id ? "on" : "", onclick: () => { mapTool = id; render(); }}, label);
+  const tools = h("div", {},
+    h("div", {className: "row"}, TILES.map(([k, l]) => toolBtn(k, l)), toolBtn("room", "방 만들기"), toolBtn("place", "배치"), toolBtn("jail", "감옥 칸"), toolBtn("spot", "NPC가 서는 자리")),
+    mapTool === "place" ? h("label", {className: "row"}, "옮길 대상",
+      h("select", {onchange: e => { placeId = e.target.value; }},
+        [...everyone(), ...S.objects].map(i => { placeId ||= i.id; return h("option", {value: i.id, selected: i.id === placeId}, i.name || i.id); }))) : null,
+    h("p", {className: "hint"}, {".": "끌어서 바닥을 칠합니다.", "#": "끌어서 벽을 칠합니다.", "+": "방과 방 사이의 벽에 문을 놓습니다.", "B": "창살은 지나갈 수 없지만 너머로 대화할 수 있습니다.",
+      room: "끌어서 네모를 그리면 방이 생기고 바닥이 깔립니다. 방 사이는 벽과 문으로 잇습니다.", place: "대상을 고른 뒤 지도의 칸을 누릅니다.",
+      jail: "체포된 플레이어가 갇히는 칸입니다. 다시 누르면 지웁니다. 없으면 체포해도 가둘 수 없습니다.",
+      spot: "일과로 이 방에 올 때 NPC가 설 칸입니다. 창살 앞처럼 꼭 서야 할 곳에 씁니다. 다시 누르면 지웁니다."}[mapTool]));
+  const size = (label, value, apply) => h("label", {className: "row"}, label,
+    h("input", {type: "number", min: 5, max: 40, value, onchange: e => { const v = Math.min(40, Math.max(5, +e.target.value || value)); apply(v); dirty(); render(); }}));
+  const sizes = h("div", {className: "row"},
+    size("가로", w, v => { S.map = S.map.map(r => (r + "#".repeat(v)).slice(0, v)); }),
+    size("세로", ht, v => { S.map = Array.from({length: v}, (_, i) => S.map[i] ?? "#".repeat(w)); }));
+  const rooms = h("div", {}, h("h3", {}, "방"), S.rooms.length ? null : h("p", {className: "hint"}, "방 만들기 도구로 첫 방을 그려 주세요."),
+    S.rooms.map(r => h("div", {className: "card"},
+      h("label", {className: "field"}, h("span", {}, "이름"), h("input", {value: r.name, onchange: e => {
+        const old = r.name, name = e.target.value.trim();
+        if (!name || S.rooms.some(x => x !== r && x.name === name)) { e.target.value = old; note.textContent = "방 이름은 비어 있지 않고 서로 달라야 합니다."; return; }
+        r.name = name;
+        for (const c of everyone()) c.routine = (c.routine || []).map(x => x === old ? name : x);
+        dirty(); drawMap();
+      }})),
+      h("div", {className: "row"},
+        h("label", {className: "row"}, "대화 화면 배경", h("input", {type: "color", value: r.backdrop || "#4f4168", oninput: e => { r.backdrop = e.target.value; dirty(); drawMap(); }})),
+        h("button", {type: "button", className: "danger", onclick: () => {
+          S.rooms = S.rooms.filter(x => x !== r);
+          for (const c of everyone()) c.routine = (c.routine || []).filter(x => x !== r.name);
+          dirty(); render();
+        }}, "삭제")))));
+  if (!S.objects.some(o => o.id === selObj)) selObj = S.objects[0]?.id ?? null;
+  const sel = S.objects.find(o => o.id === selObj);
+  const objects = h("div", {}, h("h3", {}, "물건"),
+    h("p", {className: "hint"}, "사건의 재료가 되는 것들입니다. 게임 마스터가 설명을 읽고 무엇을 할 수 있는지 판단합니다."),
+    h("div", {className: "list"}, S.objects.map(o => h("button", {type: "button", className: o === sel ? "on" : "", onclick: () => { selObj = o.id; render(); }},
+      thumb(S.sprites.objects[o.id], "idle"), o.name || o.id)),
+      h("button", {type: "button", onclick: () => {
+        const id = newId("o");
+        S.objects.push({id, name: "새 물건", description: "", ...freeTile()});
+        S.sprites.objects[id] = clone(template.sprites.objects._new);
+        selObj = id; dirty(); render();
+      }}, "+ 물건 추가")));
+  const objEdit = sel ? h("div", {className: "card"},
+    h("div", {className: "split2"},
+      h("div", {}, field("물건 이름", sel, "name"), field("설명", sel, "description", {area: 3, hint: "눈으로 보아 알 수 있는 내용을 적습니다."}),
+        h("p", {className: "hint"}, `위치: (${sel.x}, ${sel.y})`),
+        h("button", {type: "button", className: "danger", onclick: () => {
+          S.objects = S.objects.filter(o => o !== sel); delete S.sprites.objects[sel.id]; dirty(); render();
+        }}, "물건 삭제")),
+      h("div", {}, dotEditor(S.sprites.objects[sel.id], [["idle", "그림"]], drawMap)))) : null;
+  const tileEdit = h("details", {}, h("summary", {}, "타일 그림 고치기"),
+    h("div", {className: "row"}, TILES.map(([k, l]) => h("div", {className: "card"}, h("h3", {}, l), dotEditor(S.sprites.tiles[k], [["idle", "그림"]], drawMap)))));
+  drawMap();
+  return h("div", {},
+    h("div", {className: "split2"},
+      h("div", {}, sizes, tools, note, h("div", {className: "mapwrap"}, cv)),
+      h("div", {}, rooms, objects)),
+    objEdit, tileEdit);
+}
+
+/* --- 규칙 --- */
+function renderRules() {
+  const actions = S.base_actions.map(a => h("div", {className: "card"},
+    h("div", {className: "row"},
+      h("input", {value: a.label, "aria-label": "행위 이름", style: "width: 200px", oninput: e => { a.label = e.target.value; dirty(); }}),
+      h("select", {"aria-label": "대상", onchange: e => { a.targets = e.target.value; dirty(); }},
+        [["character", "사람에게"], ["object", "물건에"], ["any", "사람·물건 모두"]].map(([v, l]) => h("option", {value: v, selected: a.targets === v}, l))),
+      h("label", {className: "row"}, h("input", {type: "checkbox", checked: !!a.on_dead, onchange: e => { if (e.target.checked) a.on_dead = true; else delete a.on_dead; dirty(); }}), "죽은 사람에게도"),
+      a.id === "talk" ? h("span", {className: "hint"}, "대화창을 여는 행위입니다.")
+        : h("button", {type: "button", className: "danger", onclick: () => { S.base_actions = S.base_actions.filter(x => x !== a); dirty(); render(); }}, "삭제")),
+    actorPick(a)));
+  const roles = Object.entries(S.roles).map(([name, r]) => h("div", {className: "card"},
+    h("div", {className: "row"},
+      h("label", {className: "row"}, "역할", h("input", {value: name, style: "width: 140px", onchange: e => {
+        const to = e.target.value.trim();
+        if (!to || (to !== name && to in S.roles)) { e.target.value = name; return; }
+        S.roles = Object.fromEntries(Object.entries(S.roles).map(([k, v]) => [k === name ? to : k, v])); dirty(); render();
+      }})),
+      h("label", {className: "row"}, "지금 맡은 사람", h("select", {onchange: e => { r.holder = e.target.value; dirty(); }},
+        charOptions().map(o => h("option", {value: o.v, selected: o.v === r.holder}, o.l)))),
+      h("button", {type: "button", className: "danger", onclick: () => { delete S.roles[name]; dirty(); render(); }}, "삭제")),
+    orderedPick("계승 순서", r.succession, charOptions(), render)));
+  const events = S.schedule.map(ev => h("div", {className: "card"},
+    field("무슨 일이 일어나나", ev, "description", {area: 2}),
+    h("div", {className: "row"},
+      h("label", {className: "row"}, "시작 후", h("input", {type: "number", min: 0, value: ev.at, style: "width: 90px", onchange: e => { ev.at = Math.max(0, Math.floor(+e.target.value || 0)); dirty(); }}), "초"),
+      h("label", {className: "row"}, "주인공", h("select", {onchange: e => { ev.actor = e.target.value || null; dirty(); }},
+        h("option", {value: "", selected: !ev.actor}, "없음"),
+        charOptions().map(o => h("option", {value: o.v, selected: o.v === ev.actor}, o.l)))),
+      h("button", {type: "button", className: "danger", onclick: () => { S.schedule = S.schedule.filter(x => x !== ev); dirty(); render(); }}, "삭제"))));
+  return h("div", {className: "narrow"},
+    h("h2", {}, "기본 행위"),
+    h("p", {className: "hint"}, "인터랙션 메뉴에 항상 나오는 선택지입니다. AI가 상황에 맞는 행위를 여기에 더합니다."),
+    actions,
+    h("button", {type: "button", onclick: () => {
+      let n = 1; while (S.base_actions.some(a => a.id === `a${n}`)) n++;
+      S.base_actions.push({id: `a${n}`, label: "새 행위", targets: "any"}); dirty(); render();
+    }}, "+ 행위 추가"),
+    h("h2", {style: "margin-top: 22px"}, "역할과 계승"),
+    h("p", {className: "hint"}, "맡은 사람이 죽으면 계승 순서대로 다음 사람이 자리를 잇고 모두에게 공표됩니다."),
+    roles,
+    h("button", {type: "button", onclick: () => {
+      let n = 1; while (`역할 ${n}` in S.roles) n++;
+      S.roles[`역할 ${n}`] = {holder: S.player.id, succession: []}; dirty(); render();
+    }}, "+ 역할 추가"),
+    h("h2", {style: "margin-top: 22px"}, "정해진 사건"),
+    h("p", {className: "hint"}, "플레이어가 가만히 있어도 그 시간에 일어나는 일입니다. 결과는 게임 마스터가 그때의 상황을 보고 판정합니다."),
+    events,
+    h("button", {type: "button", onclick: () => {
+      let n = 1; while (S.schedule.some(e => e.id === `e${n}`)) n++;
+      S.schedule.push({id: `e${n}`, at: 120, actor: null, description: ""}); dirty(); render();
+    }}, "+ 사건 추가"));
+}
+function actorPick(a) {
+  const arr = a.actors || [];
+  // 빈 actors는 아무도 못 쓴다는 뜻이라, 비면 키를 지워 '모두'로 되돌린다
+  return orderedPick("쓸 수 있는 캐릭터 (비우면 모두)", arr, charOptions(), () => { if (arr.length) a.actors = arr; else delete a.actors; render(); }, "+ 캐릭터 지정");
+}
+
+/* --- 탭과 저장 --- */
+const TABS = {world: ["세계관", renderWorld], chars: ["캐릭터", renderChars], space: ["공간", renderSpace], rules: ["규칙", renderRules]};
+function render() {
+  $("tabs").replaceChildren(...Object.entries(TABS).map(([k, [label]]) => h("button", {type: "button", role: "tab", "aria-selected": String(k === tab), onclick: () => { tab = k; render(); }}, label)));
+  const y = scrollY;
+  $("panel").replaceChildren(TABS[tab][1]());
+  scrollTo(0, y);
+}
+function showProblems(list) {
+  $("problems").hidden = !list.length;
+  $("problems").replaceChildren(...list.map(p => h("li", {}, p)));
+}
+function saveName() {
+  if (!$("fname").value.trim()) $("fname").value = S.title.trim().replace(/[^\p{L}\p{N}_-]+/gu, "-").replace(/^[-_]+/, "").slice(0, 40);
+  return $("fname").value.trim();
+}
+async function save(overwrite = false) {
+  const name = saveName();
+  $("overwrite").hidden = true;
+  if (!name) { $("status").textContent = "저장 이름이나 게임 제목을 적어 주세요."; $("fname").focus(); return null; }
+  const res = await post("/api/scenario", {name, scenario: S, overwrite: overwrite || name === current});
+  if (res.status === 409) {
+    $("status").textContent = `'${name}'이(가) 이미 있습니다.`; $("overwrite").hidden = false;
+    return null;
+  }
+  if (!res.ok) { $("status").textContent = "저장 이름은 글자나 숫자로 시작하고, 글자·숫자·-·_만 쓸 수 있습니다."; return null; }
+  const {problems} = await res.json();
+  current = name; isDirty = false;
+  await refreshPick();
+  showProblems(problems);
+  $("status").textContent = problems.length ? `저장했습니다. 플레이하려면 ${problems.length}건을 고쳐 주세요.` : "저장했습니다.";
+  return problems;
+}
+async function refreshPick() {
+  const {names} = await (await fetch("/api/scenarios")).json();
+  $("pick").replaceChildren(h("option", {value: "", selected: !current}, "(새 게임)"), ...names.map(n => h("option", {value: n, selected: n === current}, n)));
+}
+function startNew() {
+  S = clone(template);
+  delete S.sprites.characters._new; delete S.sprites.objects._new;
+  current = null; isDirty = false; $("fname").value = ""; $("status").textContent = "";
+  $("overwrite").hidden = true; showProblems([]); selChar = selObj = null; tab = "world";
+  refreshPick(); render();
+}
+async function open_(name) {
+  S = await (await fetch(`/api/scenario?name=${encodeURIComponent(name)}`)).json();
+  S.goal ??= ""; S.schedule ??= []; S.jail_cell ??= null;
+  current = name; isDirty = false; $("fname").value = name; $("status").textContent = "";
+  $("overwrite").hidden = true; showProblems([]); selChar = selObj = null;
+  refreshPick(); render();
+}
+$("pick").onchange = e => {
+  if (isDirty) { e.target.value = current || ""; $("status").textContent = "먼저 저장해 주세요. 저장하지 않은 내용이 있습니다."; return; }
+  if (e.target.value) open_(e.target.value); else startNew();
+};
+$("newBtn").onclick = () => { if (isDirty) { $("status").textContent = "먼저 저장해 주세요. 저장하지 않은 내용이 있습니다."; return; } startNew(); };
+$("save").onclick = () => save();
+$("overwrite").onclick = () => save(true);
+$("play").onclick = async () => {
+  const problems = await save();
+  if (!problems || problems.length) return;
+  const res = await post("/api/play", {name: current});
+  if (res.ok) { location.href = "/play"; return; }
+  const body = await res.json().catch(() => ({}));
+  showProblems(body.problems || []); $("status").textContent = "게임을 시작하지 못했습니다.";
+};
+(async () => {
+  template = await (await fetch("/api/scenario?name=_blank")).json();
+  const wanted = new URLSearchParams(location.search).get("name");  // 홈의 미완성 카드에서 온 경우
+  if (wanted) open_(wanted); else startNew();
+})();
+</script>
+</body>
+</html>

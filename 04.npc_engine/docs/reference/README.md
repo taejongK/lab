@@ -5,6 +5,8 @@
 
 | 자료 | 링크 |
 |---|---|
+| OpenRouter Structured Outputs | https://openrouter.ai/docs/features/structured-outputs |
+| OpenRouter Chat Completions API | https://openrouter.ai/docs/api-reference/chat-completion |
 | arXiv 초록 원문 20편 (NPC·자극 반응) | [npc-papers_arxiv-abstracts.md](npc-papers_arxiv-abstracts.md) |
 | LLMs and Games: Survey and Roadmap (2024) | https://arxiv.org/abs/2402.18659 |
 | Survey on LLM-Based Game Agents (2024) | https://arxiv.org/abs/2404.02039 |

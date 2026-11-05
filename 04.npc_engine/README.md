@@ -9,11 +9,14 @@
 ## 실행
 
 ```
+cp .env.example .env                    # OPENROUTER_API_KEY 입력 (.env는 커밋되지 않음)
 uv run src/playtest.py                  # 규칙·흐름 자동 검사 (가짜 AI, 비용 없음)
-uv run src/server.py --fake --debug     # 브라우저에서 조작 확인 (가짜 AI) → http://127.0.0.1:8765
-ANTHROPIC_API_KEY=... uv run src/server.py          # 실제 Claude (비용 발생)
-ANTHROPIC_API_KEY=... uv run src/playtest.py --real --runs 5   # 품질·비용 측정
+uv run src/server.py --fake --debug     # 가짜 AI로 조작 확인 → http://127.0.0.1:8765
+uv run src/server.py                    # 실제 LLM (OpenRouter, 비용 발생)
+uv run src/playtest.py --real --runs 5  # 품질·비용 측정 (비용 발생)
 ```
+
+홈(`/`)에서 게임 만들기(`/create`)와 게임 선택하기로 들어간다. 만든 게임은 카드로 보이고, 고르면 처음부터 시작한다(`/play`). 세계관·캐릭터·공간·규칙을 입력하고 도트를 그려 바로 플레이한다.
 
 방향키로 이동, E로 인터랙션, J로 기억 보기. 게임은 `scenarios/`의 시나리오 파일과 도트 데이터로 정의한다.
 

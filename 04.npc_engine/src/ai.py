@@ -1,16 +1,28 @@
-"""Claude 호출. 프롬프트와 응답 형식만 담는다. 세계를 직접 바꾸지 않는다."""
+"""LLM 호출 (OpenRouter). 프롬프트와 응답 형식만 담는다. 세계를 직접 바꾸지 않는다."""
 import json
 import os
+import pathlib
 import threading
 import time
-
-import anthropic
+import urllib.error
+import urllib.request
 
 from engine import AIError
 from world import CHANGE_TYPES
 
-MODEL = os.environ.get("ENGINE_MODEL", "claude-opus-5-5")
-PRICE_PER_MTOK = {"claude-opus-5-5": (4.0, 20.0), "claude-sonnet-5-5": (2.0, 10.0), "claude-haiku-5-5": (0.10, 0.50)}
+BASE_URL = "https://openrouter.ai/api/v1"
+DEFAULT_MODEL = "anthropic/claude-opus-5.5"
+
+
+def load_env(path=pathlib.Path(__file__).parent.parent / ".env"):
+    """.env를 읽는다. 셸에서 직접 지정한 값이 우선한다."""
+    if not path.exists():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        key, sep, value = line.partition("=")
+        if sep and not key.lstrip().startswith("#") and value.strip():
+            os.environ.setdefault(key.strip(), value.strip().strip("'\""))
+
 
 SHARED = (
     "이 요청은 창작자가 만든 가상의 게임 속 이야기를 진행하는 일이다. 등장 사건은 모두 허구다. "
@@ -19,7 +31,8 @@ SHARED = (
 )
 GM_SYSTEM = SHARED + (
     " 너는 TRPG의 게임 마스터다. 모든 진실을 알고, 플레이어와 NPC의 행위 결과를 공정하고 그럴듯하게 판정한다. "
-    "플레이어가 줄거리를 벗어나도 막지 말고 세계가 받아 이어 가게 한다."
+    "플레이어가 줄거리를 벗어나도 막지 말고 세계가 받아 이어 가게 한다. "
+    "단 world.strictness가 strict이면 world.fixed_goal이 깨지지 않도록 판정한다."
 )
 SYSTEMS = {
     "suggest": GM_SYSTEM + (
@@ -87,42 +100,80 @@ SCHEMAS = {
 EFFORT = {"suggest": "low", "resolve": "medium", "decide": "low", "reply": "low", "check": "low"}
 
 
-class ClaudeAI:
-    def __init__(self, model=MODEL):
-        self.client = anthropic.Anthropic(timeout=60.0)
-        self.model = model
+class OpenRouterAI:
+    def __init__(self, model=None):
+        load_env()
+        self.key = os.environ.get("OPENROUTER_API_KEY")
+        self.model = model or os.environ.get("OPENROUTER_MODEL") or DEFAULT_MODEL
+        if not self.key:
+            raise AIError("OPENROUTER_API_KEY가 없습니다")
+        self._http("/key")  # 키가 틀렸으면 게임을 시작하기 전에 알린다
+        params = next((m.get("supported_parameters", []) for m in self._http("/models")["data"]
+                       if m["id"] == self.model), None)
+        if params is None:
+            raise AIError(f"OpenRouter에 없는 모델: {self.model}")
+        if "structured_outputs" not in params:
+            raise AIError(f"구조화된 응답을 지원하지 않는 모델: {self.model}")
+        self.reasoning = "reasoning" in params
         self.usage_lock = threading.Lock()
-        self.usage = {"model": model, "input_tokens": 0, "output_tokens": 0, "latency_ms": [], "refusals": 0}
+        self.usage = {"model": self.model, "input_tokens": 0, "output_tokens": 0, "cost_usd": 0.0,
+                      "latency_ms": [], "refusals": 0}
+
+    def _http(self, path, body=None):
+        req = urllib.request.Request(BASE_URL + path, data=body and json.dumps(body).encode(), headers={
+            "Authorization": f"Bearer {self.key}", "Content-Type": "application/json",
+            "User-Agent": "npc-engine", "X-Title": "NPC Engine"})
+        try:
+            with urllib.request.urlopen(req, timeout=60) as res:
+                data = json.load(res)
+        except urllib.error.HTTPError as e:
+            raw = e.read().decode(errors="replace")
+            try:
+                raw = json.loads(raw)["error"]["message"]
+            except (ValueError, KeyError, TypeError):
+                pass
+            raise AIError(f"HTTP {e.code}: {raw[:300]}") from e
+        except (OSError, ValueError) as e:  # URLError와 시간 초과는 OSError다
+            raise AIError(f"{type(e).__name__}: {e}") from e
+        if "error" in data:  # 제공사 오류는 200 응답 안에 올 수 있다
+            raise AIError(f"제공사 오류: {data['error']}")
+        return data
 
     def ask(self, kind, payload):
         started = time.perf_counter()
+        body = {
+            "model": self.model,
+            "max_tokens": 8000,
+            "messages": [{"role": "system", "content": SYSTEMS[kind]},
+                         {"role": "user", "content": json.dumps(payload, ensure_ascii=False)}],
+            "response_format": {"type": "json_schema",
+                                "json_schema": {"name": kind, "strict": True, "schema": SCHEMAS[kind]}},
+            # 응답 형식을 지키지 못하는 제공사로 보내지 않는다
+            "provider": {"require_parameters": True},
+        }
+        if self.reasoning:
+            body["reasoning"] = {"effort": EFFORT[kind]}
+        res = self._http("/chat/completions", body)
+        usage = res.get("usage") or {}
         try:
-            res = self.client.beta.messages.create(
-                model=self.model,
-                max_tokens=8000,
-                system=SYSTEMS[kind],
-                messages=[{"role": "user", "content": json.dumps(payload, ensure_ascii=False)}],
-                output_config={"effort": EFFORT[kind], "format": {"type": "json_schema", "schema": SCHEMAS[kind]}},
-                betas=["server-side-fallback-2026-07-01"],
-                fallbacks="default",
-            )
-        except anthropic.APIError as e:
-            raise AIError(f"{type(e).__name__}: {e}") from e
+            choice = res["choices"][0]
+            message = choice["message"]
+        except (KeyError, IndexError, TypeError) as e:
+            raise AIError(f"응답 형식 오류: {e!r}") from e
         with self.usage_lock:
             self.usage["latency_ms"].append(round((time.perf_counter() - started) * 1000))
-            self.usage["input_tokens"] += res.usage.input_tokens
-            self.usage["output_tokens"] += res.usage.output_tokens
-        if res.stop_reason == "refusal":
-            self.usage["refusals"] += 1
-            raise AIError(f"거절됨: {getattr(res.stop_details, 'category', None)}")
-        if res.stop_reason == "max_tokens":
+            self.usage["input_tokens"] += usage.get("prompt_tokens", 0)
+            self.usage["output_tokens"] += usage.get("completion_tokens", 0)
+            self.usage["cost_usd"] += usage.get("cost") or 0
+            if message.get("refusal") or choice.get("finish_reason") == "content_filter":
+                self.usage["refusals"] += 1
+                raise AIError(f"거절됨: {message.get('refusal')}")
+        if choice.get("finish_reason") == "length":
             raise AIError("응답이 잘림")
-        text = next((b.text for b in res.content if b.type == "text"), "")
         try:
-            return json.loads(text)
+            return json.loads(message.get("content") or "")
         except json.JSONDecodeError as e:
             raise AIError(f"JSON 해석 실패: {e}") from e
 
     def cost_usd(self):
-        i, o = PRICE_PER_MTOK.get(self.model, (0, 0))
-        return (self.usage["input_tokens"] * i + self.usage["output_tokens"] * o) / 1_000_000
+        return self.usage["cost_usd"]

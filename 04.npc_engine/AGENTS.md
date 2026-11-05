@@ -9,6 +9,7 @@ AI가 게임 마스터와 NPC를 맡는 2D TRPG 엔진 실험. 질문/상태/날
 
 | File | Description |
 |------|-------------|
+| `.env.example` | OpenRouter 키·모델 설정 틀. 실제 값은 `.env`(커밋 안 됨) |
 | `README.md` | 실험 질문·상태·시작일·최종 수정일·결론, 문서 목록 |
 | `CLAUDE.md` | 이 실험의 자동 문서화 규칙 (worklog-discipline + 문서 위치) |
 | `probe_ascii_map.py` | ASCII 2D 맵에서 로컬 Laya가 이동 방향·목표 오브젝트를 고를 수 있는지 측정 (`uv run probe_ascii_map.py 60 20`) |
@@ -17,8 +18,8 @@ AI가 게임 마스터와 NPC를 맡는 2D TRPG 엔진 실험. 질문/상태/날
 
 | Directory | Purpose |
 |-----------|---------|
-| `src/` | 엔진 코드: `world.py`(규칙), `engine.py`(흐름), `ai.py`(Claude), `fake_ai.py`, `server.py`, `playtest.py`, `web/` |
-| `scenarios/` | 시나리오 파일과 도트 데이터(`*.sprites.json`). 엔진 코드에 시나리오 전용 처리를 넣지 않는다 |
+| `src/` | 엔진 코드: `world.py`(규칙), `engine.py`(흐름), `ai.py`(OpenRouter), `fake_ai.py`, `server.py`, `playtest.py`, `web/`(`home.html` 홈, `index.html` 게임, `create.html` 창작자 페이지) |
+| `scenarios/` | 시나리오 파일과 도트 데이터(`*.sprites.json`). `_blank*`는 새 게임 틀. 엔진 코드에 시나리오 전용 처리를 넣지 않는다 |
 | `docs/notes/` | 직접 작성한 스터디 문서 (번호 붙인 `NN.주제.md`) |
 | `docs/reference/` | 외부 자료 — 링크 모음, 받아 둔 원문 |
 | `docs/worklog/` | 날짜별 작업 기록 |

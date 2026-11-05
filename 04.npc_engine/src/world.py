@@ -27,6 +27,109 @@ def check_sprites(sprites, size=16):
                 assert not unknown, f"{where}: 팔레트에 없는 색 {unknown}"
 
 
+def check_scenario(s):
+    """플레이 전 검사. 문제를 창작자가 읽을 문장으로 돌려준다. 저장 중인 초안이 들어오므로 어떤 값에도 터지지 않는다."""
+    try:
+        return _problems(s)
+    except (KeyError, TypeError, ValueError, AttributeError, IndexError, AssertionError) as e:
+        return [f"[전체] 시나리오 형식이 잘못됐습니다: {e!r}"]
+
+
+def _problems(s):
+    p = []
+    if not s.get("title", "").strip():
+        p.append("[세계관] 게임 제목이 없습니다")
+    if not s.get("story", "").strip():
+        p.append("[세계관] 배경 이야기가 없습니다")
+    if s.get("strictness") not in ("open", "strict"):
+        p.append("[세계관] 줄거리 방식은 open 또는 strict여야 합니다")
+    elif s["strictness"] == "strict" and not s.get("goal", "").strip():
+        p.append("[세계관] 엄격한 진행에는 반드시 지킬 목표가 필요합니다")
+
+    grid, rooms = s["map"], s["rooms"]
+    if not grid or len({len(r) for r in grid}) != 1 or set("".join(grid)) - set(".#+B"):
+        return p + ["[공간] 지도는 같은 길이의 줄로, 바닥·벽·문·창살만으로 이뤄져야 합니다"]
+    h, w = len(grid), len(grid[0])
+    walk = lambda x, y: 0 <= y < h and 0 <= x < w and grid[y][x] in ".+"
+    names = [r["name"] for r in rooms]
+    if not rooms:
+        p.append("[공간] 방이 하나도 없습니다")
+    if len(set(names)) != len(names) or not all(n.strip() for n in names):
+        p.append("[공간] 방 이름은 비어 있지 않고 서로 달라야 합니다")
+    covered = {}
+    for r in rooms:
+        if not (0 <= r["x0"] <= r["x1"] < w and 0 <= r["y0"] <= r["y1"] < h):
+            p.append(f"[공간] 방 '{r['name']}'이(가) 지도 밖으로 나갑니다")
+        for y in range(r["y0"], r["y1"] + 1):
+            for x in range(r["x0"], r["x1"] + 1):
+                if (x, y) in covered:
+                    p.append(f"[공간] 방 '{r['name']}'과(와) '{covered[x, y]}'이(가) 겹칩니다")
+                    break
+                covered[x, y] = r["name"]
+            else:
+                continue
+            break
+    loose = [(x, y) for y in range(h) for x in range(w) if grid[y][x] == "." and (x, y) not in covered]
+    if loose:
+        p.append(f"[공간] 어느 방에도 속하지 않은 바닥 {len(loose)}칸이 있습니다 (예: {loose[0]})")
+    if s.get("jail_cell") and not walk(*s["jail_cell"]):
+        p.append("[공간] 감옥 칸은 바닥이어야 합니다")
+
+    chars = [s["player"]] + s["characters"]
+    ids = [c["id"] for c in chars] + [o["id"] for o in s["objects"]]
+    if len(set(ids)) != len(ids):
+        p.append("[캐릭터] 캐릭터와 물건의 id가 겹칩니다")
+    for c in chars:
+        if not c.get("name", "").strip():
+            p.append(f"[캐릭터] {c['id']}의 이름이 없습니다")
+        if not walk(c["x"], c["y"]):
+            p.append(f"[공간] {c.get('name')}의 시작 위치가 바닥이 아닙니다")
+        bad = set(c.get("routine", [])) - set(names)
+        if bad:
+            p.append(f"[캐릭터] {c.get('name')}의 일과에 없는 방이 있습니다: {sorted(bad)}")
+    for o in s["objects"]:
+        if not o.get("name", "").strip() or not o.get("description", "").strip():
+            p.append(f"[공간] 물건 {o['id']}의 이름과 설명이 필요합니다")
+        if not walk(o["x"], o["y"]):
+            p.append(f"[공간] {o.get('name')}의 위치가 바닥이 아닙니다")
+
+    sprites = s.get("sprites", {})
+    try:
+        check_sprites(sprites)
+    except (AssertionError, KeyError, TypeError, AttributeError) as e:
+        p.append(f"[도트] {e}")
+    for c in chars:
+        if not {"down", "up", "side"} <= set(sprites.get("characters", {}).get(c["id"], {}).get("frames", {})):
+            p.append(f"[도트] {c.get('name')}에게 정면·뒷면·옆면 그림이 모두 필요합니다")
+    for o in s["objects"]:
+        if "idle" not in sprites.get("objects", {}).get(o["id"], {}).get("frames", {}):
+            p.append(f"[도트] {o.get('name')}의 그림이 없습니다")
+    for ch in set("".join(grid)):
+        if "idle" not in sprites.get("tiles", {}).get(ch, {}).get("frames", {}):
+            p.append(f"[도트] 타일 '{ch}'의 그림이 없습니다")
+
+    char_ids = {c["id"] for c in chars}
+    for role, v in s["roles"].items():
+        if not role.strip() or v["holder"] not in char_ids or set(v["succession"]) - char_ids:
+            p.append(f"[규칙] 역할 '{role}'의 이름이나 맡은 캐릭터가 잘못됐습니다")
+    for a in s["base_actions"]:
+        if not a["label"].strip() or a["targets"] not in ("character", "object", "any") or set(a.get("actors", [])) - char_ids:
+            p.append(f"[규칙] 행위 '{a['label']}'의 설정이 잘못됐습니다")
+    for e in s.get("schedule", []):
+        if not e["description"].strip() or not isinstance(e["at"], int) or e["at"] < 0 or (e.get("actor") and e["actor"] not in char_ids):
+            p.append(f"[규칙] 사건 '{e['description']}'의 설정이 잘못됐습니다")
+    if p:
+        return p
+
+    # 일과대로 걸어갈 수 있어야 한다. 못 가면 NPC가 아무 말 없이 멈춘다
+    world = World(s)
+    for c in s["characters"]:
+        for room in c.get("routine", []):
+            if world.path((c["x"], c["y"]), world.room_spot(room, c["id"])) is None:
+                p.append(f"[공간] {c['name']}이(가) 일과의 '{room}'까지 걸어갈 수 없습니다")
+    return p
+
+
 class World:
     def __init__(self, s):
         self.s = s
@@ -267,6 +370,7 @@ class World:
         return {
             "story": self.s["story"],
             "strictness": self.s.get("strictness", "open"),
+            "fixed_goal": self.s.get("goal"),
             "tick": self.tick,
             "characters": [{**self.public_char(i), "sheet": c["sheet"], "jailed": c["jailed"],
                             "knows": c["memory"]["known"]}

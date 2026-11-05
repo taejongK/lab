@@ -26,7 +26,7 @@
 - [x] 3. `ai.py`: 실제 API 호출, 거절·오류 처리, 사용량 집계
 - [x] 4. `server.py` + `index.html`: 브라우저에서 조작
 - [x] 5. 독립 검토, 문서 갱신
-- [ ] 6. API 키로 `playtest.py --real` 측정 (키 필요, 현재 없음)
+- [ ] 6. 실제 LLM 측정: DeepSeek 5판 왕 사망 0판 ([보고서](../../report/2026_11_05_openrouter-real-run.md)). 원인 조사 필요
 
 ## 주의할 입력
 

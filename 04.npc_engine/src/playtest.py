@@ -1,21 +1,25 @@
 # /// script
 # requires-python = ">=3.10"
-# dependencies = ["anthropic"]
+# dependencies = []
 # ///
 """왕 독살 장면을 자동으로 플레이한다.
 
 uv run src/playtest.py                 가짜 AI로 규칙과 흐름을 단언 (비용 없음)
-uv run src/playtest.py --real --runs 5 실제 Claude로 측정 (비용 발생, 판단 품질은 보고만)
+uv run src/playtest.py --real --runs 5 실제 LLM(OpenRouter)으로 측정 (비용 발생, 판단 품질은 보고만)
 """
 import argparse
+import copy
 import json
+import os
 import pathlib
 import sys
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 from engine import AIError, Engine
 from fake_ai import FakeAI
-from world import World, load_scenario
+from world import World, check_scenario, load_scenario
 
 SCENARIO = pathlib.Path(__file__).parent.parent / "scenarios" / "castle.json"
 QUESTIONS = ["왕은 어떻게 됐나요?", "누가 범인이라고 생각하나요? 지금 왕은 누구죠?"]
@@ -274,14 +278,109 @@ def check_fake():
     print("흐름 검사 통과 (가짜 AI: 판단 품질은 검증하지 않음)")
 
 
+def check_creator():
+    """창작자 페이지가 저장하는 시나리오 검사와, 왕의 술잔이 아닌 게임이 엔진에서 도는지."""
+    assert check_scenario(load_scenario(SCENARIO)) == [], check_scenario(load_scenario(SCENARIO))
+    assert check_scenario({}) and check_scenario({"map": 3, "rooms": None})  # 깨진 초안에도 터지지 않는다
+    s = load_scenario(SCENARIO.parent / "_blank.json")
+    assert any("제목" in x for x in check_scenario(s))
+    new = copy.deepcopy(s["sprites"]["characters"]["_new"])
+    s.update(title="등대", story="폭풍이 오는 밤의 등대")
+    s["characters"].append({"id": "c1", "name": "등대지기", "x": 3, "y": 3, "routine": ["첫 방"], "knows": ["나는 등대지기다."],
+                            "sheet": {"personality": "과묵하다"}})
+    s["objects"].append({"id": "o1", "name": "열쇠", "description": "녹슨 열쇠", "x": 5, "y": 3})
+    s["sprites"]["characters"]["c1"] = new
+    s["sprites"]["objects"]["o1"] = s["sprites"]["objects"]["_new"]
+    s["roles"] = {"등대장": {"holder": "c1", "succession": ["player"]}}
+    assert check_scenario(s) == [], check_scenario(s)
+    for mutate, word in [(lambda b: b["characters"][0].update(x=0), "시작 위치"),
+                         (lambda b: b["characters"][0].update(routine=["없는 방"]), "일과"),
+                         (lambda b: b["roles"]["등대장"].update(holder="없음"), "역할"),
+                         (lambda b: b["map"].__setitem__(0, "#"), "지도"),
+                         (lambda b: b["sprites"]["characters"]["c1"]["frames"].pop("up"), "뒷면"),
+                         (lambda b: b["rooms"].append({**b["rooms"][0], "name": "둘째"}), "겹칩니다"),
+                         (lambda b: b.update(strictness="strict", goal=""), "목표")]:
+        bad = copy.deepcopy(s)
+        mutate(bad)
+        assert any(word in x for x in check_scenario(bad)), word
+    e = Engine(s, FakeAI())
+    e.w.chars["player"].update(x=4, y=3)
+    assert e.interact("c1") and e.say("c1", "안녕") and e.interact("o1") and e.act("o1", "집어 들기")
+    e.drain()
+    assert e.w.objects["o1"]["holder"] == "player"
+    e.w.apply({"type": "kill", "character": "c1"})
+    assert e.w.roles["등대장"]["holder"] == "player"
+
+
+def check_openrouter():
+    """요청 형식과 오류 처리. 가짜 서버 상대라 실제 모델의 수락 여부는 확인하지 못한다."""
+    import ai as llm
+
+    seen, replies = [], []
+
+    class Stub(BaseHTTPRequestHandler):
+        def log_message(self, *a):
+            pass
+
+        def _reply(self, code, data):
+            raw = json.dumps(data).encode()
+            self.send_response(code)
+            self.send_header("Content-Length", str(len(raw)))
+            self.end_headers()
+            self.wfile.write(raw)
+
+        def do_GET(self):
+            params = ["structured_outputs", "reasoning"]
+            self._reply(200, {"data": [{"id": "m", "supported_parameters": params}, {"id": "weak", "supported_parameters": []}]})
+
+        def do_POST(self):
+            seen.append((self.headers["Authorization"], json.loads(self.rfile.read(int(self.headers["Content-Length"])))))
+            self._reply(*replies.pop(0))
+
+    srv = ThreadingHTTPServer(("127.0.0.1", 0), Stub)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    llm.BASE_URL, url = f"http://127.0.0.1:{srv.server_address[1]}", llm.BASE_URL
+    os.environ["OPENROUTER_API_KEY"] = "test"
+    try:
+        for model, why in (("없는모델", "없는 모델"), ("weak", "지원하지")):
+            try:
+                llm.OpenRouterAI(model)
+                raise SystemExit(f"{model}을 막지 못함")
+            except AIError as err:
+                assert why in str(err)
+        a = llm.OpenRouterAI("m")
+        ok = {"choices": [{"finish_reason": "stop", "message": {"content": '{"actions": ["x"]}'}}],
+              "usage": {"prompt_tokens": 3, "completion_tokens": 2, "cost": 0.5}}
+        replies.append((200, ok))
+        assert a.ask("suggest", {"p": 1}) == {"actions": ["x"]} and a.cost_usd() == 0.5
+        auth, body = seen[-1]
+        assert auth == "Bearer test" and body["response_format"]["json_schema"]["schema"] == llm.SCHEMAS["suggest"]
+        assert body["provider"]["require_parameters"] and body["reasoning"]["effort"] == "low"
+        bad = [(401, {"error": {"message": "no"}}), (200, {"error": {"message": "upstream"}}), (200, {"choices": []}),
+               (200, {"choices": [{"finish_reason": "length", "message": {"content": "{"}}]}),
+               (200, {"choices": [{"finish_reason": "stop", "message": {"refusal": "싫다", "content": None}}]}),
+               (200, {"choices": [{"finish_reason": "stop", "message": {"content": "not json"}}]})]
+        for reply in bad:
+            replies.append(reply)
+            try:
+                a.ask("suggest", {})
+                raise SystemExit(f"오류를 놓침: {reply}")
+            except AIError:
+                pass
+    finally:
+        llm.BASE_URL = url
+        os.environ.pop("OPENROUTER_API_KEY")
+        srv.shutdown()
+
+
 def run_real(runs):
-    from ai import ClaudeAI
+    from ai import OpenRouterAI
 
     check_rules()
     reports = []
     for i in range(runs):
         notice = "all" if i % 2 == 0 else "none"  # 두 분기를 번갈아 강제
-        ai = ClaudeAI()
+        ai = OpenRouterAI()
         _, r = play(ai, notice)
         r["cost_usd"] = round(ai.cost_usd(), 4)
         reports.append(r)
@@ -299,4 +398,9 @@ if __name__ == "__main__":
     ap.add_argument("--real", action="store_true")
     ap.add_argument("--runs", type=int, default=5)
     a = ap.parse_args()
-    run_real(a.runs) if a.real else check_fake()
+    if a.real:
+        run_real(a.runs)
+    else:
+        check_creator()
+        check_openrouter()
+        check_fake()

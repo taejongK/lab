@@ -10,6 +10,8 @@
 
 ## report
 주요 실험 결과·보고서
+- [NPC 엔진 동작 원리 (HTML)](report/2026_11_05_game-mechanics.html) — 시간, 인터랙션, 사건 처리, 기억, 계승, 게임 만들기를 게임 동작 관점에서 정리
+- [실제 LLM 왕 독살 첫 측정](report/2026_11_05_openrouter-real-run.md) — DeepSeek 5판 측정. 왕 사망 0판, 크레딧 소진으로 5판째 오염
 - [외부 자극 반응 NPC 자료 조사](report/2026_10_25_npc-stimulus-literature.md) — 2023-10~2026-10 논문·업계 사례 정리, 설계 축(지각/판단/실행/지연)
 - [System One 모델 게임 플레이 사례](report/2026_10_25_system-one-game-play.md) — Jev·Laya류로 Doom/Snake/T-Rex를 플레이할 때 state·질문·행동 매핑 방식
 - [공간 정보를 state에 넣는 방법](report/2026_10_25_spatial-state-encoding.md) — 8가지 공간 표현과 시행착오 + 격자(ASCII vs 좌표 비교)·이미지 입력(PlayJev·Valen) 사례

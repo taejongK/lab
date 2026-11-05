@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>왕의 술잔</title>
+<title>게임</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/galmuri/dist/galmuri.css">
 <style>
   :root {
@@ -49,6 +49,7 @@
   #journal li.heard { color: #4a3a6e; }
   #help { font-size: 13px; color: var(--dim); text-align: center; }
   kbd { font: inherit; color: var(--parchment); }
+  #help a { color: var(--gold); }
   #debug { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; font-size: 13px; }
   #debug button { font: inherit; background: var(--ink); color: var(--parchment); border: 2px solid var(--dim); padding: 4px 8px; cursor: pointer; }
   #debug button:focus-visible { outline: 2px solid var(--gold); }
@@ -68,7 +69,7 @@
   <div id="cmd" class="win" hidden></div>
   <section id="journal" class="win" hidden aria-label="기억"><h2>내가 아는 것</h2><ul id="journalList"></ul></section>
 </div>
-<p id="help"><kbd>방향키</kbd> 이동 &nbsp; <kbd>E</kbd> 인터랙션 &nbsp; <kbd>J</kbd> 기억 &nbsp; <kbd>Esc</kbd> 닫기</p>
+<p id="help"><kbd>방향키</kbd> 이동 &nbsp; <kbd>E</kbd> 인터랙션 &nbsp; <kbd>J</kbd> 기억 &nbsp; <kbd>Esc</kbd> 닫기 &nbsp; <a href="/">홈으로</a></p>
 <div id="debug" hidden>
   <button data-notice="all">항상 발각</button>
   <button data-notice="none">항상 미발각</button>
@@ -142,7 +143,7 @@ function drawWorld(now) {
     if (roomGrid[y][x] && roomGrid[y][x] !== lastRoom) { ctx.fillStyle = "rgba(27,26,46,.88)"; ctx.fillRect(x * T, y * T, T, T); }
   }));
   for (const o of state.objects) ctx.drawImage(bitmap("objects", o.id, "idle"), o.x * T, o.y * T);
-  const list = [...state.people.map(p => ({...p, a: others[p.id]})), {id: "player", a: me, alive: true}]
+  const list = [...state.people.map(p => ({...p, a: others[p.id]})), {id: assets.player, a: me, alive: true}]
     .filter(e => e.a).sort((p, q) => p.a.py - q.a.py);
   for (const e of list) {
     if (!e.alive) { drawCorpse(e.id, e.a.px * T, e.a.py * T); continue; }
@@ -347,7 +348,7 @@ function drawScene(now) {
     drawBitmap(bitmap("objects", t.id, "idle"), nx, ny + 6, {scale: S});
   }
   shadow(46, 89, 26);
-  drawBitmap(bitmap("characters", "player", "up"), 22, 43, {scale: 3});
+  drawBitmap(bitmap("characters", assets.player, "up"), 22, 43, {scale: 3});
 }
 function drawJournal() {
   $("journalList").replaceChildren(...state.known.slice().reverse().map(m => {
@@ -373,7 +374,7 @@ async function refresh() {
     $("debug").hidden = false;
     $("fires").replaceChildren(...s.schedule.map(id => { const b = document.createElement("button"); b.dataset.fire = id; b.textContent = `일정 실행: ${id}`; return b; }));
   }
-  document.title = s.ai_errors ? `왕의 술잔 (AI 오류 ${s.ai_errors}건)` : "왕의 술잔";
+  document.title = s.ai_errors ? `${assets.title} (AI 오류 ${s.ai_errors}건)` : assets.title;
   checkOutcome(s);
   if (mode === "world") { collectNews(s); showToast(); } 
 }

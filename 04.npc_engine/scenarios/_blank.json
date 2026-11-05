@@ -1,0 +1,70 @@
+{
+  "title": "",
+  "story": "",
+  "strictness": "open",
+  "goal": "",
+  "sprites_file": "_blank.sprites.json",
+  "map": [
+    "################",
+    "#..............#",
+    "#..............#",
+    "#..............#",
+    "#..............#",
+    "#..............#",
+    "#..............#",
+    "#..............#",
+    "#..............#",
+    "#..............#",
+    "################"
+  ],
+  "rooms": [
+    {
+      "name": "첫 방",
+      "backdrop": "#4f4168",
+      "x0": 1,
+      "y0": 1,
+      "x1": 14,
+      "y1": 9
+    }
+  ],
+  "jail_cell": null,
+  "routine_period": 40,
+  "player": {
+    "id": "player",
+    "name": "플레이어",
+    "x": 7,
+    "y": 5,
+    "sheet": {
+      "personality": "플레이어가 정한다",
+      "traits": ""
+    },
+    "knows": []
+  },
+  "characters": [],
+  "objects": [],
+  "roles": {},
+  "base_actions": [
+    {
+      "id": "talk",
+      "label": "대화하기",
+      "targets": "character"
+    },
+    {
+      "id": "inspect",
+      "label": "살펴보기",
+      "targets": "any",
+      "on_dead": true
+    },
+    {
+      "id": "take",
+      "label": "집어 들기",
+      "targets": "object"
+    },
+    {
+      "id": "attack",
+      "label": "공격하기",
+      "targets": "character"
+    }
+  ],
+  "schedule": []
+}
