@@ -420,9 +420,9 @@
     "semantic_hash": ""
   },
   "04.npc_engine/AGENTS.md": {
-    "mtime": 1793806804.804374,
-    "seen": 1793827551.053063,
-    "ast_hash": "a929a61ecb36d1cc14f462952fd76791",
+    "mtime": 1793887825.8220422,
+    "seen": 1793888618.6634,
+    "ast_hash": "d4da7745a3c0848aa163c08aa860300c",
     "semantic_hash": ""
   },
   "04.npc_engine/CLAUDE.md": {
@@ -432,15 +432,15 @@
     "semantic_hash": ""
   },
   "04.npc_engine/README.md": {
-    "mtime": 1793806804.8046293,
-    "seen": 1793827551.053065,
-    "ast_hash": "bdf2dec41e83a73e79055a0ed0b5c766",
+    "mtime": 1793887825.82186,
+    "seen": 1793888618.663401,
+    "ast_hash": "4c55145528958c7d0289e265831221b0",
     "semantic_hash": ""
   },
   "04.npc_engine/docs/index.md": {
-    "mtime": 1793805786.594591,
-    "seen": 1793806270.891799,
-    "ast_hash": "fc6ef1eb7dc0720e17b7a78f960feffb",
+    "mtime": 1793888610.0218544,
+    "seen": 1793888618.663401,
+    "ast_hash": "4ae9373b41c2c79053d350b2711c9c26",
     "semantic_hash": ""
   },
   "04.npc_engine/docs/plan/handover-index.md": {
@@ -468,9 +468,9 @@
     "semantic_hash": ""
   },
   "04.npc_engine/docs/reference/README.md": {
-    "mtime": 1793803523.5751915,
-    "seen": 1793806270.8918028,
-    "ast_hash": "51a08572d2df61a415474ae08413835a",
+    "mtime": 1793886070.391408,
+    "seen": 1793888618.6634061,
+    "ast_hash": "b07c2bc48b7ebcb400905a98806d372b",
     "semantic_hash": ""
   },
   "04.npc_engine/docs/reference/npc-papers_arxiv-abstracts.md": {
@@ -552,9 +552,9 @@
     "semantic_hash": ""
   },
   "04.npc_engine/src/ai.py": {
-    "mtime": 1793806250.07626,
-    "seen": 1793806270.8917649,
-    "ast_hash": "1737e7b871582273d4c196299c5fd378",
+    "mtime": 1793885693.4084713,
+    "seen": 1793888618.663357,
+    "ast_hash": "505791936c64fe94ec8a9b15b7db2bca",
     "semantic_hash": ""
   },
   "04.npc_engine/src/engine.py": {
@@ -570,21 +570,21 @@
     "semantic_hash": ""
   },
   "04.npc_engine/src/playtest.py": {
-    "mtime": 1793806620.9580925,
-    "seen": 1793827551.053024,
-    "ast_hash": "ec09436333211395395dd068f65817a4",
+    "mtime": 1793885819.1186788,
+    "seen": 1793888618.663359,
+    "ast_hash": "4dd496c79af940eb80edbd4228edb1a4",
     "semantic_hash": ""
   },
   "04.npc_engine/src/server.py": {
-    "mtime": 1793806620.9577966,
-    "seen": 1793827551.053024,
-    "ast_hash": "9a0abd5cd516cdbe185130427f4c7c91",
+    "mtime": 1793887856.9933963,
+    "seen": 1793888618.66336,
+    "ast_hash": "c003e3c12ace3139e02dc3095ee2ef43",
     "semantic_hash": ""
   },
   "04.npc_engine/src/world.py": {
-    "mtime": 1793806620.9571214,
-    "seen": 1793827551.053025,
-    "ast_hash": "6dc0736f80c417a77d80198316194ce0",
+    "mtime": 1793885693.4087725,
+    "seen": 1793888618.66336,
+    "ast_hash": "3ed31f337e88f7f91e5d13eca9c566d1",
     "semantic_hash": ""
   },
   "05.agent_memory/docs/reference/datasets/abcd/abcd_sample.json": {
@@ -612,27 +612,27 @@
     "semantic_hash": ""
   },
   "04.npc_engine/docs/plan/active/2026_11_05_character-engine-design.md": {
-    "mtime": 1793806804.8040664,
-    "seen": 1793827551.053066,
-    "ast_hash": "9740dad39ac534e55a37d20d72b08522",
+    "mtime": 1793886070.3911796,
+    "seen": 1793888618.663402,
+    "ast_hash": "cdf8afc8ce142b56c8e282d0c4cd1d6e",
     "semantic_hash": ""
   },
   "04.npc_engine/docs/plan/active/2026_11_05_character-engine-plan.md": {
-    "mtime": 1793806269.381528,
-    "seen": 1793806270.8918002,
-    "ast_hash": "b7909aa27c13846a69ac977b1332a008",
+    "mtime": 1793887050.7859876,
+    "seen": 1793888618.663403,
+    "ast_hash": "10f575c636d6a796ba350d88f1a81dbf",
     "semantic_hash": ""
   },
   "04.npc_engine/docs/worklog/2026_11_05.md": {
-    "mtime": 1793827549.672738,
-    "seen": 1793827551.0530791,
-    "ast_hash": "14ed8a21920d6e3923e004ed059e0c8f",
+    "mtime": 1793888610.0257583,
+    "seen": 1793888618.663417,
+    "ast_hash": "fff0f0be0c103293a1c954ae1fa4d852",
     "semantic_hash": ""
   },
   "04.npc_engine/src/web/index.html": {
-    "mtime": 1793806777.0426333,
-    "seen": 1793827551.05308,
-    "ast_hash": "7ccc85c9ea18eca401043e62959d16b9",
+    "mtime": 1793887825.821181,
+    "seen": 1793888618.6634188,
+    "ast_hash": "528ce4a1b20e92017e59abe527c2510a",
     "semantic_hash": ""
   },
   "05.agent_memory/AGENTS.md": {
@@ -1233,6 +1233,42 @@
     "mtime": 1793806804.781012,
     "seen": 1793827551.05302,
     "ast_hash": "fe461b3ff78fef2ab377f241153f2770",
+    "semantic_hash": ""
+  },
+  "04.npc_engine/scenarios/_blank.json": {
+    "mtime": 1793885693.3592265,
+    "seen": 1793888618.6633532,
+    "ast_hash": "e3f84c07976df3e726bfc004d0734885",
+    "semantic_hash": ""
+  },
+  "04.npc_engine/scenarios/_blank.sprites.json": {
+    "mtime": 1793885693.3590584,
+    "seen": 1793888618.6633542,
+    "ast_hash": "7acaea9f0b5ec4ea403353ffcc11d4d0",
+    "semantic_hash": ""
+  },
+  "04.npc_engine/docs/report/2026_11_05_game-mechanics.html": {
+    "mtime": 1793888610.0215042,
+    "seen": 1793888618.663414,
+    "ast_hash": "b727e93bd1330fb8a2908ae23f8c77ff",
+    "semantic_hash": ""
+  },
+  "04.npc_engine/docs/report/2026_11_05_openrouter-real-run.md": {
+    "mtime": 1793887050.7588892,
+    "seen": 1793888618.663415,
+    "ast_hash": "03056420f81a39b054e54312ab22d86e",
+    "semantic_hash": ""
+  },
+  "04.npc_engine/src/web/create.html": {
+    "mtime": 1793887856.9939272,
+    "seen": 1793888618.663418,
+    "ast_hash": "5486b8e44259a1e00000526729d6e6c7",
+    "semantic_hash": ""
+  },
+  "04.npc_engine/src/web/home.html": {
+    "mtime": 1793887856.9935935,
+    "seen": 1793888618.663418,
+    "ast_hash": "a834bdf09a0af1e61a412debdbe9ed00",
     "semantic_hash": ""
   }
 }

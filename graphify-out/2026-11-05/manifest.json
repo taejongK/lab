@@ -420,9 +420,9 @@
     "semantic_hash": ""
   },
   "04.npc_engine/AGENTS.md": {
-    "mtime": 1793805786.5942976,
-    "seen": 1793806270.891798,
-    "ast_hash": "fe68f97efe23ee5b5a186af26e06ec43",
+    "mtime": 1793806804.804374,
+    "seen": 1793827551.053063,
+    "ast_hash": "a929a61ecb36d1cc14f462952fd76791",
     "semantic_hash": ""
   },
   "04.npc_engine/CLAUDE.md": {
@@ -432,9 +432,9 @@
     "semantic_hash": ""
   },
   "04.npc_engine/README.md": {
-    "mtime": 1793805786.5939658,
-    "seen": 1793806270.891799,
-    "ast_hash": "15511670b766cdfb4c7d7e4b72a4a8bc",
+    "mtime": 1793806804.8046293,
+    "seen": 1793827551.053065,
+    "ast_hash": "bdf2dec41e83a73e79055a0ed0b5c766",
     "semantic_hash": ""
   },
   "04.npc_engine/docs/index.md": {
@@ -546,9 +546,9 @@
     "semantic_hash": ""
   },
   "04.npc_engine/scenarios/castle.json": {
-    "mtime": 1793806250.0844164,
-    "seen": 1793806270.891764,
-    "ast_hash": "04e1f64280a5b36dc3e9c631b8e82c48",
+    "mtime": 1793806620.956711,
+    "seen": 1793827551.0530188,
+    "ast_hash": "1457d3179137dea73b88043544dfd30d",
     "semantic_hash": ""
   },
   "04.npc_engine/src/ai.py": {
@@ -558,9 +558,9 @@
     "semantic_hash": ""
   },
   "04.npc_engine/src/engine.py": {
-    "mtime": 1793806250.076081,
-    "seen": 1793806270.8917649,
-    "ast_hash": "2fcab23b70e12158bedc168ad8ff2efe",
+    "mtime": 1793806620.9575102,
+    "seen": 1793827551.053022,
+    "ast_hash": "970604ff6a296edd54e9e647de0bbc6f",
     "semantic_hash": ""
   },
   "04.npc_engine/src/fake_ai.py": {
@@ -570,21 +570,21 @@
     "semantic_hash": ""
   },
   "04.npc_engine/src/playtest.py": {
-    "mtime": 1793806250.0847228,
-    "seen": 1793806270.891766,
-    "ast_hash": "ad1f7971d987a7b7aed857bd45d8ebca",
+    "mtime": 1793806620.9580925,
+    "seen": 1793827551.053024,
+    "ast_hash": "ec09436333211395395dd068f65817a4",
     "semantic_hash": ""
   },
   "04.npc_engine/src/server.py": {
-    "mtime": 1793806250.0765345,
-    "seen": 1793806270.891767,
-    "ast_hash": "929e183c68b9f18a2f2943ebf9145db7",
+    "mtime": 1793806620.9577966,
+    "seen": 1793827551.053024,
+    "ast_hash": "9a0abd5cd516cdbe185130427f4c7c91",
     "semantic_hash": ""
   },
   "04.npc_engine/src/world.py": {
-    "mtime": 1793806250.0756545,
-    "seen": 1793806270.891767,
-    "ast_hash": "34b9bdf47dde1c43dd0f51784ca16443",
+    "mtime": 1793806620.9571214,
+    "seen": 1793827551.053025,
+    "ast_hash": "6dc0736f80c417a77d80198316194ce0",
     "semantic_hash": ""
   },
   "05.agent_memory/docs/reference/datasets/abcd/abcd_sample.json": {
@@ -612,9 +612,9 @@
     "semantic_hash": ""
   },
   "04.npc_engine/docs/plan/active/2026_11_05_character-engine-design.md": {
-    "mtime": 1793805236.9298806,
-    "seen": 1793806270.8918002,
-    "ast_hash": "6ac92ae473f264d9c5e9eac808e9a9cb",
+    "mtime": 1793806804.8040664,
+    "seen": 1793827551.053066,
+    "ast_hash": "9740dad39ac534e55a37d20d72b08522",
     "semantic_hash": ""
   },
   "04.npc_engine/docs/plan/active/2026_11_05_character-engine-plan.md": {
@@ -624,15 +624,15 @@
     "semantic_hash": ""
   },
   "04.npc_engine/docs/worklog/2026_11_05.md": {
-    "mtime": 1793806269.3853304,
-    "seen": 1793806270.89181,
-    "ast_hash": "44d77f143b93287a71cd4a31cd3713b5",
+    "mtime": 1793827549.672738,
+    "seen": 1793827551.0530791,
+    "ast_hash": "14ed8a21920d6e3923e004ed059e0c8f",
     "semantic_hash": ""
   },
   "04.npc_engine/src/web/index.html": {
-    "mtime": 1793806250.0768268,
-    "seen": 1793806270.8918111,
-    "ast_hash": "ff70c55300ecdec2577528ab59680f3d",
+    "mtime": 1793806777.0426333,
+    "seen": 1793827551.05308,
+    "ast_hash": "7ccc85c9ea18eca401043e62959d16b9",
     "semantic_hash": ""
   },
   "05.agent_memory/AGENTS.md": {
@@ -1227,6 +1227,12 @@
     "mtime": 1793803523.6116557,
     "seen": 1793806270.891864,
     "ast_hash": "9b957d61b1bbb7364887a4ef36562042",
+    "semantic_hash": ""
+  },
+  "04.npc_engine/scenarios/castle.sprites.json": {
+    "mtime": 1793806804.781012,
+    "seen": 1793827551.05302,
+    "ast_hash": "fe461b3ff78fef2ab377f241153f2770",
     "semantic_hash": ""
   }
 }

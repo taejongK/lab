@@ -1,17 +1,17 @@
 # Graph Report - lab_npc-engine  (2026-11-05)
 
 ## Corpus Check
-- 151 files · ~178,712 words
+- 152 files · ~181,874 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 27 file(s) not represented in the graph (top: (none) 25, .graphify-bak 1, .lock 1)
 
 ## Summary
-- 1527 nodes · 1940 edges · 109 communities (94 shown, 15 thin omitted)
+- 1531 nodes · 1948 edges · 120 communities (104 shown, 16 thin omitted)
 - Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 34 edges (avg confidence: 0.88)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `ea4ad55d`
+- Built from commit: `5333dab1`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -42,7 +42,7 @@
 - 표현 방식 8가지
 - arXiv 초록 원문 (NPC·외부 자극 반응 관련)
 - UnifiedDoomEnv
-- probe_ascii_map.py
+- json
 - {기능명} — 로직 인계 문서
 - {기능명} — 로직 인계 문서
 - 결과
@@ -83,12 +83,11 @@
 - Rules
 - FAQ
 - topoteretes/cognee README
-- server.py
-- json
+- AIError
 - 05.agent_memory/docs/index.md
 - Memory
 - MemTensor/MemOS README
-- 04.npc_engine/README.md
+- 2026_11_05
 - Long-term memory
 - 🚀 Quickstart Guide <a name="quickstart"></a>
 - clef_judge.py
@@ -124,6 +123,17 @@
 - mem0ai/mem0 README
 - 2026-10-27
 - 05.agent_memory/README.md
+- .remember
+- Hierarchical Scopes
+- Embedder Configuration
+- Four Ways to Use Memory
+- Memory Slices
+- AI TRPG 캐릭터 엔진 — 구현 계획
+- 2026_10_27
+- Quickstart
+- Non-blocking Saves
+- NPC Engine
+- Source and Privacy
 
 ## God Nodes (most connected - your core abstractions)
 1. `World` - 28 edges
@@ -160,7 +170,7 @@
 - **Experiment Isolation Principle** — claude_independent_experiment_folders, readme_self_contained_projects, claude_pep723_uv_run, readme_shared_promotion_rule [INFERRED 0.75]
 - **Laya calibration pipeline (RLCD loss, proper scoring, bucket temperature)** — 01_jev_docs_notes_03_laya_모델_구조_rlcd_loss, 01_jev_docs_notes_03_laya_모델_구조_proper_reward, 01_jev_docs_notes_03_laya_모델_구조_temp_bucket, 01_jev_docs_notes_03_laya_모델_구조_answer_confidence, 01_jev_docs_notes_01_jev_소개와_개념_calibration [INFERRED 0.85]
 
-## Communities (109 total, 15 thin omitted)
+## Communities (120 total, 16 thin omitted)
 
 ### Community 0 - "new-study Skill"
 Cohesion: 0.10
@@ -211,8 +221,8 @@ Cohesion: 0.25
 Nodes (7): Common Patterns, For AI Agents, frontend, Key Files, Purpose, Testing Requirements, Working In This Directory
 
 ### Community 13 - "evaluate_composed_maze_nanojev.py"
-Cohesion: 0.06
-Nodes (27): describe(), heuristic(), JevBrain, main(), play(), atomic_metrics(), digest(), evaluate_audits() (+19 more)
+Cohesion: 0.05
+Nodes (34): fetch(), main(), describe(), heuristic(), JevBrain, main(), play(), atomic_metrics() (+26 more)
 
 ### Community 14 - "01. 아키텍처 (MVP 초안)"
 Cohesion: 0.08
@@ -231,8 +241,8 @@ Cohesion: 0.07
 Nodes (26): docs, notes, plan, reference, report, worklog, Handover Index, 인계 대기 중 (+18 more)
 
 ### Community 21 - "Memory"
-Cohesion: 0.05
-Nodes (44): Best Practices for Scope Design, Composite Scoring, Configuration Reference, Crew Shutdown, Discovery, Embedder Configuration, Failure Behavior, Four Ways to Use Memory (+36 more)
+Cohesion: 0.13
+Nodes (15): Composite Scoring, Configuration Reference, Discovery, Failure Behavior, Intra-batch Dedup, LLM Configuration, Memory, Memory Consolidation (+7 more)
 
 ### Community 22 - "observe_doom-war.py"
 Cohesion: 0.14
@@ -247,12 +257,12 @@ Cohesion: 0.10
 Nodes (21): A Survey on Large Language Model-Based Game Agents, A Visualized Framework for Event Cooperation with Generative Agents, Affordable Generative Agents, Agents Play Thousands of 3D Video Games, An Empirical Evaluation of AI-Powered Non-Player Characters' Perceived Realism and Performance in Virtual Reality Environments, arXiv 초록 원문 (NPC·외부 자극 반응 관련), Empowering NPC Dialogue with Environmental Context Using LLMs and Panoramic Images, Game Agent Driven by Free-Form Text Command: Using LLM-based Code Generation and Behavior Branch (+13 more)
 
 ### Community 25 - "UnifiedDoomEnv"
-Cohesion: 0.19
-Nodes (4): _finite(), _load_vizdoom(), _positive_int(), UnifiedDoomEnv
+Cohesion: 0.11
+Nodes (10): detect_walls(), cast_ray(), discretize_bearing(), discretize_distance(), _ray_line_intersect(), serialize_state(), _finite(), _load_vizdoom() (+2 more)
 
-### Community 26 - "probe_ascii_map.py"
-Cohesion: 0.17
-Nodes (13): fetch(), main(), answer_of(), ask_move(), bfs(), criteria(), good_moves(), legal() (+5 more)
+### Community 26 - "json"
+Cohesion: 0.27
+Nodes (5): check_rules(), run_real(), loop(), main(), load_scenario()
 
 ### Community 27 - "{기능명} — 로직 인계 문서"
 Cohesion: 0.14
@@ -265,10 +275,6 @@ Nodes (13): 1단계: {단계명}, 2단계: {단계명}, 개요, 구현 시 주�
 ### Community 29 - "결과"
 Cohesion: 0.14
 Nodes (14): 1. 서베이 (출발점), 2. 자극 → 판단 구조 (아키텍처), 3. LLM → 실행 가능한 행동 (BT / 코드), 4. 지각 (환경을 어떻게 입력할지), 5. 실시간성 (지연 문제), 6. 평가·사용자 연구, 7. 업계 사례, 결과 (+6 more)
-
-### Community 30 - "2026_10_25_spatial-state-encoding.md"
-Cohesion: 0.20
-Nodes (6): Reference, V3 导航 2×2 与教师对照：固定协议, 2026_10_27, ASCII 2D 맵 + 오브젝트 설명으로 NPC 이동을 정할 수 있나, System One 모델로 게임을 할 때 공간 정보를 어떻게 넣나, 외부 자극에 반응하는 NPC 관련 최근 3년 자료 조사
 
 ### Community 31 - "CLAUDE.md files"
 Cohesion: 0.05
@@ -307,8 +313,8 @@ Cohesion: 0.22
 Nodes (8): Common Patterns, For AI Agents, Key Files, Purpose, Subdirectories, Testing Requirements, Working In This Directory, {디렉터리 경로 또는 패키지명}
 
 ### Community 41 - "World"
-Cohesion: 0.07
-Nodes (11): 04.npc_engine, Common Patterns, For AI Agents, Key Files, Purpose, Subdirectories, Testing Requirements, Working In This Directory (+3 more)
+Cohesion: 0.09
+Nodes (9): 04.npc_engine, Common Patterns, For AI Agents, Key Files, Purpose, Subdirectories, Testing Requirements, Working In This Directory (+1 more)
 
 ### Community 42 - "{디렉터리 경로 또는 패키지명}"
 Cohesion: 0.22
@@ -383,8 +389,8 @@ Cohesion: 0.09
 Nodes (22): 1. Make sure you're connected, 2. Manage Users, 3. Insert Data, 4. Get your Memory, 5. Integrate memory into your prompt, Contribute, Core Features, Documentation (+14 more)
 
 ### Community 64 - "AI TRPG 캐릭터 엔진 — 설계"
-Cohesion: 0.10
-Nodes (21): 1. 무엇을, 왜, 2. 목표, 3. 역할, 4. 플레이어 조작, 5. 엔진 구조, 6. 첫 시나리오: 성 `[제안]`, 7. 제약과 기술 선택, 8. 검증 `[제안]` (+13 more)
+Cohesion: 0.09
+Nodes (22): 1. 무엇을, 왜, 2. 목표, 3. 역할, 4. 플레이어 조작, 5. 엔진 구조, 6. 첫 시나리오: 성 `[제안]`, 7-1. 화면과 도트 (2026-11-05 사용자 요청), 7. 제약과 기술 선택 (+14 more)
 
 ### Community 65 - "Rules"
 Cohesion: 0.10
@@ -395,12 +401,12 @@ Cohesion: 0.10
 Nodes (19): 1. Add AGENTS.md, 2. Cover what matters, 3. Add extra instructions, 4. Large monorepo? Use nested AGENTS.md files for subprojects, About, AGENTS.md, AGENTS.md — A simple, open format for guiding coding agents, Are there required fields? (+11 more)
 
 ### Community 67 - "topoteretes/cognee README"
-Cohesion: 0.11
-Nodes (17): Benchmarks and research, Choose your starting point, Code of Conduct, Community & Support, Connect your agent, Contributing, Deploy Cognee, Explore examples (+9 more)
+Cohesion: 0.14
+Nodes (13): Benchmarks and research, Choose your starting point, Code of Conduct, Community & Support, Connect your agent, Contributing, Deploy Cognee, Explore examples (+5 more)
 
-### Community 69 - "json"
-Cohesion: 0.23
-Nodes (8): ClaudeAI, AIError, check_fake(), ask(), check_rules(), run_real(), teleport(), load_scenario()
+### Community 69 - "AIError"
+Cohesion: 0.24
+Nodes (5): ClaudeAI, AIError, check_fake(), ask(), teleport()
 
 ### Community 70 - "05.agent_memory/docs/index.md"
 Cohesion: 0.14
@@ -414,9 +420,9 @@ Nodes (15): Concept, Configuring Memory for an Agent, Custom Chat Store, Customi
 Cohesion: 0.12
 Nodes (16): 1. MemOS Cloud Plugin, 2. Local Plugin (OpenClaw, Hermes, and DeepSeek Harness), 📚 Citation, 🤝 Community, DeepSeek Harness, Key Features, ⚖️ License, 👾 MemOS: Memory Operating System for LLM & AI Agents (+8 more)
 
-### Community 73 - "04.npc_engine/README.md"
-Cohesion: 0.15
-Nodes (10): AI TRPG 캐릭터 엔진 — 구현 계획, 단계, 주의할 입력, 파일과 책임, 2026_11_05, 왕 독살 장면을 돌리는 엔진 첫 버전 구현, 캐릭터 엔진의 방향과 첫 버전 범위 정의, NPC Engine (+2 more)
+### Community 73 - "2026_11_05"
+Cohesion: 0.40
+Nodes (4): 2026_11_05, 도트 그래픽과 전용 인터랙션 화면으로 UI 교체, 왕 독살 장면을 돌리는 엔진 첫 버전 구현, 캐릭터 엔진의 방향과 첫 버전 범위 정의
 
 ### Community 74 - "Long-term memory"
 Cohesion: 0.14
@@ -538,6 +544,50 @@ Nodes (3): 2026_11_04, CS 챗봇 실험용 샘플 데이터 확보, 메모리 �
 Cohesion: 0.67
 Nodes (3): mem0ai/mem0 README, New Memory Algorithm (April 2026), Research Highlights
 
+### Community 109 - ".remember"
+Cohesion: 0.25
+Nodes (4): check_sprites(), How Cognee works, How Scope Inference Works, LLM Analysis Layer
+
+### Community 110 - "Hierarchical Scopes"
+Cohesion: 0.33
+Nodes (6): Best Practices for Scope Design, Hierarchical Scopes, MemoryScope: Subtree Views, Use Case Examples, Visualizing the Scope Tree, What Scopes Are
+
+### Community 111 - "Embedder Configuration"
+Cohesion: 0.40
+Nodes (5): Embedder Configuration, Passing to Memory Directly, Provider Examples, Provider Reference, Via Crew Embedder Config
+
+### Community 112 - "Four Ways to Use Memory"
+Cohesion: 0.40
+Nodes (5): Four Ways to Use Memory, Standalone, With Agents, With Crews, With Flows
+
+### Community 113 - "Memory Slices"
+Cohesion: 0.40
+Nodes (5): Memory Slices, Read-Only Slices, Read-Write Slices, What Slices Are, When to Use Slices vs Scopes
+
+### Community 114 - "AI TRPG 캐릭터 엔진 — 구현 계획"
+Cohesion: 0.50
+Nodes (4): AI TRPG 캐릭터 엔진 — 구현 계획, 단계, 주의할 입력, 파일과 책임
+
+### Community 115 - "2026_10_27"
+Cohesion: 0.50
+Nodes (4): 2026_10_27, ASCII 2D 맵 + 오브젝트 설명으로 NPC 이동을 정할 수 있나, System One 모델로 게임을 할 때 공간 정보를 어떻게 넣나, 외부 자극에 반응하는 NPC 관련 최근 3년 자료 조사
+
+### Community 116 - "Quickstart"
+Cohesion: 0.50
+Nodes (4): Explore the bundled demo, Optional: Configure the LLM, Quickstart, Run locally without an LLM
+
+### Community 117 - "Non-blocking Saves"
+Cohesion: 0.50
+Nodes (4): Crew Shutdown, Non-blocking Saves, Read Barrier, Standalone Usage
+
+### Community 118 - "NPC Engine"
+Cohesion: 0.67
+Nodes (3): NPC Engine, 문서, 실행
+
+### Community 119 - "Source and Privacy"
+Cohesion: 0.67
+Nodes (3): Private Memories, Source and Privacy, Source Tracking
+
 ## Ambiguous Edges - Review These
 - `Category Directory Layout (papers/implementations/experiments/prototypes/notes/shared/templates)` → `Independent Top-Level Experiment Folders`  [AMBIGUOUS]
   CLAUDE.md · relation: conceptually_related_to
@@ -548,20 +598,20 @@ Nodes (3): mem0ai/mem0 README, New Memory Algorithm (April 2026), Research Highl
 
 ## Knowledge Gaps
 - **16 isolated node(s):** `server`, `Study Folder Structure (docs/notes, reference, worklog, plan)`, `worklog-discipline Plugin (/init-workstructure)`, `NanoJev`, `Four-layer license check (code/weights/base/data)` (+11 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 915 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **15 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 918 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **16 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `World` connect `World` to `server.py`, `json`, `Engine`?**
-  _High betweenness centrality (0.165) - this node is a cross-community bridge._
+- **Why does `World` connect `World` to `json`, `ai.py`, `.remember`, `Engine`?**
+  _High betweenness centrality (0.148) - this node is a cross-community bridge._
 - **What connects `server`, `Study Folder Structure (docs/notes, reference, worklog, plan)`, `worklog-discipline Plugin (/init-workstructure)` to the rest of the system?**
   _16 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `new-study Skill` be split into smaller, more focused modules?**
   _Cohesion score 0.10227272727272728 - nodes in this community are weakly interconnected._
-- **Why does `Memory` connect `Memory` to `World`, `cases/README.md`?**
-  _High betweenness centrality (0.113) - this node is a cross-community bridge._
+- **Why does `Memory` connect `Memory` to `.remember`, `Hierarchical Scopes`, `Embedder Configuration`, `Four Ways to Use Memory`, `Memory Slices`, `Non-blocking Saves`, `Source and Privacy`, `cases/README.md`?**
+  _High betweenness centrality (0.097) - this node is a cross-community bridge._
 - **Should `Memory tool` be split into smaller, more focused modules?**
   _Cohesion score 0.044444444444444446 - nodes in this community are weakly interconnected._
 
