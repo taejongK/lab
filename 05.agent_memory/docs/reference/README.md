@@ -6,5 +6,5 @@
 | 자료 | 링크 |
 |---|---|
 | 에이전트 메모리 구현 사례 원문 34건 (제품·프레임워크·엔지니어링 글) | [cases/README.md](cases/README.md) |
-| 에이전트 메모리 논문 48편 초록 원문 (2023~2026, arXiv) | [papers/README.md](papers/README.md) |
+| 에이전트 메모리 논문 49편 초록 원문 (2023~2026, arXiv) | [papers/README.md](papers/README.md) |
 | ABCD 데이터셋 원본: CS 상담 가이드라인 + 상담 대화 10,042건 (MIT) | [datasets/abcd/SOURCE.md](datasets/abcd/SOURCE.md) · [GitHub](https://github.com/asappresearch/abcd) · [arXiv:2104.00783](https://arxiv.org/abs/2104.00783) |

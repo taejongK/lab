@@ -50,6 +50,7 @@
 | Mem-α: Learning Memory Construction via Reinforcement Learning | 2025-09-30 | [arXiv:2509.25911](https://arxiv.org/abs/2509.25911) | [mem_alpha_arxiv-2509.25911.md](mem_alpha_arxiv-2509.25911.md) |
 | ACE: Agentic Context Engineering: Evolving Contexts for Self-Improving Language Models | 2025-10-06 | [arXiv:2510.04618](https://arxiv.org/abs/2510.04618) | [ace_arxiv-2510.04618.md](ace_arxiv-2510.04618.md) |
 | Memory-T1: Reinforcement Learning for Temporal Reasoning in Multi-session Agents | 2025-12-23 | [arXiv:2512.20092](https://arxiv.org/abs/2512.20092) | [memory_t1_arxiv-2512.20092.md](memory_t1_arxiv-2512.20092.md) |
+| AgeMem: Agentic Memory: Learning Unified Long-Term and Short-Term Memory Management for Large Language Model Agents | 2026-01-05 | [arXiv:2601.01885](https://arxiv.org/abs/2601.01885) | [agemem_arxiv-2601.01885.md](agemem_arxiv-2601.01885.md) |
 | MemRL: Self-Evolving Agents via Runtime Reinforcement Learning on Episodic Memory | 2026-01-06 | [arXiv:2601.03192](https://arxiv.org/abs/2601.03192) | [memrl_arxiv-2601.03192.md](memrl_arxiv-2601.03192.md) |
 
 ## 서베이

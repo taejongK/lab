@@ -3,7 +3,7 @@
 - 질문: 에이전트 메모리 설계 비교
 - 상태: 진행중
 - 시작일: 2026-10-27
-- 최종 수정일: 2026-11-04
+- 최종 수정일: 2026-11-14
 - 결론: (아직 없음)
 
 ## 문서
@@ -16,6 +16,7 @@
 | [docs/notes/02.memory-evolution.html](docs/notes/02.memory-evolution.html) | 메모리 구조 발전 과정 공부용 설명 (통째로 넣기 → RAG → 에이전틱 → 학습) |
 | [docs/report/2026_10_27_agent-memory-design-comparison.html](docs/report/2026_10_27_agent-memory-design-comparison.html) | 설계 비교 보고서 |
 | [docs/report/2026_11_01_cs-chatbot-memory-architecture.html](docs/report/2026_11_01_cs-chatbot-memory-architecture.html) | CS 챗봇(규정 + 과거 대응 기록) 메모리 구조 제안 |
+| [docs/report/2026_11_14_agemem-paper-analysis.md](docs/report/2026_11_14_agemem-paper-analysis.md) | AgeMem 논문(arXiv:2601.01885) 분석 |
 | [docs/reference/](docs/reference/) | 외부 자료 링크 모음 |
-| [docs/reference/papers/](docs/reference/papers/) | 논문 48편 초록 원문 |
+| [docs/reference/papers/](docs/reference/papers/) | 논문 49편 초록 원문 |
 | [docs/reference/cases/](docs/reference/cases/) | 구축 사례 34건 원문 |
