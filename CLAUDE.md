@@ -13,6 +13,8 @@
 ## 새 실험
 
 새 실험은 `/new-study` 스킬로 만든다 (`.claude/skills/new-study/`).
+**폴더를 만들기 전에 research / poc 중 무엇인지 사용자에게 묻고**, 폴더 안 구조는 그 모드로
+`/worklog-discipline:init-workstructure`를 실행해 구성한다.
 
 `NN.주제/` 폴더 + README.md 필수. `NN`은 기존 최대 번호 + 1 (두 자리, 01부터).
 폴더명에 날짜를 넣지 않는다. 날짜는 README.md의 시작일 / 최종 수정일로 남긴다.
@@ -40,8 +42,10 @@
     └── docs/
         ├── notes/          # 직접 작성한 문서. NN.주제.md
         ├── reference/      # 외부 자료 (링크 모음 README.md, 받아 둔 원문)
+        ├── index.md        # 문서 목차 (init-workstructure)
         ├── worklog/        # YYYY_MM_DD.md 작업 기록
-        └── plan/           # devlog / 인계 문서
+        └── report/         # research 모드: 실험 결과·보고서
+            또는 plan/{active,done}/  # poc 모드: 개발 계획
 
 ## 문서 작성 시 출처
 

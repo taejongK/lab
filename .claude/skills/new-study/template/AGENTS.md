@@ -19,7 +19,7 @@
 | `docs/notes/` | 직접 작성한 스터디 문서 (번호 붙인 `NN.주제.md`) |
 | `docs/reference/` | 외부 자료 — 링크 모음, 받아 둔 원문 |
 | `docs/worklog/` | 날짜별 작업 기록 |
-| `docs/plan/` | 기능 계획 / devlog / 인계 문서 |
+| {모드 폴더} | {모드 폴더 설명} |
 
 ## For AI Agents
 
