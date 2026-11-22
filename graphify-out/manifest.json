@@ -138,9 +138,9 @@
     "semantic_hash": "b261c7b0ee83b46c2c50add9bb25c8c2"
   },
   "README.md": {
-    "mtime": 1794409240.2371132,
-    "seen": 1795346398.7523541,
-    "ast_hash": "dba9a79403f40fa978d78548d7094809",
+    "mtime": 1795347231.0271833,
+    "seen": 1795347240.11572,
+    "ast_hash": "149b60fd784a05a47c5f93114a791e90",
     "semantic_hash": ""
   },
   "02.llm_world/server/llm.py": {
@@ -287,72 +287,6 @@
     "ast_hash": "deb3571244d4cd24fe6be155694f072c",
     "semantic_hash": ""
   },
-  "04.npc_engine/docs/reference/spatial-src/analysis_typesafe-snake.ts": {
-    "mtime": 1794409240.2455828,
-    "seen": 1795346398.752259,
-    "ast_hash": "16df7f1f6d5151a85a8447454a1f48bf",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/docs/reference/spatial-src/doom_agent_jev-plays-doom.py": {
-    "mtime": 1794409240.2462914,
-    "seen": 1795346398.7522602,
-    "ast_hash": "2de8e0342ac62aff98f06f3de9b8d40a",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/docs/reference/spatial-src/evaluate_composed_maze_nanojev.py": {
-    "mtime": 1794409240.2467759,
-    "seen": 1795346398.7522602,
-    "ast_hash": "7ac57988bfb6203ace388416b4e8c24e",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/docs/reference/spatial-src/observe_doom-war.py": {
-    "mtime": 1794409240.2477517,
-    "seen": 1795346398.7522612,
-    "ast_hash": "bd28ab002c2c93c2db7e5d873f0ac976",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/docs/reference/spatial-src/prompt_typesafe-snake.ts": {
-    "mtime": 1794409240.2480104,
-    "seen": 1795346398.7522619,
-    "ast_hash": "ff38b1f8fd752a2e32b3aacf212b45a9",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/docs/reference/spatial-src/sokoban_dataset_valen.py": {
-    "mtime": 1794409240.2482684,
-    "seen": 1795346398.7522619,
-    "ast_hash": "75c6422d8abc1660d869e622212b08e3",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/docs/reference/spatial-src/sokoban_render_valen.py": {
-    "mtime": 1794409240.2485673,
-    "seen": 1795346398.7522628,
-    "ast_hash": "5ae5d895e8ee8c869dd06c31b44ee32d",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/docs/reference/spatial-src/state_serializer_doom-jev.py": {
-    "mtime": 1794409240.2490132,
-    "seen": 1795346398.752264,
-    "ast_hash": "73e5eb2fd6fac822100ae5fc4229be89",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/docs/reference/spatial-src/unified_doom_env_nanojev.py": {
-    "mtime": 1794409240.2493594,
-    "seen": 1795346398.752264,
-    "ast_hash": "2d5d749465a19b7e23143634623dc4ad",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/docs/reference/spatial-src/unified_grid_envs_nanojev.py": {
-    "mtime": 1794409240.2502007,
-    "seen": 1795346398.752265,
-    "ast_hash": "b8c102ee12764fd31ddb7e0b7951da27",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/probe_ascii_map.py": {
-    "mtime": 1794409240.229572,
-    "seen": 1795346398.752265,
-    "ast_hash": "fe2881eb36ddbe3a7d6209138304a0d1",
-    "semantic_hash": ""
-  },
   "03.image_filter/AGENTS.md": {
     "mtime": 1794409240.2270627,
     "seen": 1795346398.7522979,
@@ -419,174 +353,6 @@
     "ast_hash": "7cb110c9fdfe42bcb9a0959be9eddb59",
     "semantic_hash": ""
   },
-  "04.npc_engine/AGENTS.md": {
-    "mtime": 1794409240.2363045,
-    "seen": 1795346398.752306,
-    "ast_hash": "d4da7745a3c0848aa163c08aa860300c",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/CLAUDE.md": {
-    "mtime": 1794409240.2371147,
-    "seen": 1795346398.752306,
-    "ast_hash": "fceedcdcc70acc998668cf7ab3370f41",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/README.md": {
-    "mtime": 1795342187.856886,
-    "seen": 1795346398.752307,
-    "ast_hash": "692d59ba8a41cfad703a35ba012b94ea",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/docs/index.md": {
-    "mtime": 1794409240.238441,
-    "seen": 1795346398.752308,
-    "ast_hash": "4ae9373b41c2c79053d350b2711c9c26",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/docs/plan/handover-index.md": {
-    "mtime": 1794409240.239822,
-    "seen": 1795346398.752309,
-    "ast_hash": "21abeb466ca2b321f78d967afad1ec75",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/docs/plan/templates/AGENTS_TEMPLATE.md": {
-    "mtime": 1794409240.2413607,
-    "seen": 1795346398.75231,
-    "ast_hash": "bdee0fb3f4b2c772c8390e4282c0372d",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/docs/plan/templates/DEV_LOG_TEMPLATE.md": {
-    "mtime": 1794409240.241913,
-    "seen": 1795346398.75231,
-    "ast_hash": "bd3fecfb25700b4b224334e75aa961ad",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/docs/plan/templates/HANDOVER_TEMPLATE.md": {
-    "mtime": 1794409240.2425137,
-    "seen": 1795346398.752311,
-    "ast_hash": "cedcd7e49b0c947de5bbd7fd0ffcb0a3",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/docs/reference/README.md": {
-    "mtime": 1794409240.2427812,
-    "seen": 1795346398.752312,
-    "ast_hash": "b07c2bc48b7ebcb400905a98806d372b",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/docs/reference/npc-papers_arxiv-abstracts.md": {
-    "mtime": 1794409240.2431777,
-    "seen": 1795346398.752312,
-    "ast_hash": "3a40e190b0f13e4ef50402eac8342aee",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/docs/reference/spatial-src/ATOMIC_PLANNING_nanojev.md": {
-    "mtime": 1794409240.2439222,
-    "seen": 1795346398.7523131,
-    "ast_hash": "58885ec2ada4a6646dbf95ae7126be9a",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/docs/reference/spatial-src/DEVELOPMENT_RESULTS_nanojev.md": {
-    "mtime": 1794409240.2446816,
-    "seen": 1795346398.752314,
-    "ast_hash": "ba8fe8f90625b096b75926c3ac92ecd0",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/docs/reference/spatial-src/MODEL_EDGE_RESULTS_nanojev.md": {
-    "mtime": 1794409240.2449667,
-    "seen": 1795346398.752314,
-    "ast_hash": "603a8aa9ff1a6656ec389b12de150f1c",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/docs/reference/spatial-src/navigation_v3_protocol_nanojev_zh.md": {
-    "mtime": 1794409240.2470498,
-    "seen": 1795346398.7523148,
-    "ast_hash": "4afe8ec7603ef2b25fe40466c6e2cb2b",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/docs/reference/spatial-src/navigation_v3_report_nanojev_zh.md": {
-    "mtime": 1794409240.2473612,
-    "seen": 1795346398.7523148,
-    "ast_hash": "1ce17448ae289e6b0e8ea1e800ff0fe5",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/docs/report/2026_10_25_ascii-map-npc-logic.html": {
-    "mtime": 1794409240.250572,
-    "seen": 1795346398.752316,
-    "ast_hash": "45460b384060311c058ca35c8164cb1c",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/docs/report/2026_10_25_npc-stimulus-literature.md": {
-    "mtime": 1794409240.2507946,
-    "seen": 1795346398.752317,
-    "ast_hash": "66119f649aa3759cc1791afba32ae05c",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/docs/report/2026_10_25_spatial-state-encoding.md": {
-    "mtime": 1794409240.2510834,
-    "seen": 1795346398.752317,
-    "ast_hash": "05a7fd33e5461274d1b44d168a18511b",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/docs/report/2026_10_25_system-one-game-play.md": {
-    "mtime": 1794409240.2513392,
-    "seen": 1795346398.752318,
-    "ast_hash": "c4c882af8c4b9e7a4dbe3e6f10ff67e3",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/docs/worklog/2026_10_25.md": {
-    "mtime": 1794409240.2279434,
-    "seen": 1795346398.75232,
-    "ast_hash": "87ced17a30743041dad50cb2ceb7ff05",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/docs/worklog/2026_10_27.md": {
-    "mtime": 1794409240.2281668,
-    "seen": 1795346398.75232,
-    "ast_hash": "40e1a482fdf97437e43cd353117c0cfc",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/scenarios/castle.json": {
-    "mtime": 1795346215.775321,
-    "seen": 1795346398.7522671,
-    "ast_hash": "92c85f9806b1cd8e8de6d146dc88d47b",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/src/ai.py": {
-    "mtime": 1794409240.2329817,
-    "seen": 1795346398.752269,
-    "ast_hash": "505791936c64fe94ec8a9b15b7db2bca",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/src/engine.py": {
-    "mtime": 1795346279.6533163,
-    "seen": 1795346398.752269,
-    "ast_hash": "ad582c16afd881c609faa0fe5d0f4c59",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/src/fake_ai.py": {
-    "mtime": 1794409240.2345958,
-    "seen": 1795346398.75227,
-    "ast_hash": "169599bc32b79a0c5271b8c184df71ee",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/src/playtest.py": {
-    "mtime": 1795346290.5715735,
-    "seen": 1795346398.75227,
-    "ast_hash": "4e7e58fb18a5679d26535258816dac3c",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/src/server.py": {
-    "mtime": 1794409240.2356806,
-    "seen": 1795346398.7522712,
-    "ast_hash": "c003e3c12ace3139e02dc3095ee2ef43",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/src/world.py": {
-    "mtime": 1795346279.3321269,
-    "seen": 1795346398.7522712,
-    "ast_hash": "b6a4f85ae2f828817efaf32bbea126bf",
-    "semantic_hash": ""
-  },
   "05.agent_memory/docs/reference/datasets/abcd/abcd_sample.json": {
     "mtime": 1794409240.2341814,
     "seen": 1795346398.752272,
@@ -609,30 +375,6 @@
     "mtime": 1794409240.2366183,
     "seen": 1795346398.752274,
     "ast_hash": "017bfd9a06e34de39a92b72728490273",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/docs/plan/active/2026_11_05_character-engine-design.md": {
-    "mtime": 1794409240.2392755,
-    "seen": 1795346398.752308,
-    "ast_hash": "cdf8afc8ce142b56c8e282d0c4cd1d6e",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/docs/plan/active/2026_11_05_character-engine-plan.md": {
-    "mtime": 1794409240.239485,
-    "seen": 1795346398.752309,
-    "ast_hash": "10f575c636d6a796ba350d88f1a81dbf",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/docs/worklog/2026_11_05.md": {
-    "mtime": 1794409240.2291327,
-    "seen": 1795346398.752321,
-    "ast_hash": "fff0f0be0c103293a1c954ae1fa4d852",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/src/web/index.html": {
-    "mtime": 1795346290.2017915,
-    "seen": 1795346398.7523232,
-    "ast_hash": "ac33aab6a7c5a89d2a644e1355a7af30",
     "semantic_hash": ""
   },
   "05.agent_memory/AGENTS.md": {
@@ -1227,84 +969,6 @@
     "mtime": 1794409240.2313573,
     "seen": 1795346398.752382,
     "ast_hash": "9b957d61b1bbb7364887a4ef36562042",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/scenarios/castle.sprites.json": {
-    "mtime": 1795346215.7737908,
-    "seen": 1795346398.752268,
-    "ast_hash": "d627ec768687bdfcabb732ab0c5d6e12",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/scenarios/_blank.json": {
-    "mtime": 1795344937.447376,
-    "seen": 1795346398.752266,
-    "ast_hash": "c5fb2274aee8c9ebddebd93dd0d9dcbe",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/scenarios/_blank.sprites.json": {
-    "mtime": 1794409240.2303941,
-    "seen": 1795346398.7522671,
-    "ast_hash": "7acaea9f0b5ec4ea403353ffcc11d4d0",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/docs/report/2026_11_05_game-mechanics.html": {
-    "mtime": 1794409240.22681,
-    "seen": 1795346398.7523189,
-    "ast_hash": "b727e93bd1330fb8a2908ae23f8c77ff",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/docs/report/2026_11_05_openrouter-real-run.md": {
-    "mtime": 1794409240.2271528,
-    "seen": 1795346398.7523189,
-    "ast_hash": "03056420f81a39b054e54312ab22d86e",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/src/web/create.html": {
-    "mtime": 1795345385.7226298,
-    "seen": 1795346398.752322,
-    "ast_hash": "49fd9cb17be58531e2391f5688c455ce",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/src/web/home.html": {
-    "mtime": 1795345882.7923431,
-    "seen": 1795346398.7523232,
-    "ast_hash": "0bb2573abdaeb4797c17639d567ed0ec",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/.archify/explainer-npc-llm-data-20261122-200806/npc-llm-data.delivery.json": {
-    "mtime": 1795345724.495136,
-    "seen": 1795346398.752257,
-    "ast_hash": "026f6e7b578e823b0f2d21088f8f28a5",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/.archify/explainer-npc-llm-data-20261122-200806/npc-llm-data.finalize-summary.json": {
-    "mtime": 1795345725.1326916,
-    "seen": 1795346398.752257,
-    "ast_hash": "54bd688df83e9b2f0295fab7f588b546",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/.archify/explainer-npc-llm-data-20261122-200806/npc-llm-data.finalize.json": {
-    "mtime": 1795345725.1172745,
-    "seen": 1795346398.752258,
-    "ast_hash": "e283b98a41a0a13803d14e03df01c480",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/.archify/explainer-npc-llm-data-20261122-200806/candidate.archify.md": {
-    "mtime": 1795345722.075899,
-    "seen": 1795346398.752304,
-    "ast_hash": "2d870ce06fda1ac6b0dcaf1e60f685b1",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/.archify/explainer-npc-llm-data-20261122-200806/npc-llm-data.html": {
-    "mtime": 1795345724.0319047,
-    "seen": 1795346398.7523048,
-    "ast_hash": "1863489bc368fb3305ac5b8d88716733",
-    "semantic_hash": ""
-  },
-  "04.npc_engine/docs/worklog/2026_11_22.md": {
-    "mtime": 1795346393.7180114,
-    "seen": 1795346398.752322,
-    "ast_hash": "ded680c55516a3aab1bf1a763a853541",
     "semantic_hash": ""
   }
 }

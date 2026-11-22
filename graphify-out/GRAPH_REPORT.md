@@ -1,17 +1,17 @@
 # Graph Report - npc-engine  (2026-11-22)
 
 ## Corpus Check
-- 160 files · ~226,615 words
+- 110 files · ~139,824 words
 - Verdict: corpus is large enough that graph structure adds value.
-- Unclassified: 28 file(s) not represented in the graph (top: (none) 25, .graphify-bak 1, .lock 1)
+- Unclassified: 22 file(s) not represented in the graph (top: (none) 20, .graphify-bak 1, .lock 1)
 
 ## Summary
-- 1584 nodes · 2070 edges · 119 communities (103 shown, 16 thin omitted)
-- Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 55 edges (avg confidence: 0.9)
+- 1023 nodes · 1139 edges · 82 communities (74 shown, 8 thin omitted)
+- Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 32 edges (avg confidence: 0.91)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `6aeefa22`
+- Built from commit: `f5d52a1e`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -19,7 +19,7 @@
 - new-study Skill
 - Laya
 - Memory tool
-- 02.llm_world/docs/reference/README.md
+- 01.jev/docs/notes/02.오픈소스-복제-모델.md
 - main.py
 - Calibration
 - 01.jev/CLAUDE.md
@@ -29,72 +29,46 @@
 - {디렉터리 경로 또는 패키지명}
 - {기능명} — 개발 로그
 - For AI Agents
-- probe_ascii_map.py
-- 01. 아키텍처 (MVP 초안)
+- .say
+- LLM World
 - Handover Index
 - frontend/README.md
 - server/README.md
 - server
-- unified_grid_envs_nanojev.py
+- World
 - 공개 성인(NSFW) 이미지 데이터셋 / 벤치마크 조사
 - Memory
-- observe_doom-war.py
-- 표현 방식 8가지
-- arXiv 초록 원문 (NPC·외부 자극 반응 관련)
-- UnifiedDoomEnv
-- playtest.py
+- 2026-10-13
+- 01. 아키텍처 (MVP 초안)
+- 02.llm_world/docs/reference/README.md
+- docs
 - {기능명} — 로직 인계 문서
-- {기능명} — 로직 인계 문서
-- 결과
-- 2026_10_25_spatial-state-encoding.md
 - CLAUDE.md files
 - 자동 문서화 규칙 (필수)
-- 자동 문서화 규칙 (필수)
-- analysis_typesafe-snake.ts
-- System One 모델로 게임을 플레이하는 방식 — 사례 조사
 - Jev
 - getzep/graphiti README (Zep 시간 지식그래프)
-- Engine
 - 03.image_filter
 - {디렉터리 경로 또는 패키지명}
-- 04.npc_engine
-- {디렉터리 경로 또는 패키지명}
-- prompt_typesafe-snake.ts
 - LLM logit readout approach
 - DecisionModel.forward
-- {기능명} — 개발 로그
 - {기능명} — 개발 로그
 - 01. 에이전트 메모리 주요 아키텍처 패턴 (2025~2026)
 - Reference
 - chatgpt-memory_openai-help-faq.md
-- Atomic maze judgments and code planning
-- Development results: fixed maze and Snake pilot
-- Model-guided edge exploration: measured results
-- Navigation V3 固定实验报告
-- docs
-- Handover Index
 - cases/README.md
 - image_filter
 - 2026_10_19.md
-- 2026_10_25.md
 - Build with Supermemory (API)
 - memodb-io/memobase README
-- AI TRPG 캐릭터 엔진 — 설계
 - Rules
 - FAQ
 - topoteretes/cognee README
-- ai.py
-- AIError
 - 05.agent_memory/docs/index.md
 - Memory
 - MemTensor/MemOS README
-- 2026_11_05
 - Long-term memory
 - 🚀 Quickstart Guide <a name="quickstart"></a>
-- .remember
-- Handler
 - Action-Based Conversations Dataset (ABCD)
-- FakeAI
 - 자동 문서화 규칙 (필수)
 - Effective context engineering for AI agents
 - About Copilot Memory
@@ -121,41 +95,33 @@
 - 2026_10_28
 - 2026_11_01
 - 2026_11_04
-- mem0ai/mem0 README
+- mem0_github-readme.md
 - 2026-10-27
 - 05.agent_memory/README.md
-- evaluate_composed_maze_nanojev.py
-- World
-- .apply
-- 실제 LLM으로 돌린 왕 독살 장면 첫 측정
-- server.py
-- 2026_10_27
-- 2026_11_22
-- 04.npc_engine/README.md
 
 ## God Nodes (most connected - your core abstractions)
-1. `World` - 34 edges
-2. `Engine` - 31 edges
-3. `arXiv 초록 원문 (NPC·외부 자극 반응 관련)` - 21 edges
-4. `Memory` - 21 edges
-5. `getzep/graphiti README (Zep 시간 지식그래프)` - 19 edges
-6. `AIError` - 15 edges
-7. `Handler` - 15 edges
-8. `UnifiedDoomEnv` - 14 edges
-9. `FakeAI` - 14 edges
-10. `play()` - 14 edges
+1. `Memory` - 21 edges
+2. `getzep/graphiti README (Zep 시간 지식그래프)` - 19 edges
+3. `Memory tool` - 14 edges
+4. `memodb-io/memobase README` - 14 edges
+5. `Jev` - 14 edges
+6. `topoteretes/cognee README` - 13 edges
+7. `2026-10-13` - 12 edges
+8. `decide()` - 11 edges
+9. `Rules` - 11 edges
+10. `World` - 10 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `Study README Template` --semantically_similar_to--> `Project README Template (status/period/what-why/results/conclusion)`  [INFERRED] [semantically similar]
   .claude/skills/new-study/template/README.md → README.md
+- `MVP 5단계: LLM 판단 + 고착 문제 3인 논의` --references--> `decide()`  [INFERRED]
+  02.llm_world/docs/worklog/2026_10_13.md → 02.llm_world/server/main.py
 - `결정 사항` --references--> `npc_loop()`  [INFERRED]
   02.llm_world/docs/plan/active/20261013_mvp_devlog.md → 02.llm_world/server/main.py
-- `MVP 4단계: NPC 랜덤 목적지 이동` --references--> `npc_loop()`  [INFERRED]
-  02.llm_world/docs/worklog/2026_10_13.md → 02.llm_world/server/main.py
-- `new-study Skill` --conceptually_related_to--> `01.jev Study`  [INFERRED]
-  .claude/skills/new-study/SKILL.md → README.md
-- `Category Directory Layout (papers/implementations/experiments/prototypes/notes/shared/templates)` --conceptually_related_to--> `NN.topic Folder Numbering`  [AMBIGUOUS]
-  README.md → .claude/skills/new-study/SKILL.md
+- `Key Files` --references--> `World`  [INFERRED]
+  02.llm_world/server/AGENTS.md → 02.llm_world/server/main.py
+- `Key Files` --references--> `decide()`  [INFERRED]
+  02.llm_world/server/AGENTS.md → 02.llm_world/server/main.py
 
 ## Import Cycles
 - None detected.
@@ -168,7 +134,7 @@
 - **Experiment Isolation Principle** — claude_independent_experiment_folders, readme_self_contained_projects, claude_pep723_uv_run, readme_shared_promotion_rule [INFERRED 0.75]
 - **Laya calibration pipeline (RLCD loss, proper scoring, bucket temperature)** — 01_jev_docs_notes_03_laya_모델_구조_rlcd_loss, 01_jev_docs_notes_03_laya_모델_구조_proper_reward, 01_jev_docs_notes_03_laya_모델_구조_temp_bucket, 01_jev_docs_notes_03_laya_모델_구조_answer_confidence, 01_jev_docs_notes_01_jev_소개와_개념_calibration [INFERRED 0.85]
 
-## Communities (119 total, 16 thin omitted)
+## Communities (82 total, 8 thin omitted)
 
 ### Community 0 - "new-study Skill"
 Cohesion: 0.10
@@ -182,13 +148,13 @@ Nodes (15): RLCD (Reinforcement Learning for Calibrated Decisions), decider, Dec
 Cohesion: 0.05
 Nodes (43): Basic usage, Context editing integration, create, delete, Directory handling, Directory handling, Directory handling, Directory handling (+35 more)
 
-### Community 3 - "02.llm_world/docs/reference/README.md"
-Cohesion: 0.19
-Nodes (9): awesome-jev, Four-layer license check (code/weights/base/data), Gneiting & Raftery 2007 (Strictly Proper Scoring Rules), proper_reward (log + spherical + RPS), Shao et al. 2024 DeepSeekMath (GRPO), Williams 1992 (REINFORCE), new-study skill, Legacy Sept research (git 932e704 2026-09-jev/) (+1 more)
+### Community 3 - "01.jev/docs/notes/02.오픈소스-복제-모델.md"
+Cohesion: 0.31
+Nodes (4): awesome-jev, Four-layer license check (code/weights/base/data), new-study skill, Legacy Sept research (git 932e704 2026-09-jev/)
 
 ### Community 4 - "main.py"
 Cohesion: 0.06
-Nodes (25): 결정 사항, 02.llm_world 폴더 생성 및 목표 설정, 2026-10-13, MVP 1단계: uzu 스모크 테스트, MVP 2단계: 서버 뼈대, MVP 3단계: 프론트 뼈대, MVP 4단계: NPC 랜덤 목적지 이동, MVP 5단계: LLM 판단 + 고착 문제 3인 논의 (+17 more)
+Nodes (14): MVP 4단계: NPC 랜덤 목적지 이동, ask(), load(), decide(), lifespan(), nearest_place(), npc_loop(), observe() (+6 more)
 
 ### Community 5 - "Calibration"
 Cohesion: 0.22
@@ -218,61 +184,49 @@ Nodes (7): 개발 계획, 결정 사항, {기능명} — 개발 로그, 메모, 
 Cohesion: 0.25
 Nodes (7): Common Patterns, For AI Agents, frontend, Key Files, Purpose, Testing Requirements, Working In This Directory
 
-### Community 13 - "probe_ascii_map.py"
-Cohesion: 0.29
-Nodes (11): answer_of(), ask_move(), bfs(), criteria(), good_moves(), legal(), main(), make_world() (+3 more)
+### Community 13 - ".say"
+Cohesion: 0.20
+Nodes (9): 프로토콜, MVP — 개발 로그, 개발 계획, 결정 사항, 메모, 목표, 변경 이력, 현재 상태 (+1 more)
 
-### Community 14 - "01. 아키텍처 (MVP 초안)"
-Cohesion: 0.08
-Nodes (21): 01. 아키텍처 (MVP 초안), NPC 판단, 미확인 / 열린 질문, 서버 루프, 월드, 전체 구조, 출처, 프로토콜 (+13 more)
+### Community 14 - "LLM World"
+Cohesion: 0.20
+Nodes (7): LLM World, 구성, 목표, 문서, 범위 밖 (지금은), 스택, 완료 기준 (MVP)
 
 ### Community 15 - "Handover Index"
 Cohesion: 0.50
 Nodes (3): Handover Index, 인계 대기 중, 인계 현황
 
-### Community 19 - "unified_grid_envs_nanojev.py"
-Cohesion: 0.12
-Nodes (6): _Base, _destination(), _json(), _positive(), UnifiedMazeEnv, UnifiedSnakeEnv
+### Community 19 - "World"
+Cohesion: 0.24
+Nodes (5): MVP 2단계: 서버 뼈대, MVP 3단계: 프론트 뼈대, bfs(), walkable(), World
 
 ### Community 20 - "공개 성인(NSFW) 이미지 데이터셋 / 벤치마크 조사"
 Cohesion: 0.07
 Nodes (26): docs, notes, plan, reference, report, worklog, Handover Index, 인계 대기 중 (+18 more)
 
 ### Community 21 - "Memory"
-Cohesion: 0.05
-Nodes (37): Composite Scoring, Configuration Reference, Crew Shutdown, Discovery, Embedder Configuration, Failure Behavior, Four Ways to Use Memory, Intra-batch Dedup (+29 more)
+Cohesion: 0.04
+Nodes (45): Best Practices for Scope Design, Composite Scoring, Configuration Reference, Crew Shutdown, Discovery, Embedder Configuration, Failure Behavior, Four Ways to Use Memory (+37 more)
 
-### Community 22 - "observe_doom-war.py"
-Cohesion: 0.14
-Nodes (7): bearing(), clearance(), Contact, Observation, read(), side(), span()
+### Community 22 - "2026-10-13"
+Cohesion: 0.22
+Nodes (8): 02.llm_world 폴더 생성 및 목표 설정, 2026-10-13, MVP 1단계: uzu 스모크 테스트, MVP 5단계: LLM 판단 + 고착 문제 3인 논의, MVP 7단계: 도트 그래픽, 개발 전 규칙·문서 세팅, 기술 스택 결정 반영, 스택 확정: 도트 Canvas 2D, WebSocket, Qwen 3.5 0.8B
 
-### Community 23 - "표현 방식 8가지"
-Cohesion: 0.09
-Nodes (22): 1. 화면 좌표 bbox — NanoJev Doom, 2. 전체 격자 ASCII — typesafe-snake, 3. 에이전트 중심 국소 창 + 탐험 기억 — NanoJev Maze, 4. 자기중심 극좌표 (숫자) — jev-plays-doom, 5. 자기중심 극좌표 (구간 단어) — doom-war, doom-jev, 6. 방향별 여유 공간 — doom-war, doom-jev, 7. 1차원 거리 한 줄 — CLM T-Rex, 8. 공간 결과를 선택지 설명에 넣기 — 가장 많이 쓰이고 효과가 큰 방식 (+14 more)
+### Community 23 - "01. 아키텍처 (MVP 초안)"
+Cohesion: 0.25
+Nodes (7): 01. 아키텍처 (MVP 초안), NPC 판단, 미확인 / 열린 질문, 서버 루프, 월드, 전체 구조, 출처
 
-### Community 24 - "arXiv 초록 원문 (NPC·외부 자극 반응 관련)"
-Cohesion: 0.10
-Nodes (21): A Survey on Large Language Model-Based Game Agents, A Visualized Framework for Event Cooperation with Generative Agents, Affordable Generative Agents, Agents Play Thousands of 3D Video Games, An Empirical Evaluation of AI-Powered Non-Player Characters' Perceived Realism and Performance in Virtual Reality Environments, arXiv 초록 원문 (NPC·외부 자극 반응 관련), Empowering NPC Dialogue with Environmental Context Using LLMs and Panoramic Images, Game Agent Driven by Free-Form Text Command: Using LLM-based Code Generation and Behavior Branch (+13 more)
+### Community 24 - "02.llm_world/docs/reference/README.md"
+Cohesion: 0.38
+Nodes (5): Gneiting & Raftery 2007 (Strictly Proper Scoring Rules), proper_reward (log + spherical + RPS), Shao et al. 2024 DeepSeekMath (GRPO), Williams 1992 (REINFORCE), Reference
 
-### Community 25 - "UnifiedDoomEnv"
-Cohesion: 0.11
-Nodes (10): detect_walls(), cast_ray(), discretize_bearing(), discretize_distance(), _ray_line_intersect(), serialize_state(), _finite(), _load_vizdoom() (+2 more)
-
-### Community 26 - "playtest.py"
-Cohesion: 0.16
-Nodes (6): check_fake(), check_rules(), play(), run_real(), teleport(), load_scenario()
+### Community 25 - "docs"
+Cohesion: 0.40
+Nodes (5): docs, notes, reference, report, worklog
 
 ### Community 27 - "{기능명} — 로직 인계 문서"
 Cohesion: 0.14
 Nodes (13): 1단계: {단계명}, 2단계: {단계명}, 개요, 구현 시 주의사항, {기능명} — 로직 인계 문서, 단계별 로직 상세, 데이터 흐름, 설계 결정 사항 (+5 more)
-
-### Community 28 - "{기능명} — 로직 인계 문서"
-Cohesion: 0.14
-Nodes (13): 1단계: {단계명}, 2단계: {단계명}, 개요, 구현 시 주의사항, {기능명} — 로직 인계 문서, 단계별 로직 상세, 데이터 흐름, 설계 결정 사항 (+5 more)
-
-### Community 29 - "결과"
-Cohesion: 0.14
-Nodes (14): 1. 서베이 (출발점), 2. 자극 → 판단 구조 (아키텍처), 3. LLM → 실행 가능한 행동 (BT / 코드), 4. 지각 (환경을 어떻게 입력할지), 5. 실시간성 (지연 문제), 6. 평가·사용자 연구, 7. 업계 사례, 결과 (+6 more)
 
 ### Community 31 - "CLAUDE.md files"
 Cohesion: 0.05
@@ -281,18 +235,6 @@ Nodes (42): AGENTS.md, Audit and edit your memory, Audit your instruction files,
 ### Community 32 - "자동 문서화 규칙 (필수)"
 Cohesion: 0.18
 Nodes (9): 디렉터리 구조 변경 시 (AGENTS.md 계층), 문서 구조 (research), 문서 위치, 문서를 만들거나 옮길 때 (docs/index.md), 실험 결과가 나오거나 보고서를 쓸 때 (docs/report), 자동 문서화 규칙 (필수), 자료를 조사했을 때 (docs/reference), 커밋 시 (docs/worklog 날짜별 로그) — 항상 (+1 more)
-
-### Community 33 - "자동 문서화 규칙 (필수)"
-Cohesion: 0.18
-Nodes (9): 디렉터리 구조 변경 시 (AGENTS.md 계층), 문서 구조 (research), 문서 위치, 문서를 만들거나 옮길 때 (docs/index.md), 실험 결과가 나오거나 보고서를 쓸 때 (docs/report), 자동 문서화 규칙 (필수), 자료를 조사했을 때 (docs/reference), 커밋 시 (docs/worklog 날짜별 로그) — 항상 (+1 more)
-
-### Community 34 - "analysis_typesafe-snake.ts"
-Cohesion: 0.27
-Nodes (9): analyze(), analyzeMove(), CLOCKWISE, fallbackMove(), floodFill(), legalMoves(), MoveFacts, Turn (+1 more)
-
-### Community 35 - "System One 모델로 게임을 플레이하는 방식 — 사례 조사"
-Cohesion: 0.18
-Nodes (11): Snake 예시 — 상하좌우를 고르는 형태, System One 모델로 게임을 플레이하는 방식 — 사례 조사, 결과, 남은 질문, 모델 사용 방식 3가지, 목적, 반복해서 나오는 설계 패턴, 방법 (+3 more)
 
 ### Community 36 - "Jev"
 Cohesion: 0.24
@@ -310,18 +252,6 @@ Nodes (8): 03.image_filter, Common Patterns, For AI Agents, Key Files, Purpose, 
 Cohesion: 0.22
 Nodes (8): Common Patterns, For AI Agents, Key Files, Purpose, Subdirectories, Testing Requirements, Working In This Directory, {디렉터리 경로 또는 패키지명}
 
-### Community 41 - "04.npc_engine"
-Cohesion: 0.22
-Nodes (8): 04.npc_engine, Common Patterns, For AI Agents, Key Files, Purpose, Subdirectories, Testing Requirements, Working In This Directory
-
-### Community 42 - "{디렉터리 경로 또는 패키지명}"
-Cohesion: 0.22
-Nodes (8): Common Patterns, For AI Agents, Key Files, Purpose, Subdirectories, Testing Requirements, Working In This Directory, {디렉터리 경로 또는 패키지명}
-
-### Community 43 - "prompt_typesafe-snake.ts"
-Cohesion: 0.28
-Nodes (6): buildRequest(), describeMove(), JevRequest, LEGEND, PRESETS, renderBoard()
-
 ### Community 44 - "LLM logit readout approach"
 Cohesion: 0.29
 Nodes (7): Constrained decoding (null hypothesis), Sean Goedecke skeptical analysis, AnyJev, JevBench, Position (option-order) bias, SemIf (OpenJev), parallel_layout (order-invariant layout, undeployed)
@@ -331,10 +261,6 @@ Cohesion: 0.29
 Nodes (5): build_sequence / build_head, DecisionModel.forward, [MASK]-per-option scoring, ModernBERT-large encoder, Warner et al. 2024 (ModernBERT)
 
 ### Community 46 - "{기능명} — 개발 로그"
-Cohesion: 0.25
-Nodes (7): 개발 계획, 결정 사항, {기능명} — 개발 로그, 메모, 목표, 변경 이력, 현재 상태
-
-### Community 47 - "{기능명} — 개발 로그"
 Cohesion: 0.25
 Nodes (7): 개발 계획, 결정 사항, {기능명} — 개발 로그, 메모, 목표, 변경 이력, 현재 상태
 
@@ -350,33 +276,9 @@ Nodes (7): Reference, 공식, 논문, 벤치마크 데이터셋, 분석 / 해설
 Cohesion: 0.07
 Nodes (26): Ask ChatGPT not to mention something, Can ChatGPT remember my name or account identity?, Can memory personalize web searches?, Can memory use files or connected apps?, Can workspace owners control memory?, Correct information, Correct or remove remembered information, Delete remembered information (+18 more)
 
-### Community 51 - "Atomic maze judgments and code planning"
-Cohesion: 0.29
-Nodes (6): API probability records, Atomic maze judgments and code planning, Fixed-route question benchmark, Frozen local dataset, Matching local training inputs, Model-guided execution
-
-### Community 52 - "Development results: fixed maze and Snake pilot"
-Cohesion: 0.29
-Nodes (6): Development results: fixed maze and Snake pilot, Independent question and probability measurements, Maze: success / steps, Snake: food score / steps / outcome, Systems and roles, Verification and reproduction
-
-### Community 53 - "Model-guided edge exploration: measured results"
-Cohesion: 0.33
-Nodes (5): Full-horizon results, Interpretation and verification, Model-guided edge exploration: measured results, Original 128-attempt pilot, retained, System roles
-
-### Community 54 - "Navigation V3 固定实验报告"
-Cohesion: 0.33
-Nodes (5): Navigation V3 固定实验报告, 固定闭环协议与覆盖, 完整性与来源, 离线 gold 目标与教师拟合分别报告, 预定主模型与配对差值
-
-### Community 55 - "docs"
-Cohesion: 0.40
-Nodes (5): docs, plan, reference, report, worklog
-
-### Community 56 - "Handover Index"
-Cohesion: 0.50
-Nodes (3): Handover Index, 인계 대기 중, 인계 현황
-
 ### Community 58 - "cases/README.md"
-Cohesion: 0.13
-Nodes (8): How Claude remembers your project (CLAUDE.md / auto memory), Managing context on the Claude Developer Platform (context editing + memory tool), Building an agentic memory system for GitHub Copilot, Memory (CrewAI unified memory), Rules, Memory overview (LangGraph: short-term / long-term, semantic·episodic·procedural), langchain-ai/langmem README, Context Engineering for AI Agents: Lessons from Building Manus
+Cohesion: 0.16
+Nodes (6): How Claude remembers your project (CLAUDE.md / auto memory), Building an agentic memory system for GitHub Copilot, Memory (CrewAI unified memory), Rules, Memory overview (LangGraph: short-term / long-term, semantic·episodic·procedural), Context Engineering for AI Agents: Lessons from Building Manus
 
 ### Community 62 - "Build with Supermemory (API)"
 Cohesion: 0.08
@@ -385,10 +287,6 @@ Nodes (23): API at a glance, Benchmarking your own memory solution, Benchmarks, 
 ### Community 63 - "memodb-io/memobase README"
 Cohesion: 0.09
 Nodes (22): 1. Make sure you're connected, 2. Manage Users, 3. Insert Data, 4. Get your Memory, 5. Integrate memory into your prompt, Contribute, Core Features, Documentation (+14 more)
-
-### Community 64 - "AI TRPG 캐릭터 엔진 — 설계"
-Cohesion: 0.09
-Nodes (23): 1. 무엇을, 왜, 2. 목표, 3. 역할, 4. 플레이어 조작, 5. 엔진 구조, 6. 첫 시나리오: 성 `[제안]`, 7-1. 화면과 도트 (2026-11-05 사용자 요청), 7-2. 창작자 페이지와 LLM (2026-11-05 사용자 요청) (+15 more)
 
 ### Community 65 - "Rules"
 Cohesion: 0.10
@@ -400,15 +298,11 @@ Nodes (19): 1. Add AGENTS.md, 2. Cover what matters, 3. Add extra instructions, 
 
 ### Community 67 - "topoteretes/cognee README"
 Cohesion: 0.11
-Nodes (17): Benchmarks and research, Choose your starting point, Code of Conduct, Community & Support, Connect your agent, Contributing, Deploy Cognee, Explore examples (+9 more)
-
-### Community 69 - "AIError"
-Cohesion: 0.21
-Nodes (7): OpenRouterAI, AIError, ask(), check_openrouter(), do_GET(), do_POST(), _reply()
+Nodes (18): Benchmarks and research, Choose your starting point, Code of Conduct, Community & Support, Connect your agent, Contributing, Deploy Cognee, Explore examples (+10 more)
 
 ### Community 70 - "05.agent_memory/docs/index.md"
-Cohesion: 0.14
-Nodes (12): docs, notes, reference, report, worklog, ABCD (Action-Based Conversations Dataset) 원본, 메모리 관리 / 학습 (RL·test-time), 메모리 아키텍처 (+4 more)
+Cohesion: 0.22
+Nodes (7): ABCD (Action-Based Conversations Dataset) 원본, 메모리 관리 / 학습 (RL·test-time), 메모리 아키텍처, 벤치마크, 서베이, 에이전트 메모리 논문 원문 모음, Reference
 
 ### Community 71 - "Memory"
 Cohesion: 0.12
@@ -418,10 +312,6 @@ Nodes (15): Concept, Configuring Memory for an Agent, Custom Chat Store, Customi
 Cohesion: 0.12
 Nodes (16): 1. MemOS Cloud Plugin, 2. Local Plugin (OpenClaw, Hermes, and DeepSeek Harness), 📚 Citation, 🤝 Community, DeepSeek Harness, Key Features, ⚖️ License, 👾 MemOS: Memory Operating System for LLM & AI Agents (+8 more)
 
-### Community 73 - "2026_11_05"
-Cohesion: 0.29
-Nodes (7): 2026_11_05, 게임 동작 원리 문서화, 도트 그래픽과 전용 인터랙션 화면으로 UI 교체, 실제 모델로 왕 독살 장면 측정, 왕 독살 장면을 돌리는 엔진 첫 버전 구현, 창작자 페이지, 홈 화면, OpenRouter 연결, 캐릭터 엔진의 방향과 첫 버전 범위 정의
-
 ### Community 74 - "Long-term memory"
 Cohesion: 0.14
 Nodes (14): Collection, Episodic memory, In the background, In the hot path, Learn more, Long-term memory, Manage short-term memory, Memory overview (+6 more)
@@ -430,21 +320,9 @@ Nodes (14): Collection, Episodic memory, In the background, In the hot path, Lea
 Cohesion: 0.14
 Nodes (14): Agent Skills, Basic Usage, Citation, CLI, Cloud Platform, 📚 Documentation & Support, 🔗 Integrations & Demos, Introduction (+6 more)
 
-### Community 76 - ".remember"
-Cohesion: 0.12
-Nodes (10): check_sprites(), How Cognee works, Best Practices for Scope Design, Hierarchical Scopes, How Scope Inference Works, LLM Analysis Layer, MemoryScope: Subtree Views, Use Case Examples (+2 more)
-
-### Community 77 - "Handler"
-Cohesion: 0.16
-Nodes (3): game_card(), Handler, check_scenario()
-
 ### Community 78 - "Action-Based Conversations Dataset (ABCD)"
 Cohesion: 0.15
 Nodes (12): Action-Based Conversations Dataset (ABCD), Citation, Contact, Conversation, Data, Evaluation, Guidelines, Introduction (+4 more)
-
-### Community 79 - "FakeAI"
-Cohesion: 0.19
-Nodes (5): LLM은 어떤 다섯 역할을 맡나 {#llm-calls}, 상호작용 한 번은 어떻게 흘러가나 {#interaction}, 캐릭터는 어떻게 움직이나 {#movement}, _ch(), FakeAI
 
 ### Community 80 - "자동 문서화 규칙 (필수)"
 Cohesion: 0.18
@@ -499,8 +377,8 @@ Cohesion: 0.25
 Nodes (8): Conclusion, Context Engineering for AI Agents: Lessons from Building Manus, Design Around the KV-Cache, Don't Get Few-Shotted, Keep the Wrong Stuff In, Manipulate Attention Through Recitation, Mask, Don't Remove, Use the File System as Context
 
 ### Community 93 - "Managing context on the Claude Developer Platform"
-Cohesion: 0.40
-Nodes (5): Building long-running agents, Context windows have limits, but real work doesn’t, Getting started, Managing context on the Claude Developer Platform, Performance improvements with context management
+Cohesion: 0.29
+Nodes (6): Building long-running agents, Context windows have limits, but real work doesn’t, Getting started, Managing context on the Claude Developer Platform, Managing context on the Claude Developer Platform (context editing + memory tool), Performance improvements with context management
 
 ### Community 94 - "Bringing memory to Claude"
 Cohesion: 0.29
@@ -531,8 +409,8 @@ Cohesion: 0.40
 Nodes (4): Author, Memory and new controls for ChatGPT, Memory and new controls for ChatGPT, Related articles
 
 ### Community 101 - "LangMem"
-Cohesion: 0.40
-Nodes (5): Creating an Agent, Installation, Key features, LangMem, Next Steps
+Cohesion: 0.29
+Nodes (6): Creating an Agent, Installation, Key features, langchain-ai/langmem README, LangMem, Next Steps
 
 ### Community 102 - "letta_github-readme.md"
 Cohesion: 0.40
@@ -550,37 +428,9 @@ Nodes (3): 2026_11_01, CS 챗봇 메모리 구조, 대표 메모리 방법론 �
 Cohesion: 0.50
 Nodes (3): 2026_11_04, CS 챗봇 실험용 샘플 데이터 확보, 메모리 구조 발전 스터디 문서 (통째로 넣기 → RAG → 에이전틱 메모리)
 
-### Community 106 - "mem0ai/mem0 README"
-Cohesion: 0.67
-Nodes (3): mem0ai/mem0 README, New Memory Algorithm (April 2026), Research Highlights
-
-### Community 109 - "evaluate_composed_maze_nanojev.py"
-Cohesion: 0.06
-Nodes (25): main(), judge(), fetch(), main(), describe(), heuristic(), JevBrain, main() (+17 more)
-
-### Community 111 - ".apply"
-Cohesion: 0.21
-Nodes (5): NPC 엔진은 LLM과 데이터로 캐릭터를 어떻게 움직이나 {#npc-llm-data}, 누가 무엇을 맡나 {#roles}, 어디까지 믿을 수 있나 {#limits}, 캐릭터는 어떤 데이터로 이뤄지나 {#character-data}, room()
-
-### Community 112 - "실제 LLM으로 돌린 왕 독살 장면 첫 측정"
-Cohesion: 0.33
-Nodes (6): 결과, 남은 질문, 목적, 방법, 실제 LLM으로 돌린 왕 독살 장면 첫 측정, 해석
-
-### Community 113 - "server.py"
-Cohesion: 0.25
-Nodes (3): loop(), main(), scenario_names()
-
-### Community 115 - "2026_10_27"
+### Community 106 - "mem0_github-readme.md"
 Cohesion: 0.50
-Nodes (4): 2026_10_27, ASCII 2D 맵 + 오브젝트 설명으로 NPC 이동을 정할 수 있나, System One 모델로 게임을 할 때 공간 정보를 어떻게 넣나, 외부 자극에 반응하는 NPC 관련 최근 3년 자료 조사
-
-### Community 116 - "2026_11_22"
-Cohesion: 0.40
-Nodes (4): 2026_11_22, 방을 따로 만들고 연결도로 잇는 공간 구조, 사람과 물건 위로 지나가지 못하게, 홈에서 기존 게임 수정 진입
-
-### Community 118 - "04.npc_engine/README.md"
-Cohesion: 0.20
-Nodes (7): AI TRPG 캐릭터 엔진 — 구현 계획, 단계, 주의할 입력, 파일과 책임, NPC Engine, 문서, 실행
+Nodes (3): mem0ai/mem0 README, New Memory Algorithm (April 2026), Research Highlights
 
 ## Ambiguous Edges - Review These
 - `Category Directory Layout (papers/implementations/experiments/prototypes/notes/shared/templates)` → `Independent Top-Level Experiment Folders`  [AMBIGUOUS]
@@ -592,22 +442,22 @@ Nodes (7): AI TRPG 캐릭터 엔진 — 구현 계획, 단계, 주의할 입력,
 
 ## Knowledge Gaps
 - **16 isolated node(s):** `server`, `Study Folder Structure (docs/notes, reference, worklog, plan)`, `worklog-discipline Plugin (/init-workstructure)`, `NanoJev`, `Four-layer license check (code/weights/base/data)` (+11 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 939 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **16 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 658 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **8 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `World` connect `World` to `ai.py`, `Engine`, `.remember`, `.apply`, `.pos`, `._floor`, `playtest.py`?**
-  _High betweenness centrality (0.210) - this node is a cross-community bridge._
-- **Are the 2 inferred relationships involving `Engine` (e.g. with `World` and `Handler`) actually correct?**
-  _`Engine` has 2 INFERRED edges - model-reasoned connections that need verification._
+- **Why does `Memory` connect `Memory` to `cases/README.md`?**
+  _High betweenness centrality (0.045) - this node is a cross-community bridge._
 - **What connects `server`, `Study Folder Structure (docs/notes, reference, worklog, plan)`, `worklog-discipline Plugin (/init-workstructure)` to the rest of the system?**
   _16 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `new-study Skill` be split into smaller, more focused modules?**
   _Cohesion score 0.10227272727272728 - nodes in this community are weakly interconnected._
-- **Why does `Memory` connect `Memory` to `cases/README.md`, `.remember`?**
-  _High betweenness centrality (0.134) - this node is a cross-community bridge._
+- **Why does `getzep/graphiti README (Zep 시간 지식그래프)` connect `getzep/graphiti README (Zep 시간 지식그래프)` to `cases/README.md`?**
+  _High betweenness centrality (0.043) - this node is a cross-community bridge._
+- **Should `Memory tool` be split into smaller, more focused modules?**
+  _Cohesion score 0.046511627906976744 - nodes in this community are weakly interconnected._
 
 ### Low-confidence Hints
 _AMBIGUOUS edges — the extractor was unsure. Verify before acting on these._
