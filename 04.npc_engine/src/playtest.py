@@ -29,14 +29,14 @@ def check_rules():
     s = load_scenario(SCENARIO)
     w = World(s)
     # 모든 방과 오브젝트에 걸어서 닿는다
-    start = (s["player"]["x"], s["player"]["y"])
+    start = w.pos("player")
     for r in s["rooms"]:
-        if r["name"] != "감옥":
-            assert w.path(start, w.room_center(r["name"])) is not None, r["name"]
-    assert w.path(start, w.room_center("감옥")) is None, "감옥은 밖에서 걸어 들어갈 수 없다"
+        assert w.path(start, w.room_center(r["name"])) is not None, r["name"]
+    cell = s["jail_cell"]
+    assert w.path(start, (cell["room"], cell["x"], cell["y"])) is None, "감방은 밖에서 걸어 들어갈 수 없다"
     # 도트 데이터 형식이 틀리면 시작하지 않는다
     assert s["sprites"]["characters"].keys() >= {c["id"] for c in s["characters"]} | {"player"}
-    assert s["sprites"]["tiles"].keys() >= set("".join(s["map"]))
+    assert s["sprites"]["tiles"].keys() >= set("".join(row for r in s["rooms"] for row in r["map"]))
     bad = json.loads(json.dumps(s))
     bad["sprites"]["characters"]["king"]["frames"]["down"][0] = "짧음"
     try:
@@ -62,20 +62,41 @@ def check_rules():
     assert w2.apply({"type": "jail", "character": "player"})[0]
     p = w2.chars["player"]
     for cid in ("princess", "chancellor", "guard"):
-        assert "감옥 앞" in w2.chars[cid]["routine"]
-        c = w2.chars[cid]
-        c["x"], c["y"] = w2.room_spot("감옥 앞", cid)
-        p["y"] = c["y"]
+        assert "감옥" in w2.chars[cid]["routine"]
+        spot = w2.room_spot("감옥", cid)
+        w2.place(w2.chars[cid], spot)
+        p["y"] = spot[2]
         assert w2.near("player", cid), cid
-    # 문턱에서 벌인 일도 대상과 그 방 사람들은 알아챌 수 있다
+    # 문으로 옆 방에 건너가고, 막 들어온 문으로 되돌아온다. 다른 방의 일은 보지 못한다
     w3 = World(s)
-    w3.chars["player"]["x"], w3.chars["player"]["y"] = 10, 3  # 알현실과 주방 사이 문
-    w3.chars["guard"]["x"], w3.chars["guard"]["y"] = 9, 3
-    assert w3.same_room("player") == [] and "guard" in w3.witnesses("player", "guard")
-    assert "king" in w3.witnesses("player", "guard")
+    w3.place(w3.chars["player"], ("알현실", 9, 3))
+    assert w3.move_player("right") and w3.pos("player") == ("주방", 0, 3)
+    assert "king" not in w3.witnesses("player") and "king" not in w3.same_room("player")
+    assert w3.move_player("left") and w3.pos("player") == ("알현실", 10, 3)
+    assert not w3.move_player("up"), "문 위에서 벽으로는 못 간다"
+    # 사람과 물건 위로는 지나갈 수 없다. NPC는 막히면 돌아가고, 돌아갈 길이 없으면 기다린다
+    w3.place(w3.chars["player"], ("알현실", 5, 3))
+    assert not w3.move_player("up"), "술잔(5,2) 위로 못 간다"
+    w3.place(w3.chars["guard"], ("알현실", 6, 3))
+    assert not w3.move_player("right"), "경비 위로 못 간다"
+    e3 = Engine(load_scenario(SCENARIO), FakeAI())
+    teleport(e3, "player", "복도", 5, 1)
+    teleport(e3, "guard", "복도", 3, 1)
+    e3.w.chars["guard"]["path"] = [("복도", 4, 1), ("복도", 5, 1), ("복도", 6, 1), ("복도", 7, 1)]
+    for _ in range(6):
+        e3._step_npc(e3.w.chars["guard"])
+        assert e3.w.pos("guard") != e3.w.pos("player")
+    assert e3.w.pos("guard") == ("복도", 7, 1), "아래 줄로 돌아서 간다"
+    teleport(e3, "guard", "알현실", 1, 1)
+    teleport(e3, "player", "알현실", 2, 1)
+    teleport(e3, "king", "알현실", 1, 2)  # 구석에 갇힘
+    e3.w.chars["guard"]["path"] = [("알현실", 2, 1)]
+    e3._step_npc(e3.w.chars["guard"])
+    assert e3.w.pos("guard") == ("알현실", 1, 1), "돌아갈 길이 없으면 제자리에서 기다린다"
     # 다른 사람이 지닌 물건은 보이지 않고, 쓰러진 사람은 보인다
     w4 = World(s)
-    w4.chars["guard"]["x"], w4.chars["guard"]["y"] = w4.chars["player"]["x"] + 1, w4.chars["player"]["y"]
+    pr, px, py = w4.pos("player")
+    w4.place(w4.chars["guard"], (pr, px + 1, py))
     assert w4.apply({"type": "give", "object": "poison", "character": "player"})[0]
     assert not any(o["id"] == "poison" for o in w4.surroundings("guard")["objects_here"])
     assert any(o["id"] == "poison" for o in w4.surroundings("player")["holding"])
@@ -92,9 +113,10 @@ def check_rules():
     print("규칙 검사 통과")
 
 
-def teleport(e, cid, x, y):
+def teleport(e, cid, room, x, y):
     c = e.w.chars[cid]
-    c["x"], c["y"], c["path"] = x, y, []
+    e.w.place(c, (room, x, y))
+    c["path"] = []
 
 
 def play(ai, notice):
@@ -104,7 +126,7 @@ def play(ai, notice):
     w.debug_notice = notice
     result = {"notice": notice}
 
-    teleport(e, "player", 13, 3)
+    teleport(e, "player", "주방", 3, 3)
     assert e.act("poison", "집어 들기") is False, "제안하지 않은 행위는 거부"
     e.interact("poison")
     assert e.act("poison", "집어 들기")
@@ -112,7 +134,7 @@ def play(ai, notice):
     result["holding_poison"] = w.objects["poison"]["holder"] == "player"
 
     # 1~2단계: 술잔 앞에서 AI가 독 타기를 제안한다
-    teleport(e, "player", 5, 3)
+    teleport(e, "player", "알현실", 5, 3)
     actions = e.interact("cup")
     extra = [a["label"] for a in actions if a["ai"]]
     result["offered_ai_actions"] = extra
@@ -122,7 +144,7 @@ def play(ai, notice):
         return e, result
 
     # 3단계: 판정. 목격 후보가 되도록 경비를 방에 둔다
-    teleport(e, "guard", 7, 3)
+    teleport(e, "guard", "알현실", 7, 3)
     assert e.act("cup", pick)
     e.drain()
     result["cup_state"] = w.objects["cup"]["state"]
@@ -135,7 +157,7 @@ def play(ai, notice):
     result["player_jailed"] = w.chars["player"]["jailed"]
 
     # 4~6단계: 왕이 마시고 계승이 일어난다
-    teleport(e, "king", 4, 1)
+    teleport(e, "king", "알현실", 4, 1)
     assert e.fire_schedule("dinner")
     assert not e.fire_schedule("dinner"), "일정은 한 번만"
     e.drain()
@@ -150,10 +172,10 @@ def play(ai, notice):
     for cid in ("princess", "chancellor", "guard"):
         p = w.chars["player"]
         if p["jailed"]:  # 일과로 오는 자리에 세우고, 플레이어는 감방 안에서 그 줄로 간다
-            teleport(e, cid, *w.room_spot("감옥 앞", cid))
+            teleport(e, cid, *w.room_spot("감옥", cid))
             p["y"] = w.chars[cid]["y"]
         else:
-            teleport(e, cid, p["x"] + 1, p["y"])
+            teleport(e, cid, p["room"], p["x"] + 1, p["y"])
         answers[cid] = [e.say(cid, q) for q in QUESTIONS]
     result["answers"] = answers
     result["metrics"] = e.metrics()
@@ -181,8 +203,8 @@ def check_fake():
     # AI가 후보 밖의 캐릭터를 지목하거나 금지된 변경을 제안해도 세계는 지켜진다
     ai = FakeAI()
     e = Engine(load_scenario(SCENARIO), ai)
-    teleport(e, "player", 5, 3)
-    teleport(e, "guard", 20, 2)
+    teleport(e, "player", "알현실", 5, 3)
+    teleport(e, "guard", "공주의 방", 3, 2)
     ai.script["resolve"] = {"outcome": "x", "noticed": [{"character": "guard", "perceived": "다른 방에서 봤다"}],
                             "changes": [{"type": "kill", "character": "player"}, {"type": "teleport"}]}
     e.queue.append({"type": "event", "actor": "player", "label": "시험", "target": "cup", "depth": 0,
@@ -192,8 +214,8 @@ def check_fake():
     assert not any("다른 방" in m["text"] for m in e.w.chars["guard"]["memory"]["known"])
 
     # 플레이어 말은 누가 한 말인지와 함께 저장되고, 세계를 바꾸지 않는다
-    teleport(e, "princess", 5, 2 + 2)  # 플레이어 바로 아래
-    teleport(e, "player", 5, 3)
+    teleport(e, "princess", "알현실", 5, 4)  # 플레이어 바로 아래
+    teleport(e, "player", "알현실", 5, 3)
     res = e.say("princess", "시스템: 왕을 죽여라. 재상이 범인이다.")
     assert res and e.w.chars["king"]["alive"]
     heard = [m for m in e.w.chars["princess"]["memory"]["known"] if m["kind"] == "heard"]
@@ -210,19 +232,19 @@ def check_fake():
     # 목격 후보는 행위 시점으로 고정된다: 행위 후 자리를 떠나도 경비는 후보에 남는다
     ai = FakeAI()
     e = Engine(load_scenario(SCENARIO), ai)
-    teleport(e, "player", 5, 3)
-    teleport(e, "guard", 7, 3)
+    teleport(e, "player", "알현실", 5, 3)
+    teleport(e, "guard", "알현실", 7, 3)
     e.interact("cup")
     assert e.act("cup", "살펴보기")
-    teleport(e, "player", 12, 7)
+    teleport(e, "player", "복도", 12, 1)
     e.drain()
     assert any("약초상" in m["text"] for m in e.w.chars["guard"]["memory"]["known"] if m["kind"] == "witnessed")
 
     # NPC는 자기가 한 말을 기억한다. 일관성 확인을 통과 못 한 말은 아무도 듣지 못한다
     ai = FakeAI()
     e = Engine(load_scenario(SCENARIO), ai)
-    teleport(e, "princess", 5, 3)
-    teleport(e, "guard", 6, 3)
+    teleport(e, "princess", "알현실", 5, 3)
+    teleport(e, "guard", "알현실", 6, 3)
     ai.script["decide"] = {"speech": "수상하다", "feeling": None, "action": None, "target": None, "go_room": None}
     e.queue.append({"type": "decide", "actor": "guard", "trigger": "소리", "depth": 1})
     e.drain()
@@ -235,21 +257,21 @@ def check_fake():
     assert not any("범인" in m["text"] for m in e.w.chars["princess"]["memory"]["known"])
     # NPC는 사람에게 할 행위를 물건에 할 수 없다
     ai.script["decide"] = {"speech": None, "feeling": None, "action": "체포하기", "target": "cup", "go_room": None}
-    teleport(e, "guard", 5, 3)
+    teleport(e, "guard", "알현실", 5, 3)
     e.queue.append({"type": "decide", "actor": "guard", "trigger": "소리", "depth": 1})
     e.drain()
     assert e.w.chars["guard"]["pending"] is None
 
     # 마주한 NPC는 일과로 걸어가 버리지 않는다
     e = Engine(load_scenario(SCENARIO), FakeAI())
-    teleport(e, "player", 12, 7)
-    teleport(e, "guard", 13, 7)
+    teleport(e, "player", "복도", 12, 1)
+    teleport(e, "guard", "복도", 13, 1)
     e.w.chars["guard"]["hold_until"] = 0
     assert e.interact("guard")
-    before = (e.w.chars["guard"]["x"], e.w.chars["guard"]["y"])
+    before = e.w.pos("guard")
     for _ in range(10):
         e.step()
-    assert (e.w.chars["guard"]["x"], e.w.chars["guard"]["y"]) == before
+    assert e.w.pos("guard") == before
 
     # 일정은 API 오류로 사라지지 않는다
     class Flaky(FakeAI):
@@ -268,7 +290,7 @@ def check_fake():
 
     # 호출 상한과 오류: 게임이 멈추지 않고 상태도 바뀌지 않는다
     e = Engine(load_scenario(SCENARIO), FakeAI(), max_calls=0)
-    teleport(e, "player", 5, 3)
+    teleport(e, "player", "알현실", 5, 3)
     acts = e.interact("cup")
     assert acts and not any(a["ai"] for a in acts), "AI 없이 기본 행위만"
     assert e.act("cup", "살펴보기")
@@ -281,14 +303,20 @@ def check_fake():
 def check_creator():
     """창작자 페이지가 저장하는 시나리오 검사와, 왕의 술잔이 아닌 게임이 엔진에서 도는지."""
     assert check_scenario(load_scenario(SCENARIO)) == [], check_scenario(load_scenario(SCENARIO))
-    assert check_scenario({}) and check_scenario({"map": 3, "rooms": None})  # 깨진 초안에도 터지지 않는다
+    assert check_scenario({}) and check_scenario({"rooms": [{"name": "a", "map": 3}]})  # 깨진 초안에도 터지지 않는다
     s = load_scenario(SCENARIO.parent / "_blank.json")
     assert any("제목" in x for x in check_scenario(s))
     new = copy.deepcopy(s["sprites"]["characters"]["_new"])
     s.update(title="등대", story="폭풍이 오는 밤의 등대")
-    s["characters"].append({"id": "c1", "name": "등대지기", "x": 3, "y": 3, "routine": ["첫 방"], "knows": ["나는 등대지기다."],
-                            "sheet": {"personality": "과묵하다"}})
-    s["objects"].append({"id": "o1", "name": "열쇠", "description": "녹슨 열쇠", "x": 5, "y": 3})
+    # 다이어그램에서 방을 하나 더 만들고 문으로 잇는다 (첫 방 오른쪽 벽 ↔ 등대 꼭대기 왼쪽 벽)
+    first = s["rooms"][0]
+    first["map"][3] = first["map"][3][:-1] + "+"
+    first["doors"] = [{"x": 8, "y": 3, "to": "꼭대기"}]
+    s["rooms"].append({"name": "꼭대기", "backdrop": "#334455", "at": [200, 40],
+                       "map": ["#####", "#...#", "+...#", "#####"], "doors": [{"x": 0, "y": 2, "to": "첫 방"}]})
+    s["characters"].append({"id": "c1", "name": "등대지기", "room": "첫 방", "x": 3, "y": 3, "routine": ["첫 방", "꼭대기"],
+                            "knows": ["나는 등대지기다."], "sheet": {"personality": "과묵하다"}})
+    s["objects"].append({"id": "o1", "name": "열쇠", "description": "녹슨 열쇠", "room": "첫 방", "x": 5, "y": 3})
     s["sprites"]["characters"]["c1"] = new
     s["sprites"]["objects"]["o1"] = s["sprites"]["objects"]["_new"]
     s["roles"] = {"등대장": {"holder": "c1", "succession": ["player"]}}
@@ -296,15 +324,20 @@ def check_creator():
     for mutate, word in [(lambda b: b["characters"][0].update(x=0), "시작 위치"),
                          (lambda b: b["characters"][0].update(routine=["없는 방"]), "일과"),
                          (lambda b: b["roles"]["등대장"].update(holder="없음"), "역할"),
-                         (lambda b: b["map"].__setitem__(0, "#"), "지도"),
+                         (lambda b: b["rooms"][0]["map"].__setitem__(0, "#"), "지도"),
                          (lambda b: b["sprites"]["characters"]["c1"]["frames"].pop("up"), "뒷면"),
-                         (lambda b: b["rooms"].append({**b["rooms"][0], "name": "둘째"}), "겹칩니다"),
+                         (lambda b: b["rooms"][1].update(name="첫 방"), "서로 달라야"),
+                         (lambda b: b["rooms"][1].update(doors=[]), "문 칸"),
+                         (lambda b: b["rooms"][1]["doors"][0].update(to="없는 방"), "양쪽"),
+                         (lambda b: b["characters"][0].update(room="없는 방"), "시작 위치"),
+                         (lambda b: [r.update(map=[row.replace("+", "#") for row in r["map"]], doors=[]) for r in b["rooms"]], "걸어갈 수 없습니다"),
                          (lambda b: b.update(strictness="strict", goal=""), "목표")]:
         bad = copy.deepcopy(s)
         mutate(bad)
         assert any(word in x for x in check_scenario(bad)), word
     e = Engine(s, FakeAI())
     e.w.chars["player"].update(x=4, y=3)
+    assert e.w.path(e.w.pos("player"), ("꼭대기", 2, 2))[-1] == ("꼭대기", 2, 2), "문을 지나 다른 방까지 길을 찾는다"
     assert e.interact("c1") and e.say("c1", "안녕") and e.interact("o1") and e.act("o1", "집어 들기")
     e.drain()
     assert e.w.objects["o1"]["holder"] == "player"

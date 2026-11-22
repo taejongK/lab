@@ -58,6 +58,7 @@
   .swatches button.on { outline: 3px solid var(--gold); }
   .mapwrap { overflow: auto; max-width: 100%; width: fit-content; border: 2px solid var(--ink); }
   #mapc { display: block; touch-action: none; cursor: crosshair; }
+  canvas.diagram { display: block; max-width: 100%; touch-action: none; cursor: grab; }
   .chip { background: var(--ink); color: var(--parchment); padding: 2px 8px; }
   details { margin-top: 12px; }
   summary { cursor: pointer; }
@@ -123,12 +124,14 @@ function newId(prefix) {
   const used = new Set([...everyone(), ...S.objects].map(e => e.id));
   for (let i = 1; ; i++) if (!used.has(prefix + i)) return prefix + i;
 }
-function freeTile() {
-  const r = S.rooms[0] || {x0: 1, y0: 1, x1: S.map[0].length - 2, y1: S.map.length - 2};
-  for (let y = r.y0; y <= r.y1; y++) for (let x = r.x0; x <= r.x1; x++) {
-    if (S.map[y]?.[x] === "." && ![...everyone(), ...S.objects].some(e => e.x === x && e.y === y)) return {x, y};
+/* 고른 방(없으면 첫 방)에서 아무도 서 있지 않은 바닥 한 칸 */
+function freeTile(name = roomBy(selRoom) ? selRoom : S.rooms[0]?.name) {
+  const r = roomBy(name);
+  if (!r) return {room: null, x: 1, y: 1};
+  for (let y = 0; y < r.map.length; y++) for (let x = 0; x < r.map[0].length; x++) {
+    if (r.map[y][x] === "." && ![...everyone(), ...S.objects].some(e => e.room === name && e.x === x && e.y === y)) return {room: name, x, y};
   }
-  return {x: r.x0, y: r.y0};
+  return {room: name, x: 1, y: 1};
 }
 
 /* --- 도트 --- */
@@ -265,7 +268,7 @@ function renderChars() {
     field("관계", c.sheet, "relations", {area: 2}),
     linesField("처음부터 아는 것", c, "knows", "한 줄에 하나씩. 여기 없는 일은 이 캐릭터가 모릅니다."),
     isPlayer ? null : orderedPick("일과 (이 순서로 오갑니다)", c.routine ||= [], roomOptions(), render, "+ 방 추가"),
-    h("p", {className: "hint"}, `시작 위치: (${c.x}, ${c.y}). 공간 탭의 배치 도구로 옮깁니다.`));
+    h("p", {className: "hint"}, `시작 위치: ${c.room} (${c.x}, ${c.y}). 공간 탭의 배치 도구로 옮깁니다.`));
   const editor = h("div", {}, h("h3", {}, "도트 그림"),
     h("p", {className: "hint"}, "16×16칸. 옆면은 왼쪽을 보는 모습으로 그리면 오른쪽은 자동으로 뒤집습니다."),
     dotEditor(S.sprites.characters[c.id], [["down", "정면"], ["up", "뒷면"], ["side", "옆면"]]));
@@ -282,57 +285,194 @@ function purge(id) {
   for (const a of S.base_actions) if (a.actors) { a.actors = a.actors.filter(x => x !== id); if (!a.actors.length) delete a.actors; }
 }
 
-/* --- 공간 --- */
+/* --- 공간: 방마다 자기 지도를 갖고, 연결도에서 방끼리 문으로 잇는다 --- */
 const SCALE = 2, T = 16 * SCALE;
-const TILES = [[".", "바닥"], ["#", "벽"], ["+", "문"], ["B", "창살"]];
-let mapTool = ".", placeId = null;
-function setTile(x, y, ch) { S.map[y] = S.map[y].slice(0, x) + ch + S.map[y].slice(x + 1); }
-function roomAt(x, y) { return S.rooms.find(r => r.x0 <= x && x <= r.x1 && r.y0 <= y && y <= r.y1); }
-function renderSpace() {
-  const w = S.map[0].length, ht = S.map.length;
-  const cv = h("canvas", {id: "mapc", width: w * T, height: ht * T, "aria-label": "지도 편집 판. 도구를 고른 뒤 칸을 누른다"}), g = cv.getContext("2d");
-  const note = h("p", {className: "hint"});
+const TILES = [[".", "바닥"], ["#", "벽"], ["B", "창살"]];
+const TILE_ART = [[".", "바닥"], ["#", "벽"], ["+", "문"], ["B", "창살"]];
+const BOX_W = 120, BOX_H = 40, DIAG_W = 640, DIAG_H = 320;
+let mapTool = ".", placeId = null, selRoom = null, linking = null, spaceMsg = "", redrawMap = () => {};
+const roomBy = name => S.rooms.find(r => r.name === name);
+function setTile(r, x, y, ch) { r.map[y] = r.map[y].slice(0, x) + ch + r.map[y].slice(x + 1); }
+/* 테두리는 벽, 안쪽은 예전 지도를 그대로 두고 넓어진 곳은 바닥 */
+function wallBox(w, h, old = []) {
+  return Array.from({length: h}, (_, y) => Array.from({length: w}, (_, x) => {
+    if (x === 0 || y === 0 || x === w - 1 || y === h - 1) return "#";
+    const inOld = y < old.length - 1 && x < (old[0] || "").length - 1;
+    return inOld && old[y][x] !== "+" ? old[y][x] : ".";
+  }).join(""));
+}
+const SIDES = {right: [1, 0], left: [-1, 0], down: [0, 1], up: [0, -1]};
+/* 연결도에서 상대 방이 있는 쪽 벽부터 문 자리를 찾는다 */
+function sidesToward(a, b) {
+  const dx = b.at[0] - a.at[0], dy = b.at[1] - a.at[1];
+  const hz = dx >= 0 ? "right" : "left", vt = dy >= 0 ? "down" : "up";
+  const first = Math.abs(dx) >= Math.abs(dy) ? [hz, vt] : [vt, hz];
+  return [...first, ...Object.keys(SIDES).filter(s => !first.includes(s))];
+}
+function doorSpot(r, side) {
+  const m = r.map, w = m[0].length, ht = m.length, [dx, dy] = SIDES[side];
+  const cells = dx ? Array.from({length: ht}, (_, y) => [dx > 0 ? w - 1 : 0, y]) : Array.from({length: w}, (_, x) => [x, dy > 0 ? ht - 1 : 0]);
+  const mid = (dx ? ht : w) / 2 - .5, off = ([x, y]) => Math.abs((dx ? y : x) - mid);
+  return cells.filter(([x, y]) => m[y][x] === "#" && m[y - dy]?.[x - dx] === ".").sort((p, q) => off(p) - off(q))[0];
+}
+function placeDoor(r, toward) {
+  for (const side of sidesToward(r, toward)) {
+    const p = doorSpot(r, side);
+    if (p) { setTile(r, p[0], p[1], "+"); r.doors.push({x: p[0], y: p[1], to: toward.name}); return true; }
+  }
+  return false;
+}
+function removeDoor(r, to) {
+  for (const d of r.doors) if (d.to === to && r.map[d.y]?.[d.x] === "+") setTile(r, d.x, d.y, "#");
+  r.doors = r.doors.filter(d => d.to !== to);
+}
+function connect(a, b) {
+  if (a === b) return "다른 방을 눌러 주세요.";
+  if (a.doors.some(d => d.to === b.name)) return "이미 이어져 있습니다.";
+  if (!placeDoor(a, b)) return `'${a.name}'에 문을 낼 벽이 없습니다. 벽 바로 안쪽에 바닥이 있어야 합니다.`;
+  if (!placeDoor(b, a)) { removeDoor(a, b.name); return `'${b.name}'에 문을 낼 벽이 없습니다. 벽 바로 안쪽에 바닥이 있어야 합니다.`; }
+  dirty(); return `${a.name} ↔ ${b.name} 연결했습니다.`;
+}
+function disconnect(a, to) { removeDoor(a, to); if (roomBy(to)) removeDoor(roomBy(to), a.name); dirty(); }
+function resizeRoom(r, w, h) {
+  const links = r.doors.map(d => d.to);
+  r.doors = [];
+  r.map = wallBox(w, h, r.map);
+  for (const to of links) { const b = roomBy(to); if (b && !placeDoor(r, b)) removeDoor(b, r.name); }  // 크기가 바뀌면 문을 다시 낸다
+}
+function renameRoom(r, name) {
+  const old = r.name; r.name = name;
+  for (const x of S.rooms) for (const d of x.doors) if (d.to === old) d.to = name;
+  for (const c of everyone()) { c.routine = (c.routine || []).map(x => x === old ? name : x); }
+  for (const e of [...everyone(), ...S.objects]) if (e.room === old) e.room = name;
+  if (S.jail_cell?.room === old) S.jail_cell.room = name;
+  if (selRoom === old) selRoom = name;
+}
+function deleteRoom(r) {
+  for (const d of [...r.doors]) disconnect(r, d.to);
+  S.rooms = S.rooms.filter(x => x !== r);
+  for (const c of everyone()) c.routine = (c.routine || []).filter(x => x !== r.name);
+  for (const e of [...everyone(), ...S.objects]) if (e.room === r.name) Object.assign(e, freeTile(S.rooms[0].name));
+  if (S.jail_cell?.room === r.name) S.jail_cell = null;
+  selRoom = S.rooms[0].name;
+}
+function addRoom() {
+  let n = S.rooms.length + 1; while (roomBy(`방 ${n}`)) n++;
+  // 연결도에서 다른 방과 겹치지 않는 첫 빈자리
+  const slots = [];
+  for (let y = 20; y <= DIAG_H - BOX_H; y += 70) for (let x = 20; x <= DIAG_W - BOX_W; x += BOX_W + 30) slots.push([x, y]);
+  const free = slots.find(([x, y]) => !S.rooms.some(r => Math.abs(r.at[0] - x) < BOX_W + 10 && Math.abs(r.at[1] - y) < BOX_H + 10)) || [20, 20];
+  S.rooms.push({name: `방 ${n}`, backdrop: "#4f4168", at: free, map: wallBox(9, 7), doors: []});
+  selRoom = `방 ${n}`; spaceMsg = "방을 만들었습니다. '다른 방과 연결'로 문을 냅니다."; dirty(); render();
+}
+
+function diagram() {
+  const cv = h("canvas", {width: DIAG_W, height: DIAG_H, className: "diagram", "aria-label": "방 연결도. 방을 끌어 옮기고, 눌러서 고른다"}), g = cv.getContext("2d");
+  function draw() {
+    g.fillStyle = "#e6dcbc"; g.fillRect(0, 0, DIAG_W, DIAG_H);
+    g.strokeStyle = "#241c2e"; g.lineWidth = 3;
+    for (const a of S.rooms) for (const d of a.doors) {
+      const b = roomBy(d.to); if (!b || a.name > b.name) continue;
+      g.beginPath(); g.moveTo(a.at[0] + BOX_W / 2, a.at[1] + BOX_H / 2); g.lineTo(b.at[0] + BOX_W / 2, b.at[1] + BOX_H / 2); g.stroke();
+    }
+    g.font = "13px Galmuri11, monospace"; g.textBaseline = "middle"; g.textAlign = "center";
+    for (const r of S.rooms) {
+      const [x, y] = r.at;
+      g.fillStyle = r.backdrop || "#4f4168"; g.fillRect(x, y, BOX_W, BOX_H);
+      g.lineWidth = r.name === selRoom ? 4 : 2;
+      g.strokeStyle = r.name === linking ? "#e0402f" : r.name === selRoom ? "#d8a93a" : "#241c2e";
+      g.strokeRect(x, y, BOX_W, BOX_H);
+      g.fillStyle = "#f3e7c4"; g.fillText(r.name, x + BOX_W / 2, y + BOX_H / 2, BOX_W - 8);
+    }
+  }
+  const at = e => { const b = cv.getBoundingClientRect(); return [(e.clientX - b.left) * DIAG_W / b.width, (e.clientY - b.top) * DIAG_H / b.height]; };
+  const hit = ([x, y]) => [...S.rooms].reverse().find(r => x >= r.at[0] && x <= r.at[0] + BOX_W && y >= r.at[1] && y <= r.at[1] + BOX_H);
   let drag = null;
-  function drawMap(rect) {
+  cv.onpointerdown = e => {
+    const p = at(e), r = hit(p); if (!r) return;
+    drag = {r, dx: p[0] - r.at[0], dy: p[1] - r.at[1], from: p}; cv.setPointerCapture(e.pointerId);
+  };
+  cv.onpointermove = e => {
+    if (!drag) return;
+    const [x, y] = at(e);
+    if (!drag.moved && Math.abs(x - drag.from[0]) + Math.abs(y - drag.from[1]) < 4) return;  // 살짝 떨린 클릭은 끌기가 아니다
+    drag.moved = true;
+    drag.r.at = [Math.round(Math.max(0, Math.min(DIAG_W - BOX_W, x - drag.dx))), Math.round(Math.max(0, Math.min(DIAG_H - BOX_H, y - drag.dy)))];
+    draw();
+  };
+  cv.onpointerup = cv.onpointercancel = () => {
+    if (!drag) return;
+    const {r, moved} = drag; drag = null;
+    if (moved) { dirty(); return; }
+    if (linking) { spaceMsg = connect(roomBy(linking), r); linking = null; }
+    else spaceMsg = "";
+    selRoom = r.name; render();
+  };
+  draw(); return cv;
+}
+
+function roomCard(r, note) {
+  const size = (label, value, apply) => h("label", {className: "row"}, label,
+    h("input", {type: "number", min: 3, max: 30, value, style: "width: 70px", onchange: e => { apply(Math.min(30, Math.max(3, Math.floor(+e.target.value) || value))); dirty(); render(); }}));
+  const others = S.rooms.filter(x => x !== r && !r.doors.some(d => d.to === x.name));
+  return h("div", {className: "card"},
+    h("label", {className: "field"}, h("span", {}, "방 이름"), h("input", {value: r.name, onchange: e => {
+      const name = e.target.value.trim();
+      if (!name || S.rooms.some(x => x !== r && x.name === name)) { e.target.value = r.name; note.textContent = "방 이름은 비어 있지 않고 서로 달라야 합니다."; return; }
+      renameRoom(r, name); dirty(); render();
+    }})),
+    h("div", {className: "row"},
+      size("가로", r.map[0].length, v => resizeRoom(r, v, r.map.length)),
+      size("세로", r.map.length, v => resizeRoom(r, r.map[0].length, v))),
+    h("label", {className: "row"}, "대화 화면 배경", h("input", {type: "color", value: r.backdrop || "#4f4168", oninput: e => { r.backdrop = e.target.value; dirty(); }, onchange: render})),
+    h("h3", {}, "이어진 방"),
+    r.doors.length ? null : h("p", {className: "hint"}, "아직 아무 방과도 이어지지 않았습니다."),
+    r.doors.map(d => h("div", {className: "row"}, h("span", {}, `↔ ${d.to}`),
+      h("button", {type: "button", onclick: () => { disconnect(r, d.to); spaceMsg = `${r.name} ↔ ${d.to} 연결을 끊었습니다.`; render(); }}, "끊기"))),
+    h("div", {className: "row"},
+      linking ? h("button", {type: "button", className: "on", onclick: () => { linking = null; spaceMsg = ""; render(); }}, "연결 취소")
+        : h("button", {type: "button", disabled: !others.length, onclick: () => { linking = r.name; spaceMsg = "연결도에서 이을 방을 누르세요."; render(); }}, "다른 방과 연결"),
+      h("button", {type: "button", className: "danger", disabled: S.rooms.length < 2, onclick: () => { deleteRoom(r); dirty(); render(); }}, "방 삭제")));
+}
+
+function roomMap(r, note) {
+  const w = r.map[0].length, ht = r.map.length;
+  const cv = h("canvas", {id: "mapc", width: w * T, height: ht * T, "aria-label": `${r.name} 지도 편집 판. 도구를 고른 뒤 칸을 누른다`}), g = cv.getContext("2d");
+  const here = e => e.room === r.name;
+  function drawMap() {
     g.imageSmoothingEnabled = false;
     const baked = {};
-    for (const [ch] of TILES) { baked[ch] = h("canvas", {width: 16, height: 16}); paint(baked[ch].getContext("2d"), S.sprites.tiles[ch], "idle"); }
-    S.map.forEach((row, y) => [...row].forEach((ch, x) => g.drawImage(baked[ch], x * T, y * T, T, T)));
-    for (const r of S.rooms) {
-      g.fillStyle = r.backdrop + "40"; g.fillRect(r.x0 * T, r.y0 * T, (r.x1 - r.x0 + 1) * T, (r.y1 - r.y0 + 1) * T);
-      g.fillStyle = "#d8a93a";
-      for (const [sx, sy] of r.spots || []) g.fillRect(sx * T + T / 2 - 4, sy * T + T / 2 - 4, 8, 8);
-    }
-    if (S.jail_cell) { g.strokeStyle = "#e0402f"; g.lineWidth = 3; g.strokeRect(S.jail_cell[0] * T + 2, S.jail_cell[1] * T + 2, T - 4, T - 4); }
-    for (const o of S.objects) paint(g, S.sprites.objects[o.id], "idle", o.x * T, o.y * T, SCALE);
-    for (const c of everyone()) paint(g, S.sprites.characters[c.id], "down", c.x * T, c.y * T, SCALE);
-    // 방 경계와 이름은 캐릭터에 가리지 않게 맨 위에 그린다
+    for (const [ch] of TILE_ART) { baked[ch] = h("canvas", {width: 16, height: 16}); paint(baked[ch].getContext("2d"), S.sprites.tiles[ch], "idle"); }
+    r.map.forEach((row, y) => [...row].forEach((ch, x) => g.drawImage(baked[ch], x * T, y * T, T, T)));
+    g.fillStyle = "#d8a93a";
+    for (const [sx, sy] of r.spots || []) g.fillRect(sx * T + T / 2 - 4, sy * T + T / 2 - 4, 8, 8);
+    if (S.jail_cell && here(S.jail_cell)) { g.strokeStyle = "#e0402f"; g.lineWidth = 3; g.strokeRect(S.jail_cell.x * T + 2, S.jail_cell.y * T + 2, T - 4, T - 4); }
+    for (const o of S.objects.filter(here)) paint(g, S.sprites.objects[o.id], "idle", o.x * T, o.y * T, SCALE);
+    for (const c of everyone().filter(here)) paint(g, S.sprites.characters[c.id], "down", c.x * T, c.y * T, SCALE);
     g.font = "12px Galmuri11, monospace"; g.textBaseline = "top";
-    for (const r of S.rooms) {
-      const x = r.x0 * T, y = r.y0 * T, tw = g.measureText(r.name).width;
-      g.strokeStyle = "#f3e7c4"; g.lineWidth = 2; g.setLineDash([6, 4]);
-      g.strokeRect(x + 1, y + 1, (r.x1 - r.x0 + 1) * T - 2, (r.y1 - r.y0 + 1) * T - 2); g.setLineDash([]);
-      g.fillStyle = "#241c2e"; g.fillRect(x, y, tw + 8, 16);
-      g.fillStyle = "#f3e7c4"; g.fillText(r.name, x + 4, y + 2);
+    for (const d of r.doors) {  // 문이 어느 방으로 가는지
+      const tw = g.measureText(d.to).width, x = Math.min(Math.max(0, d.x * T + T / 2 - tw / 2 - 4), w * T - tw - 8), y = d.y === 0 ? T : Math.max(0, d.y * T - 16);
+      g.fillStyle = "#241c2e"; g.fillRect(x, y, tw + 8, 16); g.fillStyle = "#f3e7c4"; g.fillText(d.to, x + 4, y + 2);
     }
-    if (rect) { g.strokeStyle = "#d8a93a"; g.lineWidth = 3; g.strokeRect(rect.x0 * T, rect.y0 * T, (rect.x1 - rect.x0 + 1) * T, (rect.y1 - rect.y0 + 1) * T); }
   }
-  const at = e => { const r = cv.getBoundingClientRect(); return [Math.floor((e.clientX - r.left) / T), Math.floor((e.clientY - r.top) / T)]; };
+  const at = e => { const b = cv.getBoundingClientRect(); return [Math.floor((e.clientX - b.left) / T), Math.floor((e.clientY - b.top) / T)]; };
   const inside = (x, y) => x >= 0 && y >= 0 && x < w && y < ht;
-  const rectOf = (a, b) => ({x0: Math.min(a[0], b[0]), y0: Math.min(a[1], b[1]), x1: Math.max(a[0], b[0]), y1: Math.max(a[1], b[1])});
+  let painting = false;
+  const paintAt = (x, y) => {
+    if (r.map[y][x] === "+") { note.textContent = "문은 연결을 끊어서 지웁니다."; return; }
+    setTile(r, x, y, mapTool); dirty(); drawMap();
+  };
   cv.onpointerdown = e => {
     const [x, y] = at(e); if (!inside(x, y)) return;
     note.textContent = "";
-    if (TILES.some(t => t[0] === mapTool)) { drag = {paint: true}; cv.setPointerCapture(e.pointerId); setTile(x, y, mapTool); dirty(); drawMap(); }
-    else if (mapTool === "room") { drag = {start: [x, y], end: [x, y]}; cv.setPointerCapture(e.pointerId); drawMap(rectOf(drag.start, drag.end)); }
+    if (TILES.some(t => t[0] === mapTool)) { painting = true; cv.setPointerCapture(e.pointerId); paintAt(x, y); }
     else if (mapTool === "place") {
       const ent = [...everyone(), ...S.objects].find(i => i.id === placeId);
-      if (ent) { ent.x = x; ent.y = y; dirty(); drawMap(); }
+      if (ent) { Object.assign(ent, {room: r.name, x, y}); dirty(); drawMap(); }
     } else if (mapTool === "jail") {
-      S.jail_cell = S.jail_cell && S.jail_cell[0] === x && S.jail_cell[1] === y ? null : [x, y]; dirty(); drawMap();
+      const same = S.jail_cell && here(S.jail_cell) && S.jail_cell.x === x && S.jail_cell.y === y;
+      S.jail_cell = same ? null : {room: r.name, x, y}; dirty(); drawMap();
     } else if (mapTool === "spot") {
-      const r = roomAt(x, y);
-      if (!r) { note.textContent = "방 안의 칸을 눌러 주세요."; return; }
       r.spots ||= [];
       const i = r.spots.findIndex(p => p[0] === x && p[1] === y);
       if (i >= 0) r.spots.splice(i, 1); else r.spots.push([x, y]);
@@ -340,56 +480,34 @@ function renderSpace() {
       dirty(); drawMap();
     }
   };
-  cv.onpointermove = e => {
-    if (!drag) return;
-    const [x, y] = at(e); if (!inside(x, y)) return;
-    if (drag.paint) { setTile(x, y, mapTool); dirty(); drawMap(); }
-    else { drag.end = [x, y]; drawMap(rectOf(drag.start, drag.end)); }
-  };
-  cv.onpointerup = cv.onpointercancel = () => {
-    if (!drag) return;
-    const d = drag; drag = null;
-    if (d.paint) return;
-    const rect = rectOf(d.start, d.end);
-    if (S.rooms.some(r => !(rect.x1 < r.x0 || r.x1 < rect.x0 || rect.y1 < r.y0 || r.y1 < rect.y0))) {
-      note.textContent = "다른 방과 겹치게 만들 수 없습니다."; drawMap(); return;
-    }
-    let n = S.rooms.length + 1; while (S.rooms.some(r => r.name === `방 ${n}`)) n++;
-    S.rooms.push({name: `방 ${n}`, backdrop: "#4f4168", ...rect});
-    for (let y = rect.y0; y <= rect.y1; y++) for (let x = rect.x0; x <= rect.x1; x++) if (S.map[y][x] === "#") setTile(x, y, ".");
-    dirty(); render();
-  };
+  cv.onpointermove = e => { if (!painting) return; const [x, y] = at(e); if (inside(x, y) && r.map[y][x] !== mapTool) paintAt(x, y); };
+  cv.onpointerup = cv.onpointercancel = () => { painting = false; };
   const toolBtn = (id, label) => h("button", {type: "button", className: mapTool === id ? "on" : "", onclick: () => { mapTool = id; render(); }}, label);
   const tools = h("div", {},
-    h("div", {className: "row"}, TILES.map(([k, l]) => toolBtn(k, l)), toolBtn("room", "방 만들기"), toolBtn("place", "배치"), toolBtn("jail", "감옥 칸"), toolBtn("spot", "NPC가 서는 자리")),
+    h("div", {className: "row"}, TILES.map(([k, l]) => toolBtn(k, l)), toolBtn("place", "배치"), toolBtn("jail", "감옥 칸"), toolBtn("spot", "NPC가 서는 자리")),
     mapTool === "place" ? h("label", {className: "row"}, "옮길 대상",
       h("select", {onchange: e => { placeId = e.target.value; }},
-        [...everyone(), ...S.objects].map(i => { placeId ||= i.id; return h("option", {value: i.id, selected: i.id === placeId}, i.name || i.id); }))) : null,
-    h("p", {className: "hint"}, {".": "끌어서 바닥을 칠합니다.", "#": "끌어서 벽을 칠합니다.", "+": "방과 방 사이의 벽에 문을 놓습니다.", "B": "창살은 지나갈 수 없지만 너머로 대화할 수 있습니다.",
-      room: "끌어서 네모를 그리면 방이 생기고 바닥이 깔립니다. 방 사이는 벽과 문으로 잇습니다.", place: "대상을 고른 뒤 지도의 칸을 누릅니다.",
+        [...everyone(), ...S.objects].map(i => { placeId ||= i.id; return h("option", {value: i.id, selected: i.id === placeId}, `${i.name || i.id} (${i.room || "?"})`); }))) : null,
+    h("p", {className: "hint"}, {".": "끌어서 바닥을 칠합니다.", "#": "끌어서 벽을 칠합니다. 방 안을 벽으로 나눌 수도 있습니다.",
+      "B": "창살은 지나갈 수 없지만 너머로 대화할 수 있습니다. 감방은 같은 방 안에 창살로 만듭니다.",
+      place: "대상을 고른 뒤 이 방 지도의 칸을 누릅니다. 다른 방에 있던 대상도 이 방으로 옮겨집니다.",
       jail: "체포된 플레이어가 갇히는 칸입니다. 다시 누르면 지웁니다. 없으면 체포해도 가둘 수 없습니다.",
       spot: "일과로 이 방에 올 때 NPC가 설 칸입니다. 창살 앞처럼 꼭 서야 할 곳에 씁니다. 다시 누르면 지웁니다."}[mapTool]));
-  const size = (label, value, apply) => h("label", {className: "row"}, label,
-    h("input", {type: "number", min: 5, max: 40, value, onchange: e => { const v = Math.min(40, Math.max(5, +e.target.value || value)); apply(v); dirty(); render(); }}));
-  const sizes = h("div", {className: "row"},
-    size("가로", w, v => { S.map = S.map.map(r => (r + "#".repeat(v)).slice(0, v)); }),
-    size("세로", ht, v => { S.map = Array.from({length: v}, (_, i) => S.map[i] ?? "#".repeat(w)); }));
-  const rooms = h("div", {}, h("h3", {}, "방"), S.rooms.length ? null : h("p", {className: "hint"}, "방 만들기 도구로 첫 방을 그려 주세요."),
-    S.rooms.map(r => h("div", {className: "card"},
-      h("label", {className: "field"}, h("span", {}, "이름"), h("input", {value: r.name, onchange: e => {
-        const old = r.name, name = e.target.value.trim();
-        if (!name || S.rooms.some(x => x !== r && x.name === name)) { e.target.value = old; note.textContent = "방 이름은 비어 있지 않고 서로 달라야 합니다."; return; }
-        r.name = name;
-        for (const c of everyone()) c.routine = (c.routine || []).map(x => x === old ? name : x);
-        dirty(); drawMap();
-      }})),
-      h("div", {className: "row"},
-        h("label", {className: "row"}, "대화 화면 배경", h("input", {type: "color", value: r.backdrop || "#4f4168", oninput: e => { r.backdrop = e.target.value; dirty(); drawMap(); }})),
-        h("button", {type: "button", className: "danger", onclick: () => {
-          S.rooms = S.rooms.filter(x => x !== r);
-          for (const c of everyone()) c.routine = (c.routine || []).filter(x => x !== r.name);
-          dirty(); render();
-        }}, "삭제")))));
+  drawMap(); redrawMap = drawMap;
+  return h("div", {}, h("h3", {}, `${r.name} 지도`), tools, h("div", {className: "mapwrap"}, cv));
+}
+
+function renderSpace() {
+  if (!roomBy(selRoom)) selRoom = S.rooms[0]?.name ?? null;
+  if (linking && !roomBy(linking)) linking = null;
+  const r = roomBy(selRoom);
+  const note = h("p", {className: "hint", role: "status"}, spaceMsg);
+  const top = h("div", {className: "split2"},
+    h("div", {},
+      h("div", {className: "row"}, h("h2", {style: "margin: 0"}, "방 연결도"), h("button", {type: "button", onclick: addRoom}, "+ 방 추가")),
+      h("p", {className: "hint"}, "방을 끌어 배치하고, 눌러서 고릅니다. 이어진 방은 선으로 보입니다. 문은 서로 마주 보는 벽에 자동으로 생깁니다."),
+      h("div", {className: "mapwrap"}, diagram()), note),
+    r ? roomCard(r, note) : h("p", {className: "hint"}, "'+ 방 추가'로 첫 방을 만들어 주세요."));
   if (!S.objects.some(o => o.id === selObj)) selObj = S.objects[0]?.id ?? null;
   const sel = S.objects.find(o => o.id === selObj);
   const objects = h("div", {}, h("h3", {}, "물건"),
@@ -405,18 +523,15 @@ function renderSpace() {
   const objEdit = sel ? h("div", {className: "card"},
     h("div", {className: "split2"},
       h("div", {}, field("물건 이름", sel, "name"), field("설명", sel, "description", {area: 3, hint: "눈으로 보아 알 수 있는 내용을 적습니다."}),
-        h("p", {className: "hint"}, `위치: (${sel.x}, ${sel.y})`),
+        h("p", {className: "hint"}, `위치: ${sel.room} (${sel.x}, ${sel.y})`),
         h("button", {type: "button", className: "danger", onclick: () => {
           S.objects = S.objects.filter(o => o !== sel); delete S.sprites.objects[sel.id]; dirty(); render();
         }}, "물건 삭제")),
-      h("div", {}, dotEditor(S.sprites.objects[sel.id], [["idle", "그림"]], drawMap)))) : null;
+      h("div", {}, dotEditor(S.sprites.objects[sel.id], [["idle", "그림"]], () => redrawMap())))) : null;
   const tileEdit = h("details", {}, h("summary", {}, "타일 그림 고치기"),
-    h("div", {className: "row"}, TILES.map(([k, l]) => h("div", {className: "card"}, h("h3", {}, l), dotEditor(S.sprites.tiles[k], [["idle", "그림"]], drawMap)))));
-  drawMap();
-  return h("div", {},
-    h("div", {className: "split2"},
-      h("div", {}, sizes, tools, note, h("div", {className: "mapwrap"}, cv)),
-      h("div", {}, rooms, objects)),
+    h("div", {className: "row"}, TILE_ART.map(([k, l]) => h("div", {className: "card"}, h("h3", {}, l), dotEditor(S.sprites.tiles[k], [["idle", "그림"]], () => redrawMap())))));
+  return h("div", {}, top,
+    h("div", {className: "split2", style: "margin-top: 16px"}, r ? roomMap(r, note) : h("div"), objects),
     objEdit, tileEdit);
 }
 
@@ -520,14 +635,15 @@ function startNew() {
   S = clone(template);
   delete S.sprites.characters._new; delete S.sprites.objects._new;
   current = null; isDirty = false; $("fname").value = ""; $("status").textContent = "";
-  $("overwrite").hidden = true; showProblems([]); selChar = selObj = null; tab = "world";
+  $("overwrite").hidden = true; showProblems([]); selChar = selObj = selRoom = linking = null; spaceMsg = ""; tab = "world";
   refreshPick(); render();
 }
 async function open_(name) {
   S = await (await fetch(`/api/scenario?name=${encodeURIComponent(name)}`)).json();
   S.goal ??= ""; S.schedule ??= []; S.jail_cell ??= null;
+  for (const r of S.rooms || []) { r.doors ??= []; r.at = [Math.min(Math.max(0, r.at?.[0] ?? 20), DIAG_W - BOX_W), Math.min(Math.max(0, r.at?.[1] ?? 20), DIAG_H - BOX_H)]; }
   current = name; isDirty = false; $("fname").value = name; $("status").textContent = "";
-  $("overwrite").hidden = true; showProblems([]); selChar = selObj = null;
+  $("overwrite").hidden = true; showProblems([]); selChar = selObj = selRoom = linking = null; spaceMsg = "";
   refreshPick(); render();
 }
 $("pick").onchange = e => {

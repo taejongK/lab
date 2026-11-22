@@ -86,10 +86,10 @@ const post = (path, body) => fetch(path, {method: "POST", headers: {"Content-Typ
 const DIRS = {up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0]};
 const KEYS = {ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right"};
 
-let assets, state, roomGrid = [], lastRoom = null;
+let assets, state;
 let mode = "world";            // world | wipe | encounter | journal
 const held = [];
-const me = {x: 0, y: 0, px: 0, py: 0, dir: "down", step: 0, ready: false};
+const me = {room: null, x: 0, y: 0, px: 0, py: 0, dir: "down", step: 0, ready: false};
 const others = {};             // id -> 화면 위치·방향
 let pendingMoves = 0, tweenUntil = 0;
 
@@ -128,22 +128,20 @@ function drawCorpse(id, x, y, scale = 1) {
 }
 
 /* --- 월드 --- */
-function setupRooms() {
-  roomGrid = state.map.map((row, y) => [...row].map((_, x) =>
-    (assets.rooms.find(r => r.x0 <= x && x <= r.x1 && r.y0 <= y && y <= r.y1) || {}).name || null));
-}
+const R = name => assets.rooms.find(r => r.name === name);
+/* 카메라: 화면보다 큰 방은 나를 따라가고, 작은 방은 가운데에 둔다 */
+const cam = (pos, size, view) => size <= view ? (size - view) / 2 : Math.max(0, Math.min(pos * T + 8 - view / 2, size - view));
 function drawWorld(now) {
-  const camX = Math.max(0, Math.min(me.px * T + 8 - VW / 2, state.map[0].length * T - VW));
-  const camY = Math.max(0, Math.min(me.py * T + 8 - VH / 2, state.map.length * T - VH));
+  const map = R(me.room).map, camX = cam(me.px, map[0].length * T, VW), camY = cam(me.py, map.length * T, VH);
   ctx.fillStyle = "#000"; ctx.fillRect(0, 0, VW, VH);
   ctx.save(); ctx.translate(-Math.round(camX), -Math.round(camY));
-  state.map.forEach((row, y) => [...row].forEach((ch, x) => {
+  map.forEach((row, y) => [...row].forEach((ch, x) => {
     if (x * T - camX < -T || x * T - camX > VW || y * T - camY < -T || y * T - camY > VH) return;
     ctx.drawImage(bitmap("tiles", ch, "idle"), x * T, y * T);
-    if (roomGrid[y][x] && roomGrid[y][x] !== lastRoom) { ctx.fillStyle = "rgba(27,26,46,.88)"; ctx.fillRect(x * T, y * T, T, T); }
   }));
-  for (const o of state.objects) ctx.drawImage(bitmap("objects", o.id, "idle"), o.x * T, o.y * T);
-  const list = [...state.people.map(p => ({...p, a: others[p.id]})), {id: assets.player, a: me, alive: true}]
+  const here = state.room === me.room;  // 방을 건너간 직후 서버 상태가 오기 전에는 옛 방 사람을 그리지 않는다
+  if (here) for (const o of state.objects) ctx.drawImage(bitmap("objects", o.id, "idle"), o.x * T, o.y * T);
+  const list = [...(here ? state.people : []).map(p => ({...p, a: others[p.id]})), {id: assets.player, a: me, alive: true}]
     .filter(e => e.a).sort((p, q) => p.a.py - q.a.py);
   for (const e of list) {
     if (!e.alive) { drawCorpse(e.id, e.a.px * T, e.a.py * T); continue; }
@@ -165,13 +163,32 @@ function stepOthers(dt) {
     a.py += Math.abs(dy) <= gait ? dy : Math.sign(dy) * gait;
   }
 }
-function walkable(x, y) { const c = (state.map[y] || "")[x]; return c === "." || c === "+"; }
+/* 서버 world.step과 같은 규칙: 문에 들어서면 건너편 방 문 위에 서고, 문 위에서 바깥으로 나가면 되돌아간다 */
+function through(room, x, y) {
+  const d = (R(room).doors || []).find(d => d.x === x && d.y === y);
+  const back = d && R(d.to) && (R(d.to).doors || []).find(b => b.to === room);
+  return back ? {room: d.to, x: back.x, y: back.y} : null;
+}
+function stepFrom(p, dir) {
+  const [dx, dy] = DIRS[dir], map = R(p.room).map, x = p.x + dx, y = p.y + dy;
+  if (y < 0 || y >= map.length || x < 0 || x >= map[0].length) return through(p.room, p.x, p.y);
+  if (map[y][x] !== "." && map[y][x] !== "+") return null;
+  return through(p.room, x, y) || {room: p.room, x, y};
+}
+function enterRoom(name) {
+  if (name === me.room) return;
+  me.room = name;
+  if (state && mode === "world") { const a = $("area"); a.textContent = name; a.hidden = false; clearTimeout(a._t); a._t = setTimeout(() => a.hidden = true, 1600); }
+}
 function tryMove(now) {
   if (mode !== "world" || now < tweenUntil || !held.length) return;
-  const dir = held[held.length - 1], [dx, dy] = DIRS[dir];
+  const dir = held[held.length - 1];
   me.dir = dir;
-  if (!walkable(me.x + dx, me.y + dy)) return;
-  me.x += dx; me.y += dy; me.step++;
+  const n = stepFrom(me, dir);
+  if (!n) return;
+  // 사람과 물건 위로는 못 지나간다. 다른 방 사정은 모르니 서버 판정에 맡긴다
+  if (n.room === state.room && [...state.people, ...state.objects].some(e => e.x === n.x && e.y === n.y)) return;
+  enterRoom(n.room); me.x = n.x; me.y = n.y; me.step++;
   tweenUntil = now + 170; pendingMoves++;
   post("/api/move", {dir}).finally(() => { pendingMoves--; });
 }
@@ -219,11 +236,11 @@ function showToast() {
 /* --- 인터랙션 화면 --- */
 const enc = {target: null, actions: [], isChar: false, wipeStart: 0, wipeOut: false, waitLabel: null, waitUntil: 0, lines: []};
 function findTarget() {
-  const all = [...state.people, ...state.objects];
+  const all = state.room === me.room ? [...state.people, ...state.objects] : [];
   const reach = e => {
     const d = Math.abs(e.x - me.x) + Math.abs(e.y - me.y);
     if (d <= 1) return true;
-    return d === 2 && (e.x === me.x || e.y === me.y) && state.map[(e.y + me.y) / 2][(e.x + me.x) / 2] === "B";
+    return d === 2 && (e.x === me.x || e.y === me.y) && R(me.room).map[(e.y + me.y) / 2][(e.x + me.x) / 2] === "B";
   };
   const [dx, dy] = DIRS[me.dir], ahead = e => Math.sign(e.x - me.x) === dx && Math.sign(e.y - me.y) === dy;
   return all.filter(reach).sort((a, b) => ahead(b) - ahead(a))[0];
@@ -323,10 +340,9 @@ function leaveScene() {
   if (reduced) { mode = "world"; return; }
   mode = "wipe"; enc.wipeOut = true; enc.wipeStart = performance.now(); enc.nextMode = "world";
 }
-function roomOf(id) { return assets.rooms.find(r => r.name === lastRoom) || {}; }
 /* 인터랙션 무대: 방의 색을 깐 뒤, 상대는 크게 오른쪽 위, 나는 등을 보이며 왼쪽 아래 */
 function drawScene(now) {
-  const back = roomOf().backdrop || "#4f4168";
+  const back = R(me.room).backdrop || "#4f4168";
   const floorY = 62;
   ctx.fillStyle = back; ctx.fillRect(0, 0, VW, floorY);
   ctx.fillStyle = "rgba(0,0,0,.28)";
@@ -359,16 +375,10 @@ function drawJournal() {
 /* --- 서버 동기화 --- */
 async function refresh() {
   const s = await (await fetch("/api/state")).json();
-  if (!state) { me.x = me.px = s.player.x; me.y = me.py = s.player.y; seenKnown = s.known_total; }
-  const moved = pendingMoves === 0 && performance.now() >= tweenUntil && (s.player.x !== me.x || s.player.y !== me.y);
-  if (moved) { me.x = me.px = s.player.x; me.y = me.py = s.player.y; }  // 감금 같은 서버 쪽 이동
-  if (s.room && s.room !== lastRoom) {
-    lastRoom = s.room;
-    if (state && mode === "world") { const a = $("area"); a.textContent = s.room; a.hidden = false; clearTimeout(a._t); a._t = setTimeout(() => a.hidden = true, 1600); }
-  }
-  const first = !state;
+  if (!state) { me.room = s.player.room; me.x = me.px = s.player.x; me.y = me.py = s.player.y; seenKnown = s.known_total; }
+  const moved = pendingMoves === 0 && performance.now() >= tweenUntil && (s.player.room !== me.room || s.player.x !== me.x || s.player.y !== me.y);
+  if (moved) { enterRoom(s.player.room); me.x = me.px = s.player.x; me.y = me.py = s.player.y; }  // 감금 같은 서버 쪽 이동
   state = s;
-  if (first) setupRooms();
   if (mode === "journal") drawJournal();
   if (s.debug && $("debug").hidden) {
     $("debug").hidden = false;

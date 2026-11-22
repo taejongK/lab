@@ -32,8 +32,10 @@
   #error { color: var(--gold); margin: 0 0 12px; }
   #cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 16px; }
   .card { display: flex; flex-direction: column; gap: 10px; padding: 16px; text-align: left; font: inherit; width: 100%; height: 100%; }
-  button.card { cursor: pointer; }
-  button.card:hover { background: #fff8e0; }
+  .actions { display: flex; gap: 8px; }
+  .actions button, .actions a { font: inherit; font-size: 15px; color: var(--ink); background: var(--shade); border: 2px solid var(--ink); padding: 6px 14px; cursor: pointer; text-decoration: none; }
+  .actions button { background: var(--gold); }
+  .actions button:hover, .actions a:hover { background: #fff8e0; }
   .faces { display: flex; flex-wrap: wrap; gap: 2px; min-height: 48px; }
   .faces canvas { width: 48px; height: 48px; image-rendering: pixelated; }
   .card h3 { font: inherit; font-size: 18px; margin: 0; }
@@ -83,9 +85,11 @@ async function play(game) {
 }
 function card(game) {
   const kids = [h("div", {className: "faces"}, ...game.faces.map(face)), h("h3", {textContent: game.title}), h("p", {className: "story", textContent: game.story})];
+  const edit = h("a", {href: `/create?name=${encodeURIComponent(game.name)}`, textContent: "수정하기"});
   if (!game.problems) {
-    return h("button", {type: "button", className: "card win", onclick: () => play(game)}, ...kids,
-      h("p", {className: "meta", textContent: `캐릭터 ${game.characters}명, 방 ${game.rooms}개`}));
+    return h("div", {className: "card win"}, ...kids,
+      h("p", {className: "meta", textContent: `캐릭터 ${game.characters}명, 방 ${game.rooms}개`}),
+      h("div", {className: "actions"}, h("button", {type: "button", textContent: "플레이", onclick: () => play(game)}), edit));
   }
   if (game.broken) return h("div", {className: "card win draft"}, ...kids);
   return h("div", {className: "card win draft"}, ...kids,

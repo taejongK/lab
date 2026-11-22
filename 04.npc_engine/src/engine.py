@@ -79,7 +79,7 @@ class Engine:
                                    "witnesses": w.witnesses(c["id"], pending["target"])})
                 return
             # 코드가 경로를 찾는다. AI는 어디로 갈지만 정한다
-            route = w.path((c["x"], c["y"]), w.pos(pending["target"]))
+            route = w.path(w.pos(c["id"]), w.pos(pending["target"]))
             if route is None:
                 c["pending"] = None
                 return
@@ -87,13 +87,19 @@ class Engine:
         if w.tick < c["engaged_until"]:  # 플레이어와 마주하는 동안에는 걸어가 버리지 않는다
             return
         if c["path"]:
-            c["x"], c["y"] = c["path"].pop(0)
+            blocked = w.blocked(c["id"])
+            if c["path"][0] in blocked:  # 누가 길을 막으면 돌아가고, 돌아갈 길도 없으면 이번 틱은 기다린다
+                detour = w.path(w.pos(c["id"]), c["path"][-1], blocked)
+                if not detour or detour[0] in blocked:
+                    return
+                c["path"] = detour
+            w.place(c, c["path"].pop(0))
             return
         period = w.s.get("routine_period", 40)
         if c["routine"] and w.tick >= c["hold_until"]:  # AI가 보낸 곳에서는 일과가 잠시 멈춘다
             room = c["routine"][(w.tick // period) % len(c["routine"])]
-            if w.room_of(c["x"], c["y"]) != room:
-                c["path"] = w.path((c["x"], c["y"]), w.room_spot(room, c["id"])) or []
+            if c["room"] != room:
+                c["path"] = w.path(w.pos(c["id"]), w.room_spot(room, c["id"])) or []
 
     # --- 사건 큐
     def pump(self):
@@ -232,7 +238,7 @@ class Engine:
             target = r.get("target")
             people = set(w.same_room(cid))
             items = {i for i, o in w.objects.items()
-                     if o["holder"] in (None, cid) and w.room_of(*w.pos(i)) == w.room_of(c["x"], c["y"])}
+                     if o["holder"] in (None, cid) and w.pos(i)[0] == c["room"]}
             kinds = {"character": people, "object": items, "any": people | items}
             if action and target in kinds[action["targets"]]:
                 label = action["label"]
@@ -354,20 +360,18 @@ class Engine:
 
     # --- 화면
     def view(self):
-        """플레이어에게 보이는 것: 같은 방의 사람과 물건, 자기 메모리."""
+        """플레이어에게 보이는 것: 지금 방의 사람과 물건, 자기 메모리."""
         w = self.w
         with self.lock:
             p = w.chars[w.player_id]
-            room = w.room_of(p["x"], p["y"])
-            def visible(x, y, eid):  # 같은 방 + 창살 너머처럼 손이 닿는 곳
-                return (room is not None and w.room_of(x, y) == room) or w.near(w.player_id, eid)
+            room = p["room"]
             return {
-                "map": w.map, "tick": w.tick, "room": room, "busy": self.busy or bool(self.queue),
-                "player": {"x": p["x"], "y": p["y"], "name": p["name"], "jailed": p["jailed"]},
+                "tick": w.tick, "room": room, "busy": self.busy or bool(self.queue),
+                "player": {"room": room, "x": p["x"], "y": p["y"], "name": p["name"], "jailed": p["jailed"]},
                 "people": [{"id": c["id"], "name": c["name"], "x": c["x"], "y": c["y"], "alive": c["alive"]}
-                           for c in w.chars.values() if c["id"] != w.player_id and visible(c["x"], c["y"], c["id"])],
+                           for c in w.chars.values() if c["id"] != w.player_id and c["room"] == room],
                 "objects": [{"id": i, "name": o["name"], "x": o["x"], "y": o["y"]}
-                            for i, o in w.objects.items() if not o["holder"] and visible(o["x"], o["y"], i)],
+                            for i, o in w.objects.items() if not o["holder"] and o["room"] == room],
                 "holding": [o["name"] for o in w.objects.values() if o["holder"] == w.player_id],
                 "known": p["memory"]["known"][-40:],
                 "known_total": len(p["memory"]["known"]),

@@ -46,33 +46,35 @@ def _problems(s):
     elif s["strictness"] == "strict" and not s.get("goal", "").strip():
         p.append("[세계관] 엄격한 진행에는 반드시 지킬 목표가 필요합니다")
 
-    grid, rooms = s["map"], s["rooms"]
-    if not grid or len({len(r) for r in grid}) != 1 or set("".join(grid)) - set(".#+B"):
-        return p + ["[공간] 지도는 같은 길이의 줄로, 바닥·벽·문·창살만으로 이뤄져야 합니다"]
-    h, w = len(grid), len(grid[0])
-    walk = lambda x, y: 0 <= y < h and 0 <= x < w and grid[y][x] in ".+"
+    rooms = s["rooms"]
     names = [r["name"] for r in rooms]
     if not rooms:
         p.append("[공간] 방이 하나도 없습니다")
     if len(set(names)) != len(names) or not all(n.strip() for n in names):
         p.append("[공간] 방 이름은 비어 있지 않고 서로 달라야 합니다")
-    covered = {}
+    by_name = {r["name"]: r for r in rooms}
     for r in rooms:
-        if not (0 <= r["x0"] <= r["x1"] < w and 0 <= r["y0"] <= r["y1"] < h):
-            p.append(f"[공간] 방 '{r['name']}'이(가) 지도 밖으로 나갑니다")
-        for y in range(r["y0"], r["y1"] + 1):
-            for x in range(r["x0"], r["x1"] + 1):
-                if (x, y) in covered:
-                    p.append(f"[공간] 방 '{r['name']}'과(와) '{covered[x, y]}'이(가) 겹칩니다")
-                    break
-                covered[x, y] = r["name"]
-            else:
-                continue
-            break
-    loose = [(x, y) for y in range(h) for x in range(w) if grid[y][x] == "." and (x, y) not in covered]
-    if loose:
-        p.append(f"[공간] 어느 방에도 속하지 않은 바닥 {len(loose)}칸이 있습니다 (예: {loose[0]})")
-    if s.get("jail_cell") and not walk(*s["jail_cell"]):
+        g, n = r["map"], r["name"]
+        if not g or len({len(row) for row in g}) != 1 or set("".join(g)) - set(".#+B"):
+            p.append(f"[공간] 방 '{n}'의 지도는 같은 길이의 줄로, 바닥·벽·문·창살만으로 이뤄져야 합니다")
+            continue
+        doors = r.get("doors", [])
+        plus = {(x, y) for y, row in enumerate(g) for x, ch in enumerate(row) if ch == "+"}
+        if {(d["x"], d["y"]) for d in doors} != plus or len(doors) != len(plus):
+            p.append(f"[공간] 방 '{n}'의 문 칸과 연결 목록이 맞지 않습니다")
+        tos = [d["to"] for d in doors]
+        if len(set(tos)) != len(tos):
+            p.append(f"[공간] 방 '{n}'에서 같은 방으로 가는 문이 둘 이상입니다")
+        for d in doors:
+            if d["to"] not in by_name or not any(b["to"] == n for b in by_name[d["to"]].get("doors", [])):
+                p.append(f"[공간] 방 '{n}'의 문이 '{d['to']}'와(과) 양쪽으로 이어지지 않았습니다")
+    if p:  # 지도가 망가졌으면 아래 위치 검사가 의미 없다
+        return p
+
+    def walk(e):
+        r = by_name.get(e.get("room"))
+        return r is not None and 0 <= e["y"] < len(r["map"]) and 0 <= e["x"] < len(r["map"][0]) and r["map"][e["y"]][e["x"]] in ".+"
+    if s.get("jail_cell") and not walk(s["jail_cell"]):
         p.append("[공간] 감옥 칸은 바닥이어야 합니다")
 
     chars = [s["player"]] + s["characters"]
@@ -82,7 +84,7 @@ def _problems(s):
     for c in chars:
         if not c.get("name", "").strip():
             p.append(f"[캐릭터] {c['id']}의 이름이 없습니다")
-        if not walk(c["x"], c["y"]):
+        if not walk(c):
             p.append(f"[공간] {c.get('name')}의 시작 위치가 바닥이 아닙니다")
         bad = set(c.get("routine", [])) - set(names)
         if bad:
@@ -90,7 +92,7 @@ def _problems(s):
     for o in s["objects"]:
         if not o.get("name", "").strip() or not o.get("description", "").strip():
             p.append(f"[공간] 물건 {o['id']}의 이름과 설명이 필요합니다")
-        if not walk(o["x"], o["y"]):
+        if not walk(o):
             p.append(f"[공간] {o.get('name')}의 위치가 바닥이 아닙니다")
 
     sprites = s.get("sprites", {})
@@ -104,7 +106,7 @@ def _problems(s):
     for o in s["objects"]:
         if "idle" not in sprites.get("objects", {}).get(o["id"], {}).get("frames", {}):
             p.append(f"[도트] {o.get('name')}의 그림이 없습니다")
-    for ch in set("".join(grid)):
+    for ch in set("".join(row for r in rooms for row in r["map"])):
         if "idle" not in sprites.get("tiles", {}).get(ch, {}).get("frames", {}):
             p.append(f"[도트] 타일 '{ch}'의 그림이 없습니다")
 
@@ -125,7 +127,7 @@ def _problems(s):
     world = World(s)
     for c in s["characters"]:
         for room in c.get("routine", []):
-            if world.path((c["x"], c["y"]), world.room_spot(room, c["id"])) is None:
+            if world.path(world.pos(c["id"]), world.room_spot(room, c["id"])) is None:
                 p.append(f"[공간] {c['name']}이(가) 일과의 '{room}'까지 걸어갈 수 없습니다")
     return p
 
@@ -134,14 +136,14 @@ class World:
     def __init__(self, s):
         self.s = s
         check_sprites(s.get("sprites", {}))
-        self.map = s["map"]
         self.rooms = s["rooms"]
+        self.room = {r["name"]: r for r in self.rooms}
         self.tick = 0
         self.player_id = s["player"]["id"]
         self.chars = {}
         for c in [s["player"]] + s["characters"]:
             self.chars[c["id"]] = {
-                "id": c["id"], "name": c["name"], "x": c["x"], "y": c["y"], "sheet": c.get("sheet", {}),
+                "id": c["id"], "name": c["name"], "room": c["room"], "x": c["x"], "y": c["y"], "sheet": c.get("sheet", {}),
                 "routine": c.get("routine", []), "alive": True, "jailed": False, "path": [], "pending": None,
                 "hold_until": 0, "engaged_until": 0,
                 "memory": {"known": [], "feelings": []},
@@ -158,30 +160,62 @@ class World:
             bad = set(c["routine"]) - names
             assert not bad, f"{c['id']}의 일과에 없는 방: {bad}"
 
-    # --- 공간
-    def walkable(self, x, y):
-        return 0 <= y < len(self.map) and 0 <= x < len(self.map[y]) and self.map[y][x] in ".+"
+    # --- 공간. 위치는 (방 이름, x, y). 방마다 자기 지도를 갖고, 문으로 이어진다
+    def inside(self, p):
+        r = self.room.get(p[0])
+        return r is not None and 0 <= p[2] < len(r["map"]) and 0 <= p[1] < len(r["map"][0])
 
-    def room_of(self, x, y):
-        for r in self.rooms:
-            if r["x0"] <= x <= r["x1"] and r["y0"] <= y <= r["y1"]:
-                return r["name"]
-        return None
+    def tile(self, p):
+        return self.room[p[0]]["map"][p[2]][p[1]] if self.inside(p) else "#"
+
+    def walkable(self, p):
+        return self.tile(p) in ".+"
+
+    def through(self, p):
+        """문 칸이면 건너편 방의 짝 문 칸. 아니면 None."""
+        room, x, y = p
+        d = next((d for d in self.room[room].get("doors", []) if (d["x"], d["y"]) == (x, y)), None)
+        back = d and next((b for b in self.room.get(d["to"], {}).get("doors", []) if b["to"] == room), None)
+        return (d["to"], back["x"], back["y"]) if back else None
+
+    def step(self, p, direction):
+        """한 칸 이동한 위치. 문에 들어서면 건너편 방 문 위에 선다. 못 가면 None."""
+        dx, dy = DIRS[direction]
+        n = (p[0], p[1] + dx, p[2] + dy)
+        if not self.inside(n):  # 문 위에서 지도 밖으로 나가면 다시 건너간다. 막 들어온 문으로 되돌아갈 수 있게
+            return self.through(p)
+        if not self.walkable(n):
+            return None
+        return self.through(n) or n
+
+    def _floor(self, name):
+        return [(name, x, y) for y, row in enumerate(self.room[name]["map"]) for x, ch in enumerate(row) if ch == "."]
 
     def room_center(self, name):
-        r = next((r for r in self.rooms if r["name"] == name), None)
-        return None if r is None else ((r["x0"] + r["x1"]) // 2, (r["y0"] + r["y1"]) // 2)
+        if name not in self.room:
+            return None
+        r = self.room[name]["map"]
+        cx, cy = len(r[0]) // 2, len(r) // 2
+        return min(self._floor(name), key=lambda p: abs(p[1] - cx) + abs(p[2] - cy), default=None)
 
     def room_spot(self, name, cid):
         """캐릭터마다 방 안의 다른 자리. 한 칸에 겹쳐 서지 않도록."""
-        r = next(r for r in self.rooms if r["name"] == name)
+        r = self.room[name]
         i = list(self.chars).index(cid)
         if r.get("spots"):  # 창살 앞처럼 서야 할 자리를 시나리오가 정한 경우
-            return tuple(r["spots"][i % len(r["spots"])])
-        return r["x0"] + i * 2 % (r["x1"] - r["x0"] + 1), r["y0"] + i % (r["y1"] - r["y0"] + 1)
+            return (name, *r["spots"][i % len(r["spots"])])
+        floor = self._floor(name)
+        return floor[i * 7 % len(floor)] if floor else None
 
-    def path(self, start, goal):
-        """start에서 goal까지 칸 목록(start 제외). 없으면 None."""
+    def blocked(self, skip=None):
+        """사람(쓰러진 사람 포함)과 바닥에 놓인 물건이 차지한 칸. 그 위로는 지나갈 수 없다."""
+        out = {(c["room"], c["x"], c["y"]) for c in self.chars.values() if c["id"] != skip}
+        return out | {(o["room"], o["x"], o["y"]) for o in self.objects.values() if o["holder"] is None}
+
+    def path(self, start, goal, avoid=frozenset()):
+        """start에서 goal까지 위치 목록(start 제외). 방을 건너가도 된다. avoid 칸은 피한다(goal은 예외). 없으면 None."""
+        if goal is None:
+            return None
         prev, q = {start: None}, deque([start])
         while q:
             p = q.popleft()
@@ -191,9 +225,9 @@ class World:
                     out.append(p)
                     p = prev[p]
                 return out[::-1]
-            for dx, dy in DIRS.values():
-                n = (p[0] + dx, p[1] + dy)
-                if n not in prev and self.walkable(*n):
+            for d in DIRS:
+                n = self.step(p, d)
+                if n and n not in prev and (n not in avoid or n == goal):
                     prev[n] = p
                     q.append(n)
         return None
@@ -203,54 +237,45 @@ class World:
         if e is None:
             return None
         holder = e.get("holder")
-        return self.pos(holder) if holder else (e["x"], e["y"])
+        return self.pos(holder) if holder else (e["room"], e["x"], e["y"])
+
+    def place(self, e, p):
+        e["room"], e["x"], e["y"] = p
 
     def near(self, a, b):
-        """인터랙션 가능 거리. 창살(B) 한 칸 너머도 닿는다 — 갇혀도 대화할 수 있도록."""
+        """인터랙션 가능 거리. 같은 방에서 창살(B) 한 칸 너머도 닿는다 — 갇혀도 대화할 수 있도록."""
         pa, pb = self.pos(a), self.pos(b)
-        if pa is None or pb is None:
+        if pa is None or pb is None or pa[0] != pb[0]:
             return False
-        d = abs(pa[0] - pb[0]) + abs(pa[1] - pb[1])
+        d = abs(pa[1] - pb[1]) + abs(pa[2] - pb[2])
         if d <= 1:
             return True
-        if d == 2 and (pa[0] == pb[0] or pa[1] == pb[1]):
-            return self.map[(pa[1] + pb[1]) // 2][(pa[0] + pb[0]) // 2] == "B"
+        if d == 2 and (pa[1] == pb[1] or pa[2] == pb[2]):
+            return self.tile((pa[0], (pa[1] + pb[1]) // 2, (pa[2] + pb[2]) // 2)) == "B"
         return False
 
     def same_room(self, eid):
-        """eid와 같은 방에 있는 산 캐릭터. 문턱에 있으면 아무도 없다."""
-        x, y = self.pos(eid)
-        room = self.room_of(x, y)
-        if room is None:
-            return []
-        return [c["id"] for c in self.chars.values()
-                if c["id"] != eid and c["alive"] and self.room_of(c["x"], c["y"]) == room]
+        """eid와 같은 방에 있는 산 캐릭터."""
+        room = self.pos(eid)[0]
+        return [c["id"] for c in self.chars.values() if c["id"] != eid and c["alive"] and c["room"] == room]
 
     def move_player(self, direction):
         p = self.chars[self.player_id]
         if direction not in DIRS or not p["alive"]:
             return False
-        nx, ny = p["x"] + DIRS[direction][0], p["y"] + DIRS[direction][1]
-        if not self.walkable(nx, ny):
+        n = self.step(self.pos(self.player_id), direction)
+        if n is None or n in self.blocked(self.player_id):
             return False
-        p["x"], p["y"] = nx, ny
+        self.place(p, n)
         return True
-
-    def rooms_at(self, x, y):
-        """그 칸이 속한 방. 문턱은 맞닿은 방 모두에 속한다."""
-        room = self.room_of(x, y)
-        if room:
-            return {room}
-        return {r for r in (self.room_of(x + dx, y + dy) for dx, dy in DIRS.values()) if r}
 
     def witnesses(self, actor, target=None):
         """이 행위를 알아챌 수 있는 산 캐릭터. 행위자 쪽과 대상 쪽 방을 모두 본다."""
-        rooms = self.rooms_at(*self.pos(actor)) if actor else set()
+        rooms = {self.pos(actor)[0]} if actor else set()
         if target and self.pos(target):
-            rooms |= self.rooms_at(*self.pos(target))
-        out = [c["id"] for c in self.chars.values() if c["id"] != actor and c["alive"]
-               and (self.room_of(c["x"], c["y"]) in rooms or c["id"] == target)]
-        return out
+            rooms.add(self.pos(target)[0])
+        return [c["id"] for c in self.chars.values() if c["id"] != actor and c["alive"]
+                and (c["room"] in rooms or c["id"] == target)]
 
     # --- 메모리
     def remember(self, cid, kind, text, source=None):
@@ -292,7 +317,7 @@ class World:
             if o is None:
                 return False, f"없는 오브젝트 {oid}"
             if cid is None:  # 내려놓기: 들고 있던 사람의 자리에 남는다
-                o["x"], o["y"] = self.pos(oid)
+                self.place(o, self.pos(oid))
                 o["holder"] = None
                 return True, ""
             if c is None or not c["alive"]:
@@ -314,14 +339,15 @@ class World:
             cell = self.s.get("jail_cell")
             if cell is None or c["jailed"]:
                 return False, "가둘 수 없다"
-            c["x"], c["y"], c["jailed"] = cell[0], cell[1], True
+            self.place(c, (cell["room"], cell["x"], cell["y"]))
+            c["jailed"], c["path"] = True, []
             return True, ""
         if t == "move":
             if cid == self.player_id:
                 return False, "플레이어는 AI가 옮기지 않는다"
             goal = self.room_center(ch.get("text") or "")
-            route = goal and self.path((c["x"], c["y"]), goal)
-            if route is None or not goal:
+            route = self.path(self.pos(cid), goal)
+            if route is None:
                 return False, f"갈 수 없는 곳 {ch.get('text')}"
             c["path"] = route
             c["hold_until"] = self.tick + len(route) + self.s.get("routine_period", 40)
@@ -332,7 +358,8 @@ class World:
         c["alive"], c["path"], c["pending"] = False, [], None
         for o in self.objects.values():
             if o["holder"] == c["id"]:
-                o["x"], o["y"], o["holder"] = c["x"], c["y"], None
+                self.place(o, self.pos(c["id"]))
+                o["holder"] = None
         for role, v in self.roles.items():
             if v["holder"] != c["id"]:
                 continue
@@ -344,7 +371,7 @@ class World:
     # --- AI에게 줄 정보
     def public_char(self, cid):
         c = self.chars[cid]
-        return {"id": cid, "name": c["name"], "alive": c["alive"], "room": self.room_of(c["x"], c["y"]),
+        return {"id": cid, "name": c["name"], "alive": c["alive"], "room": c["room"],
                 "roles": self.role_of(cid)}
 
     def public_object(self, oid):
@@ -352,16 +379,14 @@ class World:
         return {"id": oid, "name": o["name"], "description": o["description"], "held_by": o["holder"]}
 
     def surroundings(self, cid):
-        x, y = self.pos(cid)
-        room = self.room_of(x, y)
+        room = self.pos(cid)[0]
         return {
             "room": room,
             "people_here": [self.public_char(i) for i in self.same_room(cid)],
-            "bodies_here": [c["name"] for c in self.chars.values()
-                            if not c["alive"] and room and self.room_of(c["x"], c["y"]) == room],
+            "bodies_here": [c["name"] for c in self.chars.values() if not c["alive"] and c["room"] == room],
             # 다른 사람이 지닌 물건은 보이지 않는다
             "objects_here": [self.public_object(i) for i, o in self.objects.items()
-                             if room and o["holder"] in (None, cid) and self.room_of(*self.pos(i)) == room],
+                             if o["holder"] in (None, cid) and self.pos(i)[0] == room],
             "holding": [self.public_object(i) for i, o in self.objects.items() if o["holder"] == cid],
         }
 
@@ -375,7 +400,7 @@ class World:
             "characters": [{**self.public_char(i), "sheet": c["sheet"], "jailed": c["jailed"],
                             "knows": c["memory"]["known"]}
                            for i, c in self.chars.items()],
-            "objects": [{**self.public_object(i), "state": o["state"], "room": self.room_of(*self.pos(i))}
+            "objects": [{**self.public_object(i), "state": o["state"], "room": self.pos(i)[0]}
                         for i, o in self.objects.items()],
             "rooms": [r["name"] for r in self.rooms],
             "roles": self.roles,
